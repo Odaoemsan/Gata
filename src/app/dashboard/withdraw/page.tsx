@@ -77,23 +77,13 @@ export default function WithdrawPage() {
                 });
                 form.reset();
             })
-            .catch(async (error) => {
-                if (error.code === 'permission-denied') {
-                    const docRef = error.customData?.docRef as DocumentReference | undefined;
-                    const path = docRef ? docRef.path : transactionsRef.path;
-                    const permissionError = new FirestorePermissionError({
-                        path: path,
-                        operation: 'create',
-                        requestResourceData: newTransaction,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                } else {
-                    toast({
-                        variant: 'destructive',
-                        title: 'Request Failed',
-                        description: 'Could not submit your withdrawal request. Please try again.',
-                    });
-                }
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: transactionsRef.path,
+                    operation: 'create',
+                    requestResourceData: newTransaction,
+                });
+                errorEmitter.emit('permission-error', permissionError);
             })
             .finally(() => {
                 setIsLoading(false);
