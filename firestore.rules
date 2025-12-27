@@ -34,8 +34,8 @@ service cloud.firestore {
       allow update: if isAdmin() || 
                      (isOwner(userId) && 
                       'balance' in request.resource.data &&
-                      request.resource.data.balance == resource.data.balance - request.resource.data.investmentAmount &&
-                      request.resource.data.keys().hasOnly(['balance']));
+                      'investmentAmount' in request.resource.data &&
+                      request.resource.data.balance == resource.data.balance - request.resource.data.investmentAmount);
 
       // No one can delete a user profile for now.
       allow delete: if false;
