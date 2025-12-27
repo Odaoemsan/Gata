@@ -24,7 +24,7 @@ export default function EarningsPage() {
     }
 
     return (
-        <div className="flex-1 space-y-6 p-4 md:p-8">
+        <div className="flex-1 space-y-6 p-4">
              <div className="text-center">
                 <h2 className="text-3xl font-bold tracking-tight">Daily Earnings</h2>
                 <p className="text-muted-foreground mt-1">Claim your profits from active investments.</p>

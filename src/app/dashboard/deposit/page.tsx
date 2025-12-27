@@ -84,7 +84,7 @@ export default function DepositPage() {
                             <Input
                                 readOnly
                                 value={usdtWallet.address}
-                                className="pr-10 text-center font-mono text-sm"
+                                className="pr-10 text-center font-mono text-sm break-all"
                             />
                             <Button
                                 variant="ghost"

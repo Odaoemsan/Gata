@@ -50,7 +50,7 @@ function formatDate(timestamp: any) {
 
 function DashboardSkeleton() {
     return (
-        <div className="flex-1 space-y-6 p-4 md:p-8">
+        <div className="flex-1 space-y-6 p-4">
             <div className="space-y-1">
                 <Skeleton className="h-8 w-48" />
                 <Skeleton className="h-5 w-64" />
@@ -111,7 +111,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex-1 space-y-6 p-4 md:p-8">
+    <div className="flex-1 space-y-6 p-4">
         <div className="space-y-1">
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                 Welcome back, {typedUserData?.displayName?.split(' ')[0] ?? 'User'}!
