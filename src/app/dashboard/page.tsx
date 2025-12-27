@@ -9,13 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
-import type { User, Transaction } from '@/lib/types';
+import type { User, Transaction, ActiveInvestment } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DollarSign, TrendingUp, TrendingDown, Briefcase, ArrowRight, Wallet, Rocket, Users, Landmark } from 'lucide-react';
+import { ArrowRight, Briefcase, Landmark, Rocket, TrendingDown, TrendingUp, Users, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-function formatCurrency(amount: number | undefined) {
+function formatCurrency(amount: number | undefined | null) {
   if (typeof amount !== 'number') return '$0.00';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -94,7 +94,7 @@ export default function DashboardPage() {
   const firestore = useFirestore();
 
   const transactionsQuery = useMemo(() => {
-    if (!user) return null;
+    if (!user || !firestore) return null;
     return query(
       collection(firestore, 'users', user.uid, 'transactions'),
       orderBy('date', 'desc'),
@@ -102,11 +102,24 @@ export default function DashboardPage() {
     );
   }, [firestore, user]);
 
+  const activeInvestmentsQuery = useMemo(() => {
+    if (!user || !firestore) return null;
+    return query(
+        collection(firestore, 'users', user.uid, 'activeInvestments'),
+        where('status', '==', 'active')
+    );
+  }, [firestore, user]);
+
   const { data: transactions, loading: transactionsLoading } = useCollection<Transaction>(transactionsQuery);
+  const { data: activeInvestments, loading: investmentsLoading } = useCollection<ActiveInvestment>(activeInvestmentsQuery);
+  
+  const totalInvested = useMemo(() => {
+    return activeInvestments?.reduce((acc, investment) => acc + investment.amount, 0);
+  }, [activeInvestments]);
 
   const typedUserData = userData as User | null;
 
-  if (userLoading) {
+  if (userLoading || investmentsLoading) {
     return <DashboardSkeleton />;
   }
 
@@ -120,17 +133,17 @@ export default function DashboardPage() {
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Button variant="outline" asChild>
-                <Link href="/dashboard/wallet?tab=deposit">
+             <Button variant="outline" asChild>
+                <Link href="/dashboard/deposit">
                     <Landmark className="mr-2 h-4 w-4" /> Deposit
                 </Link>
             </Button>
             <Button variant="outline" asChild>
-                <Link href="/dashboard/wallet?tab=withdraw">
+                <Link href="/dashboard/withdraw">
                     <Wallet className="mr-2 h-4 w-4" /> Withdraw
                 </Link>
             </Button>
-             <Button variant="outline" asChild>
+             <Button asChild>
                 <Link href="/dashboard/invest">
                    <Rocket className="mr-2 h-4 w-4" /> Invest
                 </Link>
@@ -186,7 +199,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-xl font-bold">
-                  {formatCurrency(0)}
+                  {formatCurrency(totalInvested)}
               </div>
             </CardContent>
           </Card>

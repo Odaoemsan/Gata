@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo } from "react";
+import { useMemo, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge";
@@ -205,7 +205,8 @@ function WalletPageContent() {
 
 export default function WalletPage() {
     return (
-        // React.Suspense is not needed here as useSearchParams is used in a client component
-        <WalletPageContent />
+        <Suspense fallback={<div>Loading...</div>}>
+            <WalletPageContent />
+        </Suspense>
     )
 }

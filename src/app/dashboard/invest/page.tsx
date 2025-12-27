@@ -28,7 +28,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 function PlanSkeleton() {
     return (
-        <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(3)].map((_, i) => (
                 <Card key={i}>
                     <CardHeader>
@@ -61,16 +61,16 @@ export default function InvestPage() {
     const [amount, setAmount] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const plansQuery = query(collection(firestore, 'investmentPlans'));
+    const plansQuery = firestore ? query(collection(firestore, 'investmentPlans')) : null;
     const { data: plans, loading } = useCollection<InvestmentPlan>(plansQuery);
 
     const typedUserData = userData as User | null;
 
-    const planIcons = {
-        default: <Rocket className="h-10 w-10 text-primary" />,
+    const planIcons: { [key: string]: JSX.Element } = {
         starter: <Rocket className="h-10 w-10 text-primary" />,
         advanced: <Zap className="h-10 w-10 text-yellow-500" />,
-        professional: <Crown className="h-10 w-10 text-purple-500" />
+        professional: <Crown className="h-10 w-10 text-purple-500" />,
+        default: <Rocket className="h-10 w-10 text-muted-foreground" />,
     };
 
     const handleInvest = async () => {
@@ -107,11 +107,8 @@ export default function InvestPage() {
         };
 
         const batch = writeBatch(firestore);
-
-        // 1. Update user's balance
-        batch.update(userRef, { balance: newBalance, investmentAmount: investmentAmount });
-
-        // 2. Create new active investment document
+        
+        batch.update(userRef, { balance: newBalance });
         batch.set(newInvestmentRef, newInvestment);
 
         batch.commit()
@@ -124,22 +121,12 @@ export default function InvestPage() {
                 setAmount('');
             })
             .catch(async (error) => {
-                 if (error.code === 'permission-denied') {
-                    // This is a batch write, so the error could be on either operation.
-                    // We'll assume the user balance update is the most likely cause for a permission error.
-                    const permissionError = new FirestorePermissionError({
-                        path: userRef.path,
-                        operation: 'update',
-                        requestResourceData: { balance: newBalance, investmentAmount: investmentAmount },
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                } else {
-                    toast({
-                        variant: 'destructive',
-                        title: 'Investment Failed',
-                        description: error.message || 'Could not process your investment. Please try again.',
-                    });
-                }
+                 const permissionError = new FirestorePermissionError({
+                    path: userRef.path, // We assume the user balance update is the primary point of failure for permissions
+                    operation: 'update',
+                    requestResourceData: { balance: newBalance, _comment: 'Attempting to deduct investment amount' },
+                });
+                errorEmitter.emit('permission-error', permissionError);
             })
             .finally(() => {
                 setIsLoading(false);
@@ -154,15 +141,15 @@ export default function InvestPage() {
             </div>
             
             {loading ? <PlanSkeleton /> : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {(plans ?? []).map(plan => (
-                        <Card key={plan.id} className="shadow-lg hover:shadow-primary/20 transition-shadow flex flex-col">
+                        <Card key={plan.id} className="shadow-lg hover:shadow-primary/20 transition-shadow flex flex-col group">
                              <CardHeader>
                                 <div className="flex items-center gap-4">
-                                     {planIcons[plan.name.toLowerCase() as keyof typeof planIcons] || planIcons.default}
+                                     {planIcons[plan.name.toLowerCase()] || planIcons.default}
                                     <div>
                                         <CardTitle className="text-xl font-headline">{plan.name}</CardTitle>
-                                        <CardDescription>Min/Max: ${plan.minMax}</CardDescription>
+                                        <CardDescription>Min/Max: {plan.minMax}</CardDescription>
                                     </div>
                                 </div>
                             </CardHeader>
@@ -178,10 +165,12 @@ export default function InvestPage() {
                                  <div className="flex items-center">
                                     <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
                                     <span>Principal returned at end</span>
-                                </div>
+                                 </div>
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full" onClick={() => setSelectedPlan(plan)}>Choose Plan</Button>
+                                <Button className="w-full transition-transform group-hover:scale-105" onClick={() => setSelectedPlan(plan)}>
+                                    Invest Now
+                                </Button>
                             </CardFooter>
                         </Card>
                     ))}
@@ -193,7 +182,8 @@ export default function InvestPage() {
                     <AlertDialogHeader>
                     <AlertDialogTitle>Invest in {selectedPlan?.name} Plan</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Your current balance is <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>.
+                        Your current balance is <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>. 
+                        Enter the amount you wish to invest.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="py-4">
@@ -203,7 +193,7 @@ export default function InvestPage() {
                             type="number" 
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            placeholder={`Min/Max: ${selectedPlan?.minMax}`} />
+                            placeholder={`e.g. 500. Min/Max: ${selectedPlan?.minMax}`} />
                     </div>
                     <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
