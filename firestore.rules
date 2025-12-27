@@ -17,7 +17,7 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       // Any authenticated user can create their own profile upon signup.
-      // We check that the incoming data has the correct fields.
+      // We check that the incoming data has the correct fields and email matches token.
       allow create: if request.auth != null && isOwner(userId)
                     && request.resource.data.displayName is string
                     && request.resource.data.username is string
@@ -37,12 +37,32 @@ service cloud.firestore {
 
       // Transactions subcollection
       match /transactions/{transactionId} {
-        // The owner can create and read their own transactions.
-        allow create, list, get: if isOwner(userId);
+        // The owner can list and read their own transactions.
+        allow list, get: if isOwner(userId);
+
+        // The owner can create transactions with valid data.
+        allow create: if isOwner(userId)
+                      && (
+                        // Deposit transaction validation
+                        (request.resource.data.type == 'deposit'
+                          && request.resource.data.amount is number
+                          && request.resource.data.status == 'pending'
+                          && request.resource.data.date == request.time
+                          && request.resource.data.keys().hasAll(['type', 'amount', 'status', 'date'])) ||
+                        // Withdrawal transaction validation
+                        (request.resource.data.type == 'withdrawal'
+                          && request.resource.data.amount is number
+                          && request.resource.data.walletAddress is string
+                          && request.resource.data.status == 'pending'
+                          && request.resource.data.date == request.time
+                          && request.resource.data.keys().hasAll(['type', 'amount', 'walletAddress', 'status', 'date']))
+                      );
         
-        // No one can update or delete transactions for now to preserve history.
-        // Admins might update status via a backend function.
-        allow update, delete: if false;
+        // Admins can update status, but users cannot.
+        allow update: if isAdmin();
+
+        // No one can delete transactions for now to preserve history.
+        allow delete: if false;
       }
     }
 
