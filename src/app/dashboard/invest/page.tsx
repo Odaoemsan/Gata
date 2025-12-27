@@ -129,7 +129,7 @@ export default function InvestPage() {
 
         const batch = writeBatch(firestore);
         
-        batch.update(userRef, { balance: newBalance, investmentAmount: investmentAmount });
+        batch.update(userRef, { balance: newBalance });
         batch.set(newInvestmentRef, newInvestment);
 
         batch.commit()
@@ -232,5 +232,4 @@ export default function InvestPage() {
         </div>
     );
 }
-
     
