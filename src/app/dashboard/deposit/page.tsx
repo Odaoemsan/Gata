@@ -8,16 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { DollarSign, Copy, Loader2 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useUser } from '@/firebase/auth/use-user';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 
-const cryptoWallets = [
-    { name: 'Bitcoin (BTC)', address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' },
-    { name: 'Ethereum (ETH)', address: '0x321a4DB2594532B94242B8b4c813399435754432' },
-    { name: 'Tether (USDT)', address: '0x987b3A321f4A2b5C4D6E890B1234567890aBcDeF' },
-];
+const usdtWallet = {
+    name: 'Tether (USDT TRC20)',
+    address: 'TXYZ12345AbcdeFGHiJkLmnOPqrstUVwxyZ12345',
+};
 
 export default function DepositPage() {
     const { toast } = useToast();
@@ -71,39 +69,28 @@ export default function DepositPage() {
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-lg">1. Choose Crypto &amp; Send</CardTitle>
-                    <CardDescription>Select a cryptocurrency and send the amount you wish to invest to the provided address.</CardDescription>
+                    <CardTitle className="text-lg">1. Send USDT (TRC20)</CardTitle>
+                    <CardDescription>Send the amount you wish to invest to the provided TRC20 wallet address.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    <Tabs defaultValue={cryptoWallets[0].name} className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
-                            {cryptoWallets.map(wallet => (
-                                <TabsTrigger key={wallet.name} value={wallet.name}>{wallet.name.split(' ')[0]}</TabsTrigger>
-                            ))}
-                        </TabsList>
-                        {cryptoWallets.map(wallet => (
-                        <TabsContent key={wallet.name} value={wallet.name}>
-                            <div className="mt-4 p-4 border rounded-lg bg-muted/50 space-y-4">
-                                <h3 className="font-semibold text-center">Send to this {wallet.name} address:</h3>
-                                <div className="relative">
-                                    <Input
-                                        readOnly
-                                        value={wallet.address}
-                                        className="pr-10 text-center font-mono text-sm"
-                                    />
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                                        onClick={() => handleCopy(wallet.address)}
-                                    >
-                                        <Copy className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </TabsContent>
-                        ))}
-                    </Tabs>
+                <CardContent className="space-y-4">
+                     <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
+                        <h3 className="font-semibold text-center">Send to this {usdtWallet.name} address:</h3>
+                        <div className="relative">
+                            <Input
+                                readOnly
+                                value={usdtWallet.address}
+                                className="pr-10 text-center font-mono text-sm"
+                            />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                                onClick={() => handleCopy(usdtWallet.address)}
+                            >
+                                <Copy className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
             
