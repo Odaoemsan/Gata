@@ -106,43 +106,44 @@ export default function InvestPage() {
             status: 'active',
         };
 
-        try {
-            const batch = writeBatch(firestore);
+        const batch = writeBatch(firestore);
 
-            // 1. Update user's balance
-            batch.update(userRef, { balance: newBalance });
+        // 1. Update user's balance
+        batch.update(userRef, { balance: newBalance, investmentAmount: investmentAmount });
 
-            // 2. Create new active investment document
-            batch.set(newInvestmentRef, newInvestment);
+        // 2. Create new active investment document
+        batch.set(newInvestmentRef, newInvestment);
 
-            await batch.commit();
-
-            toast({
-                title: "Investment Successful!",
-                description: `You have successfully invested $${investmentAmount} in the ${selectedPlan.name} plan.`
-            });
-            setSelectedPlan(null);
-            setAmount('');
-
-        } catch(error: any) {
-             if (error.code === 'permission-denied') {
-                const permissionError = new FirestorePermissionError({
-                    path: userRef.path, // Or a more specific path if identifiable
-                    operation: 'update', // This is a batch, so it's tricky. Let's use 'update' as it's the most sensitive part.
-                    requestResourceData: { balance: newBalance },
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            } else {
-                console.error("Investment failed:", error);
+        batch.commit()
+            .then(() => {
                 toast({
-                    variant: 'destructive',
-                    title: 'Investment Failed',
-                    description: error.message || 'Could not process your investment. Please try again.',
+                    title: "Investment Successful!",
+                    description: `You have successfully invested $${investmentAmount} in the ${selectedPlan.name} plan.`
                 });
-            }
-        } finally {
-            setIsLoading(false);
-        }
+                setSelectedPlan(null);
+                setAmount('');
+            })
+            .catch(async (error) => {
+                 if (error.code === 'permission-denied') {
+                    // This is a batch write, so the error could be on either operation.
+                    // We'll assume the user balance update is the most likely cause for a permission error.
+                    const permissionError = new FirestorePermissionError({
+                        path: userRef.path,
+                        operation: 'update',
+                        requestResourceData: { balance: newBalance, investmentAmount: investmentAmount },
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                } else {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Investment Failed',
+                        description: error.message || 'Could not process your investment. Please try again.',
+                    });
+                }
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
     }
     
     return (
@@ -192,7 +193,7 @@ export default function InvestPage() {
                     <AlertDialogHeader>
                     <AlertDialogTitle>Invest in {selectedPlan?.name} Plan</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Enter the amount you wish to invest. Your current balance is <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>.
+                        Your current balance is <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="py-4">
