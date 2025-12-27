@@ -14,9 +14,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { collection, orderBy, query } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
-import type { Transaction } from "@/lib/types";
+import type { Transaction, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Clock, CheckCircle, XCircle } from "lucide-react";
+import React from "react";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-US', {
@@ -73,7 +74,7 @@ function AllTransactions() {
     const firestore = useFirestore();
 
     const transactionsQuery = useMemo(() => {
-        if (!user) return null;
+        if (!user || !firestore) return null;
         return query(
         collection(firestore, 'users', user.uid, 'transactions'),
         orderBy('date', 'desc')
@@ -159,6 +160,7 @@ function WalletPageContent() {
     const { userData, loading } = useUser();
     const searchParams = useSearchParams();
     const defaultTab = searchParams.get('tab') || 'deposit';
+    const typedUserData = userData as User | null;
 
     return (
          <div className="flex-1 space-y-6 p-4 md:p-8">
@@ -175,7 +177,7 @@ function WalletPageContent() {
                         <Skeleton className="h-10 w-48 mx-auto" />
                     ) : (
                         <p className="text-4xl font-bold tracking-tight">
-                            {userData ? formatCurrency(userData.balance) : formatCurrency(0)}
+                            {typedUserData ? formatCurrency(typedUserData.balance) : formatCurrency(0)}
                         </p>
                     )}
                 </CardContent>
@@ -203,8 +205,7 @@ function WalletPageContent() {
 
 export default function WalletPage() {
     return (
-        <React.Suspense fallback={<div>Loading...</div>}>
-            <WalletPageContent />
-        </React.Suspense>
+        // React.Suspense is not needed here as useSearchParams is used in a client component
+        <WalletPageContent />
     )
 }

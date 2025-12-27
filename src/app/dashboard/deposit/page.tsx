@@ -37,12 +37,14 @@ export default function DepositPage() {
             toast({ variant: 'destructive', title: 'Error', description: 'Please enter an amount.' });
             return;
         }
+        if (!firestore) {
+             toast({ variant: 'destructive', title: 'Error', description: 'Database connection not found.' });
+            return;
+        }
+
         setIsLoading(true);
 
         try {
-            if (!firestore) {
-                throw new Error("Firestore not initialized");
-            }
             const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
             await addDoc(transactionsRef, {
                 type: 'deposit',
@@ -129,5 +131,3 @@ export default function DepositPage() {
         </div>
     );
 }
-
-    

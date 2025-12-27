@@ -15,6 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import type { User } from '@/lib/types';
 
 const MIN_WITHDRAWAL = 50;
 
@@ -33,6 +34,8 @@ export default function WithdrawPage() {
     const firestore = useFirestore();
     const [isLoading, setIsLoading] = useState(false);
 
+    const typedUserData = userData as User | null;
+
     const form = useForm<z.infer<typeof withdrawSchema>>({
         resolver: zodResolver(withdrawSchema),
         defaultValues: {
@@ -42,9 +45,9 @@ export default function WithdrawPage() {
     });
 
     async function onSubmit(values: z.infer<typeof withdrawSchema>) {
-        if(!user || !userData || !firestore) return;
+        if(!user || !typedUserData || !firestore) return;
 
-        if(values.amount > userData.balance) {
+        if(values.amount > typedUserData.balance) {
             form.setError("amount", {
                 type: "manual",
                 message: "Withdrawal amount cannot exceed your balance.",
@@ -89,8 +92,7 @@ export default function WithdrawPage() {
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                     <p>• Minimum withdrawal amount is <strong>${MIN_WITHDRAWAL}</strong>.</p>
-                    <p>• Withdrawals are permitted once every 5 days.</p>
-                    <p>• Requests are processed manually within 24 business hours.</p>
+                    <p>• Withdrawals are processed manually within 24 business hours.</p>
                     <p>• A 5% fee applies to all withdrawals.</p>
                 </CardContent>
             </Card>
@@ -98,7 +100,7 @@ export default function WithdrawPage() {
             <Card>
                  <CardHeader>
                     <CardTitle className="text-lg">Request Withdrawal</CardTitle>
-                    <CardDescription>Enter the amount and your USDT wallet address.</CardDescription>
+                    <CardDescription>Enter the amount and your USDT wallet address. Current balance: <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong></CardDescription>
                 </CardHeader>
                 <CardContent>
                      <Form {...form}>
@@ -142,7 +144,7 @@ export default function WithdrawPage() {
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit" disabled={isLoading} className="w-full">
+                            <Button type="submit" disabled={isLoading || !form.formState.isValid} className="w-full">
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Submit Withdrawal Request
                             </Button>
@@ -153,5 +155,3 @@ export default function WithdrawPage() {
         </div>
     );
 }
-
-    

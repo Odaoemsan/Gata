@@ -22,7 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import type { InvestmentPlan } from '@/lib/types';
+import type { InvestmentPlan, User } from '@/lib/types';
 
 
 function PlanSkeleton() {
@@ -63,6 +63,8 @@ export default function InvestPage() {
     const plansQuery = query(collection(firestore, 'investmentPlans'));
     const { data: plans, loading } = useCollection<InvestmentPlan>(plansQuery);
 
+    const typedUserData = userData as User | null;
+
     const planIcons = {
         default: <Rocket className="h-10 w-10 text-primary" />,
         starter: <Rocket className="h-10 w-10 text-primary" />,
@@ -73,13 +75,13 @@ export default function InvestPage() {
     const handleInvest = () => {
         setIsLoading(true);
         const investmentAmount = parseFloat(amount);
-        if (!selectedPlan || !userData || !investmentAmount) {
+        if (!selectedPlan || !typedUserData || !investmentAmount) {
             toast({ variant: "destructive", title: "Error", description: "Invalid plan or amount."});
             setIsLoading(false);
             return;
         }
 
-        if (userData.balance < investmentAmount) {
+        if (typedUserData.balance < investmentAmount) {
             toast({ variant: "destructive", title: "Insufficient Balance", description: "You do not have enough funds to make this investment."});
             setIsLoading(false);
             return;
@@ -87,6 +89,9 @@ export default function InvestPage() {
         
         // This is where you would trigger a Firebase function to handle the investment logic
         // to ensure atomicity (deduct balance, create investment record).
+        // For now, we simulate success.
+        console.log(`Investing ${investmentAmount} in ${selectedPlan.name}`);
+
         setTimeout(() => {
             toast({
                 title: "Investment Successful!",
@@ -106,9 +111,9 @@ export default function InvestPage() {
             </div>
             
             {loading ? <PlanSkeleton /> : (
-                <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {(plans ?? []).map(plan => (
-                        <Card key={plan.id} className="shadow-lg hover:shadow-primary/20 transition-shadow">
+                        <Card key={plan.id} className="shadow-lg hover:shadow-primary/20 transition-shadow flex flex-col">
                              <CardHeader>
                                 <div className="flex items-center gap-4">
                                      {planIcons[plan.name.toLowerCase() as keyof typeof planIcons] || planIcons.default}
@@ -118,7 +123,7 @@ export default function InvestPage() {
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="space-y-3">
+                            <CardContent className="space-y-3 flex-grow">
                                 <div className="flex items-center">
                                     <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
                                     <span><strong>{plan.dailyProfit}%</strong> Daily Profit</span>
@@ -145,7 +150,7 @@ export default function InvestPage() {
                     <AlertDialogHeader>
                     <AlertDialogTitle>Invest in {selectedPlan?.name} Plan</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Enter the amount you wish to invest. Your current balance is <strong>${userData?.balance.toFixed(2) ?? '0.00'}</strong>.
+                        Enter the amount you wish to invest. Your current balance is <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="py-4">
@@ -170,5 +175,3 @@ export default function InvestPage() {
         </div>
     );
 }
-
-    
