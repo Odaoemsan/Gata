@@ -5,13 +5,14 @@ import { useCollection } from '@/firebase/firestore/use-collection';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import type { User, Transaction } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DollarSign, TrendingUp, TrendingDown, Briefcase } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Briefcase, PlusCircle, MinusCircle, Users, Rocket } from 'lucide-react';
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-US', {
@@ -148,9 +149,36 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+      </div>
+
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Button asChild size="lg" className="h-20 text-lg">
+            <Link href="/dashboard/deposit">
+                <PlusCircle className="mr-2 h-6 w-6" />
+                Deposit
+            </Link>
+        </Button>
+        <Button asChild size="lg" variant="secondary" className="h-20 text-lg">
+            <Link href="/dashboard/withdraw">
+                <MinusCircle className="mr-2 h-6 w-6" />
+                Withdraw
+            </Link>
+        </Button>
+        <Button asChild size="lg" className="h-20 text-lg bg-accent text-accent-foreground hover:bg-accent/90">
+            <Link href="/dashboard/invest">
+                <Rocket className="mr-2 h-6 w-6" />
+                Invest
+            </Link>
+        </Button>
+        <Button asChild size="lg" variant="outline" className="h-20 text-lg">
+            <Link href="/dashboard/team">
+                <Users className="mr-2 h-6 w-6" />
+                Invite
+            </Link>
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -243,7 +271,10 @@ export default function DashboardPage() {
               {transactions?.map(tx => (
                 <TableRow key={tx.id}>
                   <TableCell>
-                    <div className={`capitalize font-medium ${tx.type === 'deposit' ? 'text-green-500' : 'text-red-500'}`}>
+                    <div className={`capitalize font-medium flex items-center`}>
+                     {tx.type === 'deposit' ? 
+                        <TrendingUp className="h-4 w-4 mr-2 text-green-500" /> : 
+                        <TrendingDown className="h-4 w-4 mr-2 text-red-500" />}
                       {tx.type}
                     </div>
                   </TableCell>

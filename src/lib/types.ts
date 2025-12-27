@@ -16,3 +16,21 @@ export interface Transaction {
     date: any; // Using `any` for Firebase Timestamp for simplicity
     status: 'pending' | 'completed' | 'failed';
 }
+
+export interface InvestmentPlan {
+    id: string;
+    name: string;
+    dailyProfit: number;
+    duration: number;
+    minMax: string;
+}
+
+export interface ActiveInvestment {
+    id: string;
+    planId: string;
+    planName: string;
+    amount: number;
+    startDate: any;
+    endDate: any;
+    status: 'active' | 'completed';
+}
