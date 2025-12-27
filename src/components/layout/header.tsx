@@ -32,8 +32,12 @@ export function Header() {
           ))}
         </nav>
         <div className="hidden md:flex items-center gap-4">
-          <Button variant="ghost">Login</Button>
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90">Sign Up</Button>
+          <Button variant="ghost" asChild>
+            <Link href="/login">Login</Link>
+          </Button>
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+            <Link href="/signup">Sign Up</Link>
+          </Button>
         </div>
         <Sheet>
           <SheetTrigger asChild>
@@ -64,8 +68,12 @@ export function Header() {
                 ))}
               </nav>
               <div className="mt-auto flex flex-col gap-4">
-                <Button variant="ghost" size="lg">Login</Button>
-                <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">Sign Up</Button>
+                <Button variant="ghost" size="lg" asChild>
+                  <Link href="/login">Login</Link>
+                </Button>
+                <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+                  <Link href="/signup">Sign Up</Link>
+                </Button>
               </div>
             </div>
           </SheetContent>

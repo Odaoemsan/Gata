@@ -1,4 +1,8 @@
 export interface User {
+    id: string;
+    displayName: string;
+    username: string;
+    email: string;
     balance: number;
     totalDeposits: number;
     totalWithdrawals: number;

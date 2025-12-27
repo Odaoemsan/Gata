@@ -12,15 +12,15 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
-  SidebarRail,
-  SidebarGroup,
-  SidebarGroupLabel
 } from '@/components/ui/sidebar';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LayoutDashboard, Users, Landmark, TrendingUp, Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
+import { getAuth, signOut } from 'firebase/auth';
+import { useFirebaseApp } from '@/firebase/provider';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function DashboardLayout({
@@ -30,7 +30,29 @@ export default function DashboardLayout({
 }) {
 
   const pathname = usePathname();
-  const { user } = useUser();
+  const router = useRouter();
+  const { user, userData } = useUser();
+  const firebaseApp = useFirebaseApp();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const auth = getAuth(firebaseApp);
+    try {
+      await signOut(auth);
+      toast({
+        title: 'Signed Out',
+        description: 'You have been successfully signed out.',
+      });
+      router.push('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to sign out. Please try again.',
+      });
+    }
+  };
 
   const menuItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -49,7 +71,7 @@ export default function DashboardLayout({
                     <AvatarFallback>{user?.email?.[0].toUpperCase() ?? 'A'}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                    <span className="text-sm font-semibold">{user?.displayName ?? 'Anonymous User'}</span>
+                    <span className="text-sm font-semibold">{userData?.displayName ?? 'Anonymous User'}</span>
                     <span className="text-xs text-muted-foreground">{user?.email}</span>
                 </div>
             </div>
@@ -71,7 +93,7 @@ export default function DashboardLayout({
         <SidebarFooter>
            <SidebarMenu>
              <SidebarMenuItem>
-                <SidebarMenuButton>
+                <SidebarMenuButton onClick={handleSignOut}>
                     <LogOut />
                     Sign Out
                 </SidebarMenuButton>

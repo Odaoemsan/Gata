@@ -4,8 +4,9 @@ import { useAuthUser } from './provider';
 import { useDoc } from '../firestore/use-doc';
 import { doc, getFirestore } from 'firebase/firestore';
 import { useFirebaseApp } from '../provider';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { signInAnonymously, getAuth } from 'firebase/auth';
+import { usePathname, useRouter } from 'next/navigation';
 
 
 /**
@@ -13,7 +14,7 @@ import { signInAnonymously, getAuth } from 'firebase/auth';
  *
  * This hook can only be used within a child component of the `<AuthProvider />`.
  * It combines the user's authentication state with their data from Firestore.
- * If no user is signed in, it will attempt to sign in anonymously.
+ * It also handles redirecting unauthenticated users to the login page.
  *
  * @example
  * ```tsx
@@ -27,12 +28,13 @@ import { signInAnonymously, getAuth } from 'firebase/auth';
  *   }
  *
  *   if (!user) {
- *     return <div>Not signed in</div>;
+ *     // This case is handled by the hook, but you can add extra logic if needed
+ *     return <div>Redirecting to login...</div>;
  *   }
  *
  *   return (
  *      <div>
- *          Welcome, {user.displayName}!
+ *          Welcome, {userData?.displayName}!
  *          Your balance is {userData?.balance}.
  *      </div>
  *   );
@@ -43,6 +45,8 @@ export function useUser() {
   const { user, loading: authLoading } = useAuthUser();
   const app = useFirebaseApp();
   const firestore = useMemo(() => getFirestore(app), [app]);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const userDocRef = useMemo(() => {
     if (!user) return undefined;
@@ -51,15 +55,12 @@ export function useUser() {
 
   const { data: userData, loading: userLoading } = useDoc(userDocRef);
 
-  // Automatically sign in anonymously if no user is present
-  useMemo(() => {
-    if (!authLoading && !user) {
-        const auth = getAuth(app);
-        signInAnonymously(auth).catch((error) => {
-            console.error("Anonymous sign-in failed:", error);
-        });
+  useEffect(() => {
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
+    if (!authLoading && !user && !isAuthPage) {
+      router.push('/login');
     }
-  }, [authLoading, user, app]);
+  }, [authLoading, user, router, pathname]);
 
   return {
     user,
