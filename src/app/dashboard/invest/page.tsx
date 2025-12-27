@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { collection, query, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
@@ -82,7 +82,11 @@ export default function InvestPage() {
     const [amount, setAmount] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const plansQuery = firestore ? query(collection(firestore, 'investmentPlans')) : null;
+    const plansQuery = useMemo(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, 'investmentPlans'));
+    }, [user, firestore]);
+    
     const { data: plans, loading } = useCollection<InvestmentPlan>(plansQuery);
 
     const typedUserData = userData as User | null;
@@ -129,7 +133,7 @@ export default function InvestPage() {
 
         const batch = writeBatch(firestore);
         
-        batch.update(userRef, { balance: newBalance });
+        batch.update(userRef, { balance: newBalance, investmentAmount: investmentAmount });
         batch.set(newInvestmentRef, newInvestment);
 
         batch.commit()
@@ -145,7 +149,7 @@ export default function InvestPage() {
                  const permissionError = new FirestorePermissionError({
                     path: userRef.path, // We assume the user balance update is the primary point of failure for permissions
                     operation: 'update',
-                    requestResourceData: { balance: newBalance, investmentAmount: investmentAmount, _comment: 'Attempting to deduct investment amount' },
+                    requestResourceData: { balance: newBalance, investmentAmount: investmentAmount },
                 });
                 errorEmitter.emit('permission-error', permissionError);
             })
