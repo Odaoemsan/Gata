@@ -8,6 +8,8 @@ import {
 } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useFirestore } from '../provider';
+import { FirestorePermissionError } from '../errors';
+import { errorEmitter } from '../error-emitter';
 
 /**
  * A hook for accessing a Firestore document in real-time.
@@ -61,15 +63,22 @@ export function useDoc<T extends DocumentData>(
           setData(null);
         }
         setLoading(false);
+        setError(null);
       },
-      (err) => {
-        setError(err);
+      async (err) => {
+        const permissionError = new FirestorePermissionError({
+            path: ref.path,
+            operation: 'get',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        setError(permissionError);
         setLoading(false);
-        console.error("Error fetching document:", err);
       }
     );
 
     return () => unsubscribe();
+  // The ref object is memoized in the component that uses this hook
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ref]);
 
   return { data, loading, error };

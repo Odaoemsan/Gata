@@ -10,6 +10,8 @@ import {
 } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useFirestore } from '../provider';
+import { FirestorePermissionError } from '../errors';
+import { errorEmitter } from '../error-emitter';
 
 /**
  * A hook for accessing a Firestore collection in real-time.
@@ -67,15 +69,22 @@ export function useCollection<T extends DocumentData>(
         );
         setData(docs);
         setLoading(false);
+        setError(null);
       },
-      (err) => {
-        setError(err);
+      async (err) => {
+        const permissionError = new FirestorePermissionError({
+          path: query.path,
+          operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        setError(permissionError);
         setLoading(false);
-        console.error("Error fetching collection:", err);
       }
     );
 
     return () => unsubscribe();
+  // The query object is memoized in the component that uses this hook
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
   return { data, loading, error };
