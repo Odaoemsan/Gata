@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -6,7 +7,7 @@ import { collection, query, doc, writeBatch, serverTimestamp } from 'firebase/fi
 import { useFirestore, useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Rocket, Zap, Crown, CheckCircle, Loader2 } from 'lucide-react';
+import { Rocket, Zap, Crown, CheckCircle, Loader2, PackageOpen, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
@@ -24,11 +25,12 @@ import { useToast } from '@/hooks/use-toast';
 import type { InvestmentPlan, User, ActiveInvestment } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Link from 'next/link';
 
 
 function PlanSkeleton() {
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(3)].map((_, i) => (
                 <Card key={i}>
                     <CardHeader>
@@ -40,15 +42,34 @@ function PlanSkeleton() {
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="space-y-2">
-                        <Skeleton className="h-5 w-full" />
-                        <Skeleton className="h-5 w-4/5" />
+                    <CardContent className="space-y-3">
+                         <Skeleton className="h-5 w-4/5" />
+                         <Skeleton className="h-5 w-full" />
+                         <Skeleton className="h-5 w-3/4" />
                     </CardContent>
                     <CardFooter>
                         <Skeleton className="h-10 w-full" />
                     </CardFooter>
                 </Card>
             ))}
+        </div>
+    )
+}
+
+function EmptyPlans() {
+    return (
+        <div className="flex flex-col items-center justify-center text-center py-20 px-4">
+            <PackageOpen className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold">لا توجد خطط استثمارية متاحة</h3>
+            <p className="text-muted-foreground mt-2 max-w-md">
+                يبدو أنه لا توجد خطط مفعلة من قبل الإدارة في الوقت الحالي. يرجى التحقق مرة أخرى في وقت لاحق.
+            </p>
+            <Button asChild className="mt-6">
+                <Link href="/dashboard">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    العودة إلى لوحة التحكم
+                </Link>
+            </Button>
         </div>
     )
 }
@@ -108,7 +129,7 @@ export default function InvestPage() {
 
         const batch = writeBatch(firestore);
         
-        batch.update(userRef, { balance: newBalance });
+        batch.update(userRef, { balance: newBalance, investmentAmount: investmentAmount });
         batch.set(newInvestmentRef, newInvestment);
 
         batch.commit()
@@ -124,7 +145,7 @@ export default function InvestPage() {
                  const permissionError = new FirestorePermissionError({
                     path: userRef.path, // We assume the user balance update is the primary point of failure for permissions
                     operation: 'update',
-                    requestResourceData: { balance: newBalance, _comment: 'Attempting to deduct investment amount' },
+                    requestResourceData: { balance: newBalance, investmentAmount: investmentAmount, _comment: 'Attempting to deduct investment amount' },
                 });
                 errorEmitter.emit('permission-error', permissionError);
             })
@@ -136,70 +157,73 @@ export default function InvestPage() {
     return (
         <div className="flex-1 space-y-6 p-4">
             <div className="text-center">
-                <h2 className="text-3xl font-bold tracking-tight">Choose Your Plan</h2>
-                <p className="text-muted-foreground mt-1">Select a plan that suits your financial goals.</p>
+                <h2 className="text-3xl font-bold tracking-tight">اختر خطتك الاستثمارية</h2>
+                <p className="text-muted-foreground mt-1">اختر الخطة التي تناسب أهدافك المالية.</p>
             </div>
             
             {loading ? <PlanSkeleton /> : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {(plans ?? []).map(plan => (
-                        <Card key={plan.id} className="shadow-lg hover:shadow-primary/20 transition-shadow flex flex-col group">
-                             <CardHeader>
-                                <div className="flex items-center gap-4">
-                                     {planIcons[plan.name.toLowerCase()] || planIcons.default}
-                                    <div>
-                                        <CardTitle className="text-xl font-headline">{plan.name}</CardTitle>
-                                        <CardDescription>Min/Max: {plan.minMax}</CardDescription>
+                (!plans || plans.length === 0) ? <EmptyPlans /> : (
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {plans.map(plan => (
+                            <Card key={plan.id} className="shadow-lg hover:shadow-primary/20 transition-shadow flex flex-col group">
+                                <CardHeader>
+                                    <div className="flex items-center gap-4">
+                                        {planIcons[plan.name.toLowerCase()] || planIcons.default}
+                                        <div>
+                                            <CardTitle className="text-xl font-headline">{plan.name}</CardTitle>
+                                            <CardDescription>الحد الأدنى/الأقصى: {plan.minMax}</CardDescription>
+                                        </div>
                                     </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3 flex-grow">
-                                <div className="flex items-center">
-                                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                                    <span><strong>{plan.dailyProfit}%</strong> Daily Profit</span>
-                                </div>
-                                <div className="flex items-center">
-                                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                                    <span><strong>{plan.duration} Days</strong> Duration</span>
-                                </div>
-                                 <div className="flex items-center">
-                                    <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                                    <span>Principal returned at end</span>
-                                 </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button className="w-full transition-transform group-hover:scale-105" onClick={() => setSelectedPlan(plan)}>
-                                    Invest Now
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
-                </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3 flex-grow">
+                                    <div className="flex items-center">
+                                        <CheckCircle className="h-5 w-5 text-green-500 ml-3" />
+                                        <span><strong>{plan.dailyProfit}%</strong> ربح يومي</span>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <CheckCircle className="h-5 w-5 text-green-500 ml-3" />
+                                        <span><strong>{plan.duration} أيام</strong> المدة</span>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <CheckCircle className="h-5 w-5 text-green-500 ml-3" />
+                                        <span>يتم إرجاع رأس المال في النهاية</span>
+                                    </div>
+
+                                </CardContent>
+                                <CardFooter>
+                                    <Button className="w-full transition-transform group-hover:scale-105" onClick={() => setSelectedPlan(plan)}>
+                                        استثمر الآن
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                )
             )}
             
             <AlertDialog open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                    <AlertDialogTitle>Invest in {selectedPlan?.name} Plan</AlertDialogTitle>
+                    <AlertDialogTitle>استثمر في خطة {selectedPlan?.name}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Your current balance is <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>. 
-                        Enter the amount you wish to invest.
+                        رصيدك الحالي هو <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>. 
+                        أدخل المبلغ الذي ترغب في استثماره.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="py-4">
-                         <Label htmlFor="investment-amount">Amount (USD)</Label>
+                         <Label htmlFor="investment-amount">المبلغ (بالدولار الأمريكي)</Label>
                          <Input 
                             id="investment-amount" 
                             type="number" 
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            placeholder={`e.g. 500. Min/Max: ${selectedPlan?.minMax}`} />
+                            placeholder={`مثال: 500. الحد الأدنى/الأقصى: ${selectedPlan?.minMax}`} />
                     </div>
                     <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
                     <AlertDialogAction onClick={handleInvest} disabled={isLoading || !amount}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Confirm Investment
+                        تأكيد الاستثمار
                     </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -208,3 +232,5 @@ export default function InvestPage() {
         </div>
     );
 }
+
+    
