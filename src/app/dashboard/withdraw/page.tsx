@@ -13,9 +13,11 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, type DocumentReference } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const MIN_WITHDRAWAL = 50;
 
@@ -57,31 +59,45 @@ export default function WithdrawPage() {
 
         setIsLoading(true);
 
-        try {
-            const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
-            await addDoc(transactionsRef, {
-                type: 'withdrawal',
-                amount: values.amount,
-                walletAddress: values.walletAddress,
-                status: 'pending',
-                date: serverTimestamp(),
-            });
+        const newTransaction = {
+            type: 'withdrawal' as const,
+            amount: values.amount,
+            walletAddress: values.walletAddress,
+            status: 'pending' as const,
+            date: serverTimestamp(),
+        };
 
-            toast({
-                title: 'Withdrawal Request Submitted',
-                description: `Your request to withdraw $${values.amount} has been received. It will be processed within 24 hours.`,
+        const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
+        
+        addDoc(transactionsRef, newTransaction)
+            .then(() => {
+                toast({
+                    title: 'Withdrawal Request Submitted',
+                    description: `Your request to withdraw $${values.amount} has been received. It will be processed within 24 hours.`,
+                });
+                form.reset();
+            })
+            .catch(async (error) => {
+                if (error.code === 'permission-denied') {
+                    const docRef = error.customData?.docRef as DocumentReference | undefined;
+                    const path = docRef ? docRef.path : transactionsRef.path;
+                    const permissionError = new FirestorePermissionError({
+                        path: path,
+                        operation: 'create',
+                        requestResourceData: newTransaction,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                } else {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Request Failed',
+                        description: 'Could not submit your withdrawal request. Please try again.',
+                    });
+                }
+            })
+            .finally(() => {
+                setIsLoading(false);
             });
-            form.reset();
-        } catch (error) {
-            console.error("Error creating withdrawal request: ", error);
-            toast({
-                variant: 'destructive',
-                title: 'Request Failed',
-                description: 'Could not submit your withdrawal request. Please try again.',
-            });
-        } finally {
-            setIsLoading(false);
-        }
     }
 
     return (

@@ -6,6 +6,7 @@ import { getAuth, type Auth } from 'firebase/auth';
 import { getFirestore, enableMultiTabIndexedDbPersistence, type Firestore } from 'firebase/firestore';
 import { firebaseConfig } from './config';
 import { AuthProvider } from './auth/provider';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 interface FirebaseContextType {
   firebaseApp: FirebaseApp;
@@ -34,15 +35,15 @@ function initializeFirebaseServices() {
     enableMultiTabIndexedDbPersistence(firestore)
       .then(() => {
         persistenceEnabled = true;
-        console.log("Firestore offline persistence enabled.");
+        // console.log("Firestore offline persistence enabled.");
       })
       .catch((err) => {
         if (err.code === 'failed-precondition') {
-          console.warn("Firestore offline persistence could not be enabled: failed-precondition. This happens when multiple tabs are open.");
+          // console.warn("Firestore offline persistence could not be enabled: failed-precondition. This happens when multiple tabs are open.");
         } else if (err.code === 'unimplemented') {
-          console.warn("Firestore offline persistence could not be enabled: unimplemented. The current browser does not support it.");
+          // console.warn("Firestore offline persistence could not be enabled: unimplemented. The current browser does not support it.");
         } else {
-            console.error("Failed to enable Firestore persistence:", err);
+            // console.error("Failed to enable Firestore persistence:", err);
         }
       });
   }
@@ -57,6 +58,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
   return (
     <FirebaseContext.Provider value={firebaseServices}>
       <AuthProvider>
+        <FirebaseErrorListener />
         {children}
       </AuthProvider>
     </FirebaseContext.Provider>

@@ -32,9 +32,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Rocket, Loader2 } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z.object({
-  fullName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
+  displayName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
   username: z
     .string()
     .min(3, { message: 'Username must be at least 3 characters.' })
@@ -56,7 +58,7 @@ export default function SignUpPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      fullName: '',
+      displayName: '',
       username: '',
       email: '',
       password: '',
@@ -84,35 +86,55 @@ export default function SignUpPage() {
 
       // Step 2: Update user profile in Auth
       await updateProfile(user, {
-        displayName: values.fullName,
+        displayName: values.displayName,
       });
 
       // Step 3: Create user document in Firestore
       const userDocRef = doc(firestore, 'users', user.uid);
-      await setDoc(userDocRef, {
-        displayName: values.fullName,
+      const newUserDoc = {
+        displayName: values.displayName,
         username: values.username.toLowerCase(),
         email: values.email.toLowerCase(),
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
         createdAt: serverTimestamp(),
-      });
+      };
+      
+      setDoc(userDocRef, newUserDoc)
+        .then(() => {
+            toast({
+              title: 'Account Created',
+              description: "You've been successfully signed up!",
+            });
+            router.push('/dashboard');
+        })
+        .catch(async (error) => {
+            if (error.code === 'permission-denied') {
+                 const permissionError = new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'create',
+                    requestResourceData: newUserDoc,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            } else {
+                 toast({
+                    variant: 'destructive',
+                    title: 'Sign Up Failed',
+                    description: 'Failed to create user profile in database.',
+                });
+            }
+        })
+        .finally(() => {
+          // Setting loading to false is handled in the chained promises.
+        });
 
-      toast({
-        title: 'Account Created',
-        description: "You've been successfully signed up!",
-      });
-
-      router.push('/dashboard');
     } catch (error: any) {
-      console.error('Sign up error:', error);
+      // This catch block handles Auth errors
       let errorMessage = 'An unknown error occurred.';
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'This email address is already in use.';
         form.setError('email', { type: 'manual', message: errorMessage });
-      } else if (error.code === 'permission-denied' || error.message.includes('permission-denied')) {
-        errorMessage = 'There was a problem setting up your account profile. Please check the data and try again.';
       }
       else {
         errorMessage = 'Failed to create account. Please try again later.';
@@ -122,7 +144,6 @@ export default function SignUpPage() {
         title: 'Sign Up Failed',
         description: errorMessage,
       });
-    } finally {
       setIsLoading(false);
     }
   }
@@ -147,7 +168,7 @@ export default function SignUpPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
               <FormField
                 control={form.control}
-                name="fullName"
+                name="displayName"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>

@@ -9,8 +9,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { DollarSign, Copy, Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, type DocumentReference } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const usdtWallet = {
     name: 'Tether (USDT TRC20)',
@@ -32,7 +34,7 @@ export default function DepositPage() {
         });
     };
 
-    const handleDepositRequest = async () => {
+    const handleDepositRequest = () => {
         if (!user || !amount) {
             toast({ variant: 'destructive', title: 'Error', description: 'Please enter an amount.' });
             return;
@@ -44,30 +46,44 @@ export default function DepositPage() {
 
         setIsLoading(true);
 
-        try {
-            const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
-            await addDoc(transactionsRef, {
-                type: 'deposit',
-                amount: parseFloat(amount),
-                status: 'pending',
-                date: serverTimestamp(),
+        const newTransaction = {
+            type: 'deposit' as const,
+            amount: parseFloat(amount),
+            status: 'pending' as const,
+            date: serverTimestamp(),
+        };
+
+        const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
+        
+        addDoc(transactionsRef, newTransaction)
+            .then(() => {
+                toast({
+                    title: 'Deposit Request Submitted',
+                    description: `Your request to deposit $${amount} is under review. Your balance will be updated within 1-2 hours after confirmation.`,
+                });
+                setAmount('');
+            })
+            .catch(async (error) => {
+                if (error.code === 'permission-denied') {
+                    const docRef = error.customData?.docRef as DocumentReference | undefined;
+                    const path = docRef ? docRef.path : transactionsRef.path;
+                    const permissionError = new FirestorePermissionError({
+                        path: path,
+                        operation: 'create',
+                        requestResourceData: newTransaction,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                } else {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Request Failed',
+                        description: 'Could not submit your deposit request. Please try again.',
+                    });
+                }
+            })
+            .finally(() => {
+                setIsLoading(false);
             });
-            
-            toast({
-                title: 'Deposit Request Submitted',
-                description: `Your request to deposit $${amount} is under review. Your balance will be updated within 1-2 hours after confirmation.`,
-            });
-            setAmount('');
-        } catch (error) {
-            console.error("Error creating deposit request: ", error);
-            toast({
-                variant: 'destructive',
-                title: 'Request Failed',
-                description: 'Could not submit your deposit request. Please try again.',
-            });
-        } finally {
-            setIsLoading(false);
-        }
     }
 
     return (
