@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -28,7 +27,7 @@ function BottomNavBar() {
   const pathname = usePathname();
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'الرئيسية' },
-    { href: '/dashboard/invest', icon: Rocket, label: 'الخطط' },
+    { href: '/dashboard/my-investments', icon: Rocket, label: 'استثماراتي' },
     { href: '/dashboard/earnings', icon: CircleDollarSign, label: 'أرباحي', isCentral: true },
     { href: '/dashboard/team', icon: Users, label: 'فريقي' },
     { href: '/dashboard/wallet', icon: Wallet, label: 'المحفظة' },
