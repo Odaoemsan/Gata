@@ -65,6 +65,11 @@ export default function SignUpPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
+    if (!firebaseApp) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Firebase not initialized.'})
+        setIsLoading(false);
+        return;
+    }
     const auth = getAuth(firebaseApp);
     const firestore = getFirestore(firebaseApp);
 
@@ -86,7 +91,7 @@ export default function SignUpPage() {
       const userDocRef = doc(firestore, 'users', user.uid);
       await setDoc(userDocRef, {
         displayName: values.fullName,
-        username: values.username,
+        username: values.username.toLowerCase(),
         email: values.email,
         balance: 0,
         totalDeposits: 0,
@@ -122,7 +127,7 @@ export default function SignUpPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader>
+        <CardHeader className="text-center">
            <div className="flex items-center justify-center gap-2 mb-4">
             <Rocket className="h-8 w-8 text-primary" />
             <span className="font-headline text-3xl font-bold text-primary">

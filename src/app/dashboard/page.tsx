@@ -15,7 +15,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DollarSign, TrendingUp, TrendingDown, Briefcase, ArrowRight, Wallet, Rocket, Users, Landmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-function formatCurrency(amount: number) {
+function formatCurrency(amount: number | undefined) {
+  if (typeof amount !== 'number') return '$0.00';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -49,45 +50,36 @@ function formatDate(timestamp: any) {
 
 function DashboardSkeleton() {
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="space-y-2">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-10 w-48" />
+        <div className="flex-1 space-y-6 p-4 md:p-8">
+            <div className="space-y-1">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-5 w-64" />
             </div>
-             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[...Array(4)].map((_, i) => (
-                    <Skeleton key={i} className="h-20" />
+                    <Skeleton key={i} className="h-10" />
                 ))}
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {[...Array(4)].map((_, i) => (
-                    <Card key={i}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <Skeleton className="h-4 w-24" />
-                            <Skeleton className="h-4 w-4" />
-                        </CardHeader>
-                        <CardContent>
-                            <Skeleton className="h-8 w-3/4" />
-                        </CardContent>
-                    </Card>
-                ))}
+            <Skeleton className="h-28 w-full" />
+            <div className="grid gap-4 grid-cols-2">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
             </div>
+            <Skeleton className="h-24 w-full" />
             <Card>
                 <CardHeader>
                     <Skeleton className="h-6 w-40" />
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                         {[...Array(3)].map((_, i) => (
-                            <div key={i} className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Skeleton className="h-10 w-10 rounded-full" />
-                                    <div className="space-y-1">
-                                        <Skeleton className="h-4 w-24" />
-                                        <Skeleton className="h-3 w-20" />
-                                    </div>
+                           <div key={i} className="flex items-center">
+                                <Skeleton className="h-10 w-10 rounded-full" />
+                                <div className="ml-4 space-y-1">
+                                    <Skeleton className="h-4 w-[150px]" />
+                                    <Skeleton className="h-4 w-[100px]" />
                                 </div>
-                                <Skeleton className="h-5 w-20" />
+                                <Skeleton className="ml-auto h-4 w-[80px]" />
                             </div>
                         ))}
                     </div>
@@ -156,7 +148,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <p className="text-4xl font-bold tracking-tight">
-                {typedUserData ? formatCurrency(typedUserData.balance) : formatCurrency(0)}
+                {formatCurrency(typedUserData?.balance)}
             </p>
           </CardContent>
         </Card>
@@ -169,7 +161,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">
-                {typedUserData ? formatCurrency(typedUserData.totalDeposits) : formatCurrency(0)}
+                {formatCurrency(typedUserData?.totalDeposits)}
             </div>
           </CardContent>
         </Card>
@@ -180,7 +172,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">
-                {typedUserData ? formatCurrency(typedUserData.totalWithdrawals) : formatCurrency(0)}
+                {formatCurrency(typedUserData?.totalWithdrawals)}
             </div>
           </CardContent>
         </Card>

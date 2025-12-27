@@ -36,20 +36,22 @@ function BottomNavBar() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-sm md:hidden">
-      <div className="flex h-16 items-center justify-around">
+      <div className="grid h-16 grid-cols-5 items-center justify-around">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           if (item.isCentral) {
             return (
-              <Link href={item.href} key={item.href} className="relative -top-6">
-                <div className="flex size-16 items-center justify-center rounded-full bg-primary shadow-lg ring-4 ring-background">
-                  <item.icon className="h-8 w-8 text-primary-foreground" />
-                </div>
-              </Link>
+              <div key={item.href} className="flex justify-center">
+                <Link href={item.href} className="relative -top-6">
+                  <div className="flex size-16 items-center justify-center rounded-full bg-primary shadow-lg ring-4 ring-background">
+                    <item.icon className="h-8 w-8 text-primary-foreground" />
+                  </div>
+                </Link>
+              </div>
             );
           }
           return (
-            <Link href={item.href} key={item.href}>
+            <Link href={item.href} key={item.href} className="flex justify-center">
               <div className={cn(
                 "flex flex-col items-center gap-1 p-2 rounded-md transition-colors",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
@@ -136,7 +138,7 @@ export default function DashboardLayout({
       <div className="flex flex-col min-h-screen">
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
             <div className="flex items-center gap-2">
-                <SidebarTrigger />
+                <SidebarTrigger className="md:hidden"/>
                 <span className="font-semibold text-lg">GORA</span>
             </div>
              <div className="hidden md:flex items-center gap-4">
