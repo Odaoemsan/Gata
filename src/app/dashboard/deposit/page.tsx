@@ -44,29 +44,39 @@ export default function DepositPage() {
     }
 
     return (
-        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
-            <h2 className="text-3xl font-bold tracking-tight">Deposit Funds</h2>
+        <div className="flex-1 space-y-6 p-4 md:p-8">
+            <div className="text-center">
+                <h2 className="text-3xl font-bold tracking-tight">Deposit Funds</h2>
+                <p className="text-muted-foreground mt-1">Choose a crypto and send funds to invest.</p>
+            </div>
             <Card className="max-w-2xl mx-auto">
                 <CardHeader>
-                    <CardTitle>Make a Deposit</CardTitle>
-                    <CardDescription>Choose a cryptocurrency and send the amount you wish to invest.</CardDescription>
+                    <CardTitle>1. Enter Amount</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent>
                      <div className="space-y-2">
-                        <Label htmlFor="amount">Amount (USD)</Label>
+                        <Label htmlFor="amount" className="sr-only">Amount (USD)</Label>
                         <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                             <Input 
                                 id="amount" 
                                 type="number" 
                                 placeholder="100.00" 
-                                className="pl-10" 
+                                className="pl-10 text-lg" 
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                             />
                         </div>
                     </div>
-                    
+                </CardContent>
+            </Card>
+
+            <Card className="max-w-2xl mx-auto">
+                 <CardHeader>
+                    <CardTitle>2. Send Crypto</CardTitle>
+                    <CardDescription>Choose a cryptocurrency and send the amount you wish to invest.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                     <Tabs defaultValue={cryptoWallets[0].name} className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
                             {cryptoWallets.map(wallet => (
@@ -100,12 +110,19 @@ export default function DepositPage() {
                         </TabsContent>
                         ))}
                     </Tabs>
-
+                </CardContent>
+            </Card>
+            
+             <Card className="max-w-2xl mx-auto">
+                 <CardHeader>
+                    <CardTitle>3. Confirm Deposit</CardTitle>
+                    <CardDescription>After sending the funds, click the button below to log your request.</CardDescription>
+                </CardHeader>
+                <CardContent>
                     <Button onClick={handleDepositRequest} disabled={!amount || isLoading} className="w-full">
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Submit Deposit Request
+                        I have sent the money
                     </Button>
-
                 </CardContent>
             </Card>
         </div>

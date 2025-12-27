@@ -28,18 +28,21 @@ import type { InvestmentPlan } from '@/lib/types';
 
 function PlanSkeleton() {
     return (
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-                <Card key={i} className="flex flex-col">
-                    <CardHeader className="items-center">
-                        <Skeleton className="h-12 w-12 rounded-full" />
-                        <Skeleton className="h-6 w-32 mt-4" />
-                        <Skeleton className="h-4 w-48 mt-2" />
+                <Card key={i}>
+                    <CardHeader>
+                        <div className="flex items-center gap-4">
+                            <Skeleton className="h-12 w-12 rounded-full" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-6 w-32" />
+                                <Skeleton className="h-4 w-24" />
+                            </div>
+                        </div>
                     </CardHeader>
-                    <CardContent className="flex-grow space-y-4">
+                    <CardContent className="space-y-2">
                         <Skeleton className="h-5 w-full" />
-                        <Skeleton className="h-5 w-full" />
-                        <Skeleton className="h-5 w-full" />
+                        <Skeleton className="h-5 w-4/5" />
                     </CardContent>
                     <CardFooter>
                         <Skeleton className="h-10 w-full" />
@@ -97,22 +100,26 @@ export default function InvestPage() {
     }
     
     return (
-        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
+        <div className="flex-1 space-y-6 p-4 md:p-8">
             <div className="text-center">
-                <h2 className="text-3xl font-bold tracking-tight">Choose Your Investment Plan</h2>
-                <p className="text-muted-foreground mt-2">Select a plan that suits your financial goals.</p>
+                <h2 className="text-3xl font-bold tracking-tight">Choose Your Plan</h2>
+                <p className="text-muted-foreground mt-1">Select a plan that suits your financial goals.</p>
             </div>
             
             {loading ? <PlanSkeleton /> : (
-                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-4">
                     {(plans ?? []).map(plan => (
-                        <Card key={plan.id} className="flex flex-col shadow-lg hover:shadow-primary/20 transition-shadow">
-                            <CardHeader className="items-center text-center">
-                                {planIcons[plan.name.toLowerCase() as keyof typeof planIcons] || planIcons.default}
-                                <CardTitle className="text-2xl font-headline">{plan.name}</CardTitle>
-                                <CardDescription>Min/Max: ${plan.minMax}</CardDescription>
+                        <Card key={plan.id} className="shadow-lg hover:shadow-primary/20 transition-shadow">
+                             <CardHeader>
+                                <div className="flex items-center gap-4">
+                                     {planIcons[plan.name.toLowerCase() as keyof typeof planIcons] || planIcons.default}
+                                    <div>
+                                        <CardTitle className="text-xl font-headline">{plan.name}</CardTitle>
+                                        <CardDescription>Min/Max: ${plan.minMax}</CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
-                            <CardContent className="flex-grow space-y-3">
+                            <CardContent className="space-y-3">
                                 <div className="flex items-center">
                                     <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
                                     <span><strong>{plan.dailyProfit}%</strong> Daily Profit</span>
@@ -123,7 +130,7 @@ export default function InvestPage() {
                                 </div>
                                  <div className="flex items-center">
                                     <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
-                                    <span>Principal returned at end of term</span>
+                                    <span>Principal returned at end</span>
                                 </div>
                             </CardContent>
                             <CardFooter>

@@ -5,14 +5,14 @@ import { useCollection } from '@/firebase/firestore/use-collection';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import type { User, Transaction } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DollarSign, TrendingUp, TrendingDown, Briefcase, PlusCircle, MinusCircle, Users, Rocket } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Briefcase, PlusCircle, MinusCircle, Users, Rocket, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-US', {
@@ -29,7 +29,6 @@ function formatDate(timestamp: any) {
             day: 'numeric',
         });
     }
-    // Handle cases where the date might already be a string or other format
     if (timestamp && timestamp.seconds) {
         return new Date(timestamp.seconds * 1000).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -50,77 +49,42 @@ function formatDate(timestamp: any) {
 function DashboardSkeleton() {
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
-                <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+            <div className="space-y-2">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-10 w-48" />
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <Skeleton className="h-8 w-3/4" />
-                        <Skeleton className="h-4 w-1/2 mt-2" />
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Deposits</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                         <Skeleton className="h-8 w-3/4" />
-                         <Skeleton className="h-4 w-1/2 mt-2" />
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Withdrawals</CardTitle>
-                        <TrendingDown className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                         <Skeleton className="h-8 w-3/4" />
-                         <Skeleton className="h-4 w-1/2 mt-2" />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Investments</CardTitle>
-                         <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <Skeleton className="h-8 w-3/4" />
-                        <Skeleton className="h-4 w-1/2 mt-2" />
-                    </CardContent>
-                </Card>
+                {[...Array(4)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-4 w-4" />
+                        </CardHeader>
+                        <CardContent>
+                            <Skeleton className="h-8 w-3/4" />
+                        </CardContent>
+                    </Card>
+                ))}
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>Recent Transactions</CardTitle>
-                    <CardDescription>A list of your 10 most recent transactions.</CardDescription>
+                    <Skeleton className="h-6 w-40" />
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Amount</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Date</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {[...Array(5)].map((_, i) => (
-                                <TableRow key={i}>
-                                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                    <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
-                                    <TableCell className="text-right"><Skeleton className="h-5 w-28 ml-auto" /></TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                    <div className="space-y-2">
+                        {[...Array(3)].map((_, i) => (
+                            <div key={i} className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Skeleton className="h-10 w-10 rounded-full" />
+                                    <div className="space-y-1">
+                                        <Skeleton className="h-4 w-24" />
+                                        <Skeleton className="h-3 w-20" />
+                                    </div>
+                                </div>
+                                <Skeleton className="h-5 w-20" />
+                            </div>
+                        ))}
+                    </div>
                 </CardContent>
             </Card>
         </div>
@@ -136,7 +100,7 @@ export default function DashboardPage() {
     return query(
       collection(firestore, 'users', user.uid, 'transactions'),
       orderBy('date', 'desc'),
-      limit(10)
+      limit(5)
     );
   }, [firestore, user]);
 
@@ -149,155 +113,119 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-      </div>
+    <div className="flex-1 space-y-6 p-4 md:p-8">
+        <div className="space-y-1">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Welcome back, {typedUserData?.displayName?.split(' ')[0] ?? 'User'}!
+            </h1>
+            <p className="text-muted-foreground">Here's a summary of your account.</p>
+        </div>
 
-       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Button asChild size="lg" className="h-20 text-lg">
-            <Link href="/dashboard/deposit">
-                <PlusCircle className="mr-2 h-6 w-6" />
-                Deposit
-            </Link>
-        </Button>
-        <Button asChild size="lg" variant="secondary" className="h-20 text-lg">
-            <Link href="/dashboard/withdraw">
-                <MinusCircle className="mr-2 h-6 w-6" />
-                Withdraw
-            </Link>
-        </Button>
-        <Button asChild size="lg" className="h-20 text-lg bg-accent text-accent-foreground hover:bg-accent/90">
-            <Link href="/dashboard/invest">
-                <Rocket className="mr-2 h-6 w-6" />
-                Invest
-            </Link>
-        </Button>
-        <Button asChild size="lg" variant="outline" className="h-20 text-lg">
-            <Link href="/dashboard/team">
-                <Users className="mr-2 h-6 w-6" />
-                Invite
-            </Link>
-        </Button>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Balance
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+      <Card className="bg-primary/5 dark:bg-primary/10 border-primary/20">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-sm font-medium text-primary">Total Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <p className="text-4xl font-bold tracking-tight">
                 {typedUserData ? formatCurrency(typedUserData.balance) : formatCurrency(0)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Your current account balance
             </p>
           </CardContent>
         </Card>
+
+      <div className="grid gap-4 grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Deposits</CardTitle>
-             <TrendingUp className="h-4 w-4 text-muted-foreground" />
+             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl font-bold">
                 {typedUserData ? formatCurrency(typedUserData.totalDeposits) : formatCurrency(0)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Lifetime deposits to your account
-            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Withdrawals</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+            <TrendingDown className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl font-bold">
                 {typedUserData ? formatCurrency(typedUserData.totalWithdrawals) : formatCurrency(0)}
             </div>
-             <p className="text-xs text-muted-foreground">
-              Lifetime withdrawals from your account
-            </p>
           </CardContent>
         </Card>
+      </div>
+
+       <div className="grid gap-4 grid-cols-1">
          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Investments</CardTitle>
              <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-xl font-bold">
                   {formatCurrency(0)}
               </div>
-               <p className="text-xs text-muted-foreground">
-                Total value of your active investments
-              </p>
             </CardContent>
           </Card>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
-          <CardDescription>A list of your 10 most recent transactions.</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Recent Transactions</CardTitle>
+            <CardDescription>Your latest financial activities.</CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard/wallet">
+              View All <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Date</TableHead>
-              </TableRow>
-            </TableHeader>
+           <Table>
             <TableBody>
               {(transactionsLoading && !transactions) && (
-                [...Array(5)].map((_, i) => (
+                [...Array(3)].map((_, i) => (
                     <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-5 w-28 ml-auto" /></TableCell>
+                        <TableCell className="p-2">
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div className="space-y-1">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-3 w-20" />
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right p-2"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
                     </TableRow>
                 ))
               )}
               {transactions?.map(tx => (
                 <TableRow key={tx.id}>
-                  <TableCell>
-                    <div className={`capitalize font-medium flex items-center`}>
-                     {tx.type === 'deposit' ? 
-                        <TrendingUp className="h-4 w-4 mr-2 text-green-500" /> : 
-                        <TrendingDown className="h-4 w-4 mr-2 text-red-500" />}
-                      {tx.type}
+                  <TableCell className="p-2">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-muted rounded-full">
+                        {tx.type === 'deposit' ? 
+                          <TrendingUp className="h-5 w-5 text-green-500" /> : 
+                          <TrendingDown className="h-5 w-5 text-red-500" />}
+                      </div>
+                      <div>
+                        <div className="capitalize font-medium">{tx.type}</div>
+                        <div className="text-xs text-muted-foreground">{formatDate(tx.date)}</div>
+                      </div>
                     </div>
                   </TableCell>
-                  <TableCell>{formatCurrency(tx.amount)}</TableCell>
-                  <TableCell>
-                    <Badge variant={
-                        tx.status === 'completed' ? 'default' :
-                        tx.status === 'pending' ? 'secondary' :
-                        'destructive'
-                    } className={
-                        tx.status === 'completed' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700' :
-                        tx.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700' :
-                        'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700'
-                    }>
-                      {tx.status}
-                    </Badge>
+                  <TableCell className="text-right font-mono p-2">
+                      {tx.type === 'deposit' ? '+' : '-'}
+                      {formatCurrency(tx.amount)}
                   </TableCell>
-                  <TableCell className="text-right">{formatDate(tx.date)}</TableCell>
                 </TableRow>
               ))}
                {!transactionsLoading && transactions?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={2} className="h-24 text-center">
                     No transactions found.
                   </TableCell>
                 </TableRow>

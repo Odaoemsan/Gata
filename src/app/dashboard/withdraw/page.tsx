@@ -56,87 +56,87 @@ export default function WithdrawPage() {
     }
 
     return (
-        <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
-            <h2 className="text-3xl font-bold tracking-tight">Withdraw Funds</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-2">
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)}>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Request a Withdrawal</CardTitle>
-                                    <CardDescription>Enter the amount and your wallet address to withdraw funds.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <FormField
-                                        control={form.control}
-                                        name="amount"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <Label htmlFor="amount">Amount (USD)</Label>
-                                                <div className="relative">
-                                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                                    <Input
-                                                        id="amount"
-                                                        type="number"
-                                                        placeholder="100.00"
-                                                        className="pl-10"
-                                                        {...field}
-                                                    />
-                                                </div>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="walletAddress"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <Label htmlFor="walletAddress">Your Crypto Wallet Address</Label>
-                                                <div className="relative">
-                                                    <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                                    <Input
-                                                        id="walletAddress"
-                                                        placeholder="bc1q..."
-                                                        className="pl-10"
-                                                        {...field}
-                                                    />
-                                                </div>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <Button type="submit" disabled={isLoading} className="w-full">
-                                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Request Withdrawal
-                                    </Button>
-                                </CardContent>
-                            </Card>
+        <div className="flex-1 space-y-6 p-4 md:p-8">
+            <div className="text-center">
+                <h2 className="text-3xl font-bold tracking-tight">Withdraw Funds</h2>
+                <p className="text-muted-foreground mt-1">Request a withdrawal to your crypto wallet.</p>
+            </div>
+             <Card className="max-w-2xl mx-auto bg-muted/50">
+                <CardHeader>
+                    <CardTitle>Your Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Current Balance:</span>
+                        <span className="font-bold text-lg">{userData ? `$${userData.balance.toFixed(2)}` : '$0.00'}</span>
+                    </div>
+                     <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Withdrawal Fee:</span>
+                        <span className="font-bold text-lg">5%</span>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="max-w-2xl mx-auto">
+                 <CardHeader>
+                    <CardTitle>Withdrawal Details</CardTitle>
+                    <CardDescription>Enter the amount and your wallet address.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                             <FormField
+                                control={form.control}
+                                name="amount"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <Label htmlFor="amount">Amount (USD)</Label>
+                                        <div className="relative">
+                                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                            <Input
+                                                id="amount"
+                                                type="number"
+                                                placeholder="100.00"
+                                                className="pl-10"
+                                                {...field}
+                                            />
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="walletAddress"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <Label htmlFor="walletAddress">Your Crypto Wallet Address (USDT)</Label>
+                                        <div className="relative">
+                                            <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                            <Input
+                                                id="walletAddress"
+                                                placeholder="bc1q..."
+                                                className="pl-10"
+                                                {...field}
+                                            />
+                                        </div>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" disabled={isLoading} className="w-full">
+                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Request Withdrawal
+                            </Button>
                         </form>
                     </Form>
-                </div>
-                <div>
-                     <Card className="bg-muted/50">
-                        <CardHeader>
-                            <CardTitle>Summary</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Current Balance:</span>
-                                <span className="font-bold text-lg">{userData ? `$${userData.balance.toFixed(2)}` : '$0.00'}</span>
-                            </div>
-                             <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Withdrawal Fee:</span>
-                                <span className="font-bold text-lg">5%</span>
-                            </div>
-                            <div className="text-xs text-muted-foreground pt-4">
-                                Please double-check your wallet address. Transactions to incorrect addresses cannot be recovered. Withdrawals are processed manually and may take up to 24 hours.
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
+                </CardContent>
+                <CardHeader>
+                    <p className="text-xs text-muted-foreground pt-4">
+                        Please double-check your wallet address. Transactions to incorrect addresses cannot be recovered. Withdrawals are processed manually and may take up to 24 hours.
+                    </p>
+                </CardHeader>
+            </Card>
         </div>
     );
 }
