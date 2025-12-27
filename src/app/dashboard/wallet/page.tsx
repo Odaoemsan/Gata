@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -5,6 +6,7 @@ import DepositPage from "../deposit/page";
 import WithdrawPage from "../withdraw/page";
 import { useUser } from "@/firebase/auth/use-user";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-US', {
@@ -14,7 +16,7 @@ function formatCurrency(amount: number) {
 }
 
 export default function WalletPage() {
-    const { userData } = useUser();
+    const { userData, loading } = useUser();
 
     return (
          <div className="flex-1 space-y-6 p-4 md:p-8">
@@ -27,12 +29,16 @@ export default function WalletPage() {
                     <CardTitle className="text-sm font-medium text-primary">Total Balance</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">
-                    <p className="text-4xl font-bold tracking-tight">
-                        {userData ? formatCurrency(userData.balance) : formatCurrency(0)}
-                    </p>
+                    {loading ? (
+                        <Skeleton className="h-10 w-48 mx-auto" />
+                    ) : (
+                        <p className="text-4xl font-bold tracking-tight">
+                            {userData ? formatCurrency(userData.balance) : formatCurrency(0)}
+                        </p>
+                    )}
                 </CardContent>
             </Card>
-            <Tabs defaultValue="deposit" className="max-w-2xl mx-auto">
+            <Tabs defaultValue="deposit" className="max-w-2xl mx-auto pt-4">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="deposit">Deposit</TabsTrigger>
                     <TabsTrigger value="withdraw">Withdraw</TabsTrigger>

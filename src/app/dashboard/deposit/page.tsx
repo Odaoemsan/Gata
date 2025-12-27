@@ -9,6 +9,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { DollarSign, Copy, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useUser } from '@/firebase/auth/use-user';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 const cryptoWallets = [
     { name: 'Bitcoin (BTC)', address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' },
@@ -18,6 +21,8 @@ const cryptoWallets = [
 
 export default function DepositPage() {
     const { toast } = useToast();
+    const { user } = useUser();
+    const firestore = useFirestore();
     const [amount, setAmount] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -29,52 +34,45 @@ export default function DepositPage() {
         });
     };
 
-    const handleDepositRequest = () => {
+    const handleDepositRequest = async () => {
+        if (!user || !amount) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please enter an amount.' });
+            return;
+        }
         setIsLoading(true);
-        // Here you would typically interact with a backend or Firebase function
-        // to create a pending transaction record.
-        setTimeout(() => {
+
+        try {
+            const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
+            await addDoc(transactionsRef, {
+                type: 'deposit',
+                amount: parseFloat(amount),
+                status: 'pending',
+                date: serverTimestamp(),
+            });
+            
             toast({
                 title: 'Deposit Request Submitted',
-                description: `Your request to deposit ${amount}$ has been noted. Please send the funds to the selected wallet.`,
+                description: `Your request to deposit $${amount} is under review. Your balance will be updated within 1-2 hours after confirmation.`,
             });
-            setIsLoading(false);
             setAmount('');
-        }, 1500);
+        } catch (error) {
+            console.error("Error creating deposit request: ", error);
+            toast({
+                variant: 'destructive',
+                title: 'Request Failed',
+                description: 'Could not submit your deposit request. Please try again.',
+            });
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     return (
-        <div className="flex-1 space-y-6 p-4 md:p-8">
-            <div className="text-center">
-                <h2 className="text-3xl font-bold tracking-tight">Deposit Funds</h2>
-                <p className="text-muted-foreground mt-1">Choose a crypto and send funds to invest.</p>
-            </div>
-            <Card className="max-w-2xl mx-auto">
+        <div className="space-y-4">
+            <Card>
                 <CardHeader>
-                    <CardTitle>1. Enter Amount</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <div className="space-y-2">
-                        <Label htmlFor="amount" className="sr-only">Amount (USD)</Label>
-                        <div className="relative">
-                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <Input 
-                                id="amount" 
-                                type="number" 
-                                placeholder="100.00" 
-                                className="pl-10 text-lg" 
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card className="max-w-2xl mx-auto">
-                 <CardHeader>
-                    <CardTitle>2. Send Crypto</CardTitle>
-                    <CardDescription>Choose a cryptocurrency and send the amount you wish to invest.</CardDescription>
+                    <CardTitle className="text-lg">1. Choose Crypto &amp; Send</CardTitle>
+                    <CardDescription>Select a cryptocurrency and send the amount you wish to invest to the provided address.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <Tabs defaultValue={cryptoWallets[0].name} className="w-full">
@@ -102,10 +100,6 @@ export default function DepositPage() {
                                         <Copy className="h-4 w-4" />
                                     </Button>
                                 </div>
-                                <p className="text-xs text-muted-foreground text-center">
-                                    Once sent, your balance will be updated after network confirmation. 
-                                    Make sure to submit your deposit request below.
-                                </p>
                             </div>
                         </TabsContent>
                         ))}
@@ -113,16 +107,33 @@ export default function DepositPage() {
                 </CardContent>
             </Card>
             
-             <Card className="max-w-2xl mx-auto">
+             <Card>
                  <CardHeader>
-                    <CardTitle>3. Confirm Deposit</CardTitle>
-                    <CardDescription>After sending the funds, click the button below to log your request.</CardDescription>
+                    <CardTitle className="text-lg">2. Confirm Your Deposit</CardTitle>
+                    <CardDescription>After sending the funds, enter the amount and submit your request for manual review.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="amount">Amount Sent (USD)</Label>
+                        <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input 
+                                id="amount" 
+                                type="number" 
+                                placeholder="100.00" 
+                                className="pl-10 text-base" 
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                            />
+                        </div>
+                    </div>
                     <Button onClick={handleDepositRequest} disabled={!amount || isLoading} className="w-full">
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        I have sent the money
+                        Submit Deposit Request
                     </Button>
+                     <p className="text-xs text-muted-foreground text-center pt-2">
+                        Deposits are reviewed manually and typically credited within 1-2 hours.
+                    </p>
                 </CardContent>
             </Card>
         </div>

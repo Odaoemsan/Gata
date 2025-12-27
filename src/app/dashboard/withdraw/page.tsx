@@ -13,16 +13,24 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+
+const MIN_WITHDRAWAL = 50;
 
 const withdrawSchema = z.object({
-    amount: z.coerce.number().positive({ message: "Amount must be greater than 0." }),
-    walletAddress: z.string().min(26, { message: "Please enter a valid wallet address."}),
+    amount: z.coerce
+        .number()
+        .positive({ message: "Amount must be greater than 0." })
+        .min(MIN_WITHDRAWAL, { message: `Minimum withdrawal amount is $${MIN_WITHDRAWAL}.` }),
+    walletAddress: z.string().min(26, { message: "Please enter a valid crypto wallet address."}),
 });
 
 
 export default function WithdrawPage() {
     const { toast } = useToast();
-    const { userData } = useUser();
+    const { user, userData } = useUser();
+    const firestore = useFirestore();
     const [isLoading, setIsLoading] = useState(false);
 
     const form = useForm<z.infer<typeof withdrawSchema>>({
@@ -33,8 +41,10 @@ export default function WithdrawPage() {
         }
     });
 
-    function onSubmit(values: z.infer<typeof withdrawSchema>) {
-        if(userData && values.amount > userData.balance) {
+    async function onSubmit(values: z.infer<typeof withdrawSchema>) {
+        if(!user || !userData) return;
+
+        if(values.amount > userData.balance) {
             form.setError("amount", {
                 type: "manual",
                 message: "Withdrawal amount cannot exceed your balance.",
@@ -43,44 +53,52 @@ export default function WithdrawPage() {
         }
 
         setIsLoading(true);
-        // Here you would typically interact with a backend or Firebase function
-        // to create a pending withdrawal transaction.
-        setTimeout(() => {
+
+        try {
+            const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
+            await addDoc(transactionsRef, {
+                type: 'withdrawal',
+                amount: values.amount,
+                walletAddress: values.walletAddress,
+                status: 'pending',
+                date: serverTimestamp(),
+            });
+
             toast({
                 title: 'Withdrawal Request Submitted',
                 description: `Your request to withdraw $${values.amount} has been received. It will be processed within 24 hours.`,
             });
-            setIsLoading(false);
             form.reset();
-        }, 2000);
+        } catch (error) {
+            console.error("Error creating withdrawal request: ", error);
+            toast({
+                variant: 'destructive',
+                title: 'Request Failed',
+                description: 'Could not submit your withdrawal request. Please try again.',
+            });
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     return (
-        <div className="flex-1 space-y-6 p-4 md:p-8">
-            <div className="text-center">
-                <h2 className="text-3xl font-bold tracking-tight">Withdraw Funds</h2>
-                <p className="text-muted-foreground mt-1">Request a withdrawal to your crypto wallet.</p>
-            </div>
-             <Card className="max-w-2xl mx-auto bg-muted/50">
+        <div className="space-y-4">
+             <Card className="bg-muted/50">
                 <CardHeader>
-                    <CardTitle>Your Summary</CardTitle>
+                    <CardTitle className="text-lg">Withdrawal Rules</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Current Balance:</span>
-                        <span className="font-bold text-lg">{userData ? `$${userData.balance.toFixed(2)}` : '$0.00'}</span>
-                    </div>
-                     <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Withdrawal Fee:</span>
-                        <span className="font-bold text-lg">5%</span>
-                    </div>
+                <CardContent className="text-sm text-muted-foreground space-y-2">
+                    <p>• Minimum withdrawal amount is <strong>${MIN_WITHDRAWAL}</strong>.</p>
+                    <p>• Withdrawals are permitted once every 5 days.</p>
+                    <p>• Requests are processed manually within 24 business hours.</p>
+                    <p>• A 5% fee applies to all withdrawals.</p>
                 </CardContent>
             </Card>
 
-            <Card className="max-w-2xl mx-auto">
+            <Card>
                  <CardHeader>
-                    <CardTitle>Withdrawal Details</CardTitle>
-                    <CardDescription>Enter the amount and your wallet address.</CardDescription>
+                    <CardTitle className="text-lg">Request Withdrawal</CardTitle>
+                    <CardDescription>Enter the amount and your USDT wallet address.</CardDescription>
                 </CardHeader>
                 <CardContent>
                      <Form {...form}>
@@ -90,7 +108,7 @@ export default function WithdrawPage() {
                                 name="amount"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <Label htmlFor="amount">Amount (USD)</Label>
+                                        <Label htmlFor="amount">Amount to Withdraw (USD)</Label>
                                         <div className="relative">
                                             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                             <Input
@@ -115,7 +133,7 @@ export default function WithdrawPage() {
                                             <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                             <Input
                                                 id="walletAddress"
-                                                placeholder="bc1q..."
+                                                placeholder="Enter your USDT wallet address"
                                                 className="pl-10"
                                                 {...field}
                                             />
@@ -126,16 +144,11 @@ export default function WithdrawPage() {
                             />
                             <Button type="submit" disabled={isLoading} className="w-full">
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Request Withdrawal
+                                Submit Withdrawal Request
                             </Button>
                         </form>
                     </Form>
                 </CardContent>
-                <CardHeader>
-                    <p className="text-xs text-muted-foreground pt-4">
-                        Please double-check your wallet address. Transactions to incorrect addresses cannot be recovered. Withdrawals are processed manually and may take up to 24 hours.
-                    </p>
-                </CardHeader>
             </Card>
         </div>
     );
