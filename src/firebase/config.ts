@@ -1,10 +1,10 @@
 'use client';
 // Replace with your actual Firebase project configuration
 export const firebaseConfig = {
-  apiKey: "API_KEY",
-  authDomain: "PROJECT_ID.firebaseapp.com",
-  projectId: "PROJECT_ID",
-  storageBucket: "PROJECT_ID.appspot.com",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "gora-e4359.firebaseapp.com",
+  projectId: "gora-e4359",
+  storageBucket: "gora-e4359.appspot.com",
+  messagingSenderId: "389284687259",
+  appId: "1:389284687259:web:1e358c5c3a37e5c5c065f4"
 };
