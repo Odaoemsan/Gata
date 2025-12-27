@@ -1,0 +1,97 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Represents a user of the application.",
+      "type": "object",
+      "properties": {
+        "balance": {
+          "type": "number",
+          "description": "The user's current account balance."
+        },
+        "totalDeposits": {
+          "type": "number",
+          "description": "The total amount of money deposited by the user."
+        },
+        "totalWithdrawals": {
+          "type": "number",
+          "description": "The total amount of money withdrawn by the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the user was created."
+        }
+      },
+      "required": ["balance", "totalDeposits", "totalWithdrawals", "createdAt"]
+    },
+    "InvestmentPlan": {
+      "title": "Investment Plan",
+      "description": "Represents an investment plan.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the investment plan."
+        },
+        "dailyProfit": {
+          "type": "number",
+          "description": "The daily profit percentage."
+        },
+        "duration": {
+          "type": "number",
+          "description": "The duration of the plan in days."
+        },
+        "minMax": {
+          "type": "string",
+          "description": "The minimum and maximum investment amount."
+        }
+      },
+      "required": ["name", "dailyProfit", "duration", "minMax"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Represents a financial transaction.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["deposit", "withdrawal"],
+          "description": "The type of transaction."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the transaction."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time of the transaction."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["pending", "completed", "failed"],
+            "description": "The status of the transaction."
+        }
+      },
+      "required": ["type", "amount", "date", "status"]
+    }
+  },
+  "auth": {
+    "providers": ["anonymous"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profile information."
+    },
+    "/investmentPlans": {
+      "schema": { "$ref": "#/entities/InvestmentPlan" },
+      "description": "Stores the available investment plans."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "Stores user financial transactions."
+    }
+  }
+}
