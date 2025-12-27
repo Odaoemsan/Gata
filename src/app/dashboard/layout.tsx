@@ -14,7 +14,7 @@ import {
   SidebarInset,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LayoutDashboard, Users, Landmark, TrendingUp, Settings, LogOut } from 'lucide-react';
+import { Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
@@ -55,10 +55,6 @@ export default function DashboardLayout({
   };
 
   const menuItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/dashboard/invest', label: 'Invest', icon: TrendingUp },
-    { href: '/dashboard/transactions', label: 'Transactions', icon: Landmark },
-    { href: '/dashboard/team', label: 'My Team', icon: Users },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
 
@@ -78,16 +74,21 @@ export default function DashboardLayout({
         </SidebarHeader>
         <SidebarContent>
            <SidebarMenu>
-            {menuItems.map((item) => (
-                <SidebarMenuItem key={item.label}>
-                    <Link href={item.href} legacyBehavior passHref>
-                        <SidebarMenuButton isActive={pathname === item.href} tooltip={{children: item.label}}>
-                            <item.icon />
-                            {item.label}
-                        </SidebarMenuButton>
-                    </Link>
-                </SidebarMenuItem>
-            ))}
+             <SidebarMenuItem>
+                <Link href="/dashboard" legacyBehavior passHref>
+                    <SidebarMenuButton isActive={pathname === '/dashboard'}>
+                        Dashboard
+                    </SidebarMenuButton>
+                </Link>
+             </SidebarMenuItem>
+             <SidebarMenuItem>
+                <Link href="/dashboard/settings" legacyBehavior passHref>
+                    <SidebarMenuButton isActive={pathname === '/dashboard/settings'}>
+                        <Settings />
+                        Settings
+                    </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
            </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
@@ -107,6 +108,11 @@ export default function DashboardLayout({
                 <SidebarTrigger />
                 <span className="font-semibold">GORA</span>
             </div>
+             <Link href="/dashboard/settings">
+                <Avatar>
+                    <AvatarFallback>{user?.email?.[0].toUpperCase() ?? 'A'}</AvatarFallback>
+                </Avatar>
+            </Link>
         </header>
         {children}
       </SidebarInset>
