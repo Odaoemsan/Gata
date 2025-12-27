@@ -91,9 +91,8 @@ export default function SignUpPage() {
       const userDocRef = doc(firestore, 'users', user.uid);
       await setDoc(userDocRef, {
         displayName: values.fullName,
-        fullName: values.fullName,
         username: values.username.toLowerCase(),
-        email: values.email,
+        email: values.email.toLowerCase(),
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
@@ -113,7 +112,7 @@ export default function SignUpPage() {
         errorMessage = 'This email address is already in use.';
         form.setError('email', { type: 'manual', message: errorMessage });
       } else if (error.code === 'permission-denied' || error.message.includes('permission-denied')) {
-        errorMessage = 'There was a problem setting up your account profile. Please contact support.';
+        errorMessage = 'There was a problem setting up your account profile. Please check the data and try again.';
       }
       else {
         errorMessage = 'Failed to create account. Please try again later.';

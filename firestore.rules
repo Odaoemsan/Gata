@@ -19,7 +19,7 @@ service cloud.firestore {
       // Any authenticated user can create their own profile upon signup.
       // We check that the incoming data has the correct fields.
       allow create: if request.auth != null && isOwner(userId)
-                    && request.resource.data.fullName is string
+                    && request.resource.data.displayName is string
                     && request.resource.data.username is string
                     && request.resource.data.email == request.auth.token.email
                     && request.resource.data.balance == 0
