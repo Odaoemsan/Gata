@@ -16,17 +16,14 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      // Any authenticated user can create their own profile.
+      // Any authenticated user can create their own profile upon signup.
       allow create: if request.auth != null && isOwner(userId);
       
       // Only the owner can read their own profile.
       allow get: if isOwner(userId);
       
-      // A user can update their own profile's displayName.
-      // A user cannot change their balance, deposits, or withdrawals.
-      // Only an admin can update the balance, deposits or withdrawals.
-      allow update: if isOwner(userId) && request.resource.data.keys().hasOnly(['displayName'])
-                   || isAdmin();
+      // Admins can update any field. Users cannot update any fields.
+      allow update: if isAdmin();
 
       // No one can delete a user profile for now.
       allow delete: if false;

@@ -16,7 +16,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
 import { getAuth, signOut } from 'firebase/auth';
 import { useFirebaseApp } from '@/firebase/provider';
@@ -29,7 +29,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
 
-  const pathname = usePathname();
   const router = useRouter();
   const { user, userData } = useUser();
   const firebaseApp = useFirebaseApp();
@@ -54,10 +53,6 @@ export default function DashboardLayout({
     }
   };
 
-  const menuItems = [
-    { href: '/dashboard/settings', label: 'Settings', icon: Settings },
-  ];
-
   return (
     <SidebarProvider>
       <Sidebar>
@@ -73,46 +68,44 @@ export default function DashboardLayout({
             </div>
         </SidebarHeader>
         <SidebarContent>
-           <SidebarMenu>
-             <SidebarMenuItem>
-                <Link href="/dashboard" legacyBehavior passHref>
-                    <SidebarMenuButton isActive={pathname === '/dashboard'}>
-                        Dashboard
-                    </SidebarMenuButton>
-                </Link>
-             </SidebarMenuItem>
-             <SidebarMenuItem>
-                <Link href="/dashboard/settings" legacyBehavior passHref>
-                    <SidebarMenuButton isActive={pathname === '/dashboard/settings'}>
-                        <Settings />
-                        Settings
-                    </SidebarMenuButton>
-                </Link>
-            </SidebarMenuItem>
-           </SidebarMenu>
+           {/* Navigation links can be added here in the future if needed */}
         </SidebarContent>
         <SidebarFooter>
            <SidebarMenu>
              <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleSignOut}>
+                <Link href="/dashboard/settings" legacyBehavior passHref>
+                    <SidebarMenuButton tooltip="Settings">
+                        <Settings />
+                        <span className="group-data-[collapsible=icon]:hidden">Settings</span>
+                    </SidebarMenuButton>
+                </Link>
+             </SidebarMenuItem>
+             <SidebarMenuItem>
+                <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
                     <LogOut />
-                    Sign Out
+                    <span className="group-data-[collapsible=icon]:hidden">Sign Out</span>
                 </SidebarMenuButton>
              </SidebarMenuItem>
            </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center justify-between border-b bg-card px-4 md:hidden">
+        <header className="flex h-16 items-center justify-between border-b bg-card px-4 md:px-6">
             <div className="flex items-center gap-2">
-                <SidebarTrigger />
-                <span className="font-semibold">GORA</span>
+                <SidebarTrigger className="md:hidden" />
+                <span className="font-semibold text-lg hidden md:inline">GORA</span>
             </div>
-             <Link href="/dashboard/settings">
-                <Avatar>
-                    <AvatarFallback>{user?.email?.[0].toUpperCase() ?? 'A'}</AvatarFallback>
-                </Avatar>
-            </Link>
+             <div className="flex items-center gap-4">
+                <div className="hidden md:flex flex-col items-end">
+                    <span className="font-semibold text-sm">{userData?.displayName}</span>
+                    <span className="text-xs text-muted-foreground">ID: {userData?.username}</span>
+                </div>
+                <Link href="/dashboard/settings">
+                    <Avatar>
+                        <AvatarFallback>{user?.email?.[0].toUpperCase() ?? 'A'}</AvatarFallback>
+                    </Avatar>
+                </Link>
+             </div>
         </header>
         {children}
       </SidebarInset>
