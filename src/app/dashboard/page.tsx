@@ -12,7 +12,7 @@ import { useFirestore } from '@/firebase/provider';
 import type { User, Transaction } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DollarSign, TrendingUp, TrendingDown, Briefcase, ArrowRight } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Briefcase, ArrowRight, Wallet, Rocket, Users, Landmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 function formatCurrency(amount: number) {
@@ -53,6 +53,11 @@ function DashboardSkeleton() {
             <div className="space-y-2">
                 <Skeleton className="h-6 w-32" />
                 <Skeleton className="h-10 w-48" />
+            </div>
+             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-20" />
+                ))}
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {[...Array(4)].map((_, i) => (
@@ -121,6 +126,29 @@ export default function DashboardPage() {
             </h1>
             <p className="text-muted-foreground">Here's a summary of your account.</p>
         </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Button variant="outline" asChild>
+                <Link href="/dashboard/wallet?tab=deposit">
+                    <Landmark className="mr-2 h-4 w-4" /> Deposit
+                </Link>
+            </Button>
+            <Button variant="outline" asChild>
+                <Link href="/dashboard/wallet?tab=withdraw">
+                    <Wallet className="mr-2 h-4 w-4" /> Withdraw
+                </Link>
+            </Button>
+             <Button variant="outline" asChild>
+                <Link href="/dashboard/invest">
+                   <Rocket className="mr-2 h-4 w-4" /> Invest
+                </Link>
+            </Button>
+            <Button variant="outline" asChild>
+                <Link href="/dashboard/team">
+                    <Users className="mr-2 h-4 w-4" /> Team
+                </Link>
+            </Button>
+        </div>
 
       <Card className="bg-primary/5 dark:bg-primary/10 border-primary/20">
           <CardHeader className="pb-4">
@@ -179,7 +207,7 @@ export default function DashboardPage() {
             <CardDescription>Your latest financial activities.</CardDescription>
           </div>
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard/wallet">
+            <Link href="/dashboard/wallet?tab=history">
               View All <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -238,5 +266,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

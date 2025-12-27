@@ -2,6 +2,7 @@
 'use client';
 
 import { useMemo } from "react";
+import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -154,8 +155,10 @@ function AllTransactions() {
     )
 }
 
-export default function WalletPage() {
+function WalletPageContent() {
     const { userData, loading } = useUser();
+    const searchParams = useSearchParams();
+    const defaultTab = searchParams.get('tab') || 'deposit';
 
     return (
          <div className="flex-1 space-y-6 p-4 md:p-8">
@@ -177,7 +180,7 @@ export default function WalletPage() {
                     )}
                 </CardContent>
             </Card>
-            <Tabs defaultValue="deposit" className="max-w-2xl mx-auto pt-4">
+            <Tabs defaultValue={defaultTab} className="max-w-2xl mx-auto pt-4">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="deposit">Deposit</TabsTrigger>
                     <TabsTrigger value="withdraw">Withdraw</TabsTrigger>
@@ -197,4 +200,11 @@ export default function WalletPage() {
     )
 }
 
-    
+
+export default function WalletPage() {
+    return (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <WalletPageContent />
+        </React.Suspense>
+    )
+}

@@ -21,6 +21,7 @@ import { getAuth, signOut } from 'firebase/auth';
 import { useFirebaseApp } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 
 function BottomNavBar() {
@@ -77,6 +78,7 @@ export default function DashboardLayout({
   const { toast } = useToast();
 
   const handleSignOut = async () => {
+    if (!firebaseApp) return;
     const auth = getAuth(firebaseApp);
     try {
       await signOut(auth);
@@ -155,5 +157,3 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
-
-    
