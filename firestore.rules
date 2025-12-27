@@ -17,7 +17,6 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       // Any authenticated user can create their own profile upon signup.
-      // We check that the incoming data has the correct fields and email matches token.
       allow create: if request.auth != null && isOwner(userId)
                     && request.resource.data.displayName is string
                     && request.resource.data.username is string
@@ -29,8 +28,14 @@ service cloud.firestore {
       // Only the owner or an admin can read the profile.
       allow get: if isOwner(userId) || isAdmin();
       
-      // Admins can update any field. Users cannot update any fields directly.
-      allow update: if isAdmin();
+      // Admins can update any field. 
+      // Users can update their balance only when making an investment, 
+      // ensuring the new balance is correctly calculated.
+      allow update: if isAdmin() || 
+                     (isOwner(userId) && 
+                      'balance' in request.resource.data &&
+                      request.resource.data.balance == resource.data.balance - request.resource.data.investmentAmount &&
+                      request.resource.data.keys().hasOnly(['balance']));
 
       // No one can delete a user profile for now.
       allow delete: if false;
@@ -63,6 +68,24 @@ service cloud.firestore {
 
         // No one can delete transactions for now to preserve history.
         allow delete: if false;
+      }
+
+      // Active Investments subcollection
+      match /activeInvestments/{investmentId} {
+        // Owner can read their own investments
+        allow list, get: if isOwner(userId);
+
+        // Owner can create a new investment if the data is valid
+        allow create: if isOwner(userId) 
+                      && request.resource.data.planId is string
+                      && request.resource.data.planName is string
+                      && request.resource.data.amount is number
+                      && request.resource.data.amount > 0
+                      && request.resource.data.status == 'active'
+                      && request.resource.data.startDate == request.time;
+        
+        // No updates or deletes for now to preserve investment record
+        allow update, delete: if false;
       }
     }
 

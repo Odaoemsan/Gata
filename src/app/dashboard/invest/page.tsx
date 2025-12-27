@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState } from 'react';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import type { InvestmentPlan, User } from '@/lib/types';
+import type { InvestmentPlan, User, ActiveInvestment } from '@/lib/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 function PlanSkeleton() {
@@ -54,7 +55,7 @@ function PlanSkeleton() {
 
 export default function InvestPage() {
     const firestore = useFirestore();
-    const { userData } = useUser();
+    const { user, userData } = useUser();
     const { toast } = useToast();
     const [selectedPlan, setSelectedPlan] = useState<InvestmentPlan | null>(null);
     const [amount, setAmount] = useState('');
@@ -72,11 +73,11 @@ export default function InvestPage() {
         professional: <Crown className="h-10 w-10 text-purple-500" />
     };
 
-    const handleInvest = () => {
+    const handleInvest = async () => {
         setIsLoading(true);
         const investmentAmount = parseFloat(amount);
-        if (!selectedPlan || !typedUserData || !investmentAmount) {
-            toast({ variant: "destructive", title: "Error", description: "Invalid plan or amount."});
+        if (!selectedPlan || !user || !typedUserData || !investmentAmount || !firestore) {
+            toast({ variant: "destructive", title: "Error", description: "Invalid plan, user, or amount."});
             setIsLoading(false);
             return;
         }
@@ -86,21 +87,62 @@ export default function InvestPage() {
             setIsLoading(false);
             return;
         }
-        
-        // This is where you would trigger a Firebase function to handle the investment logic
-        // to ensure atomicity (deduct balance, create investment record).
-        // For now, we simulate success.
-        console.log(`Investing ${investmentAmount} in ${selectedPlan.name}`);
 
-        setTimeout(() => {
+        const userRef = doc(firestore, "users", user.uid);
+        const newInvestmentRef = doc(collection(firestore, `users/${user.uid}/activeInvestments`));
+        
+        const newBalance = typedUserData.balance - investmentAmount;
+        
+        const investmentStartDate = serverTimestamp();
+        const investmentEndDate = new Date();
+        investmentEndDate.setDate(investmentEndDate.getDate() + selectedPlan.duration);
+
+        const newInvestment: Omit<ActiveInvestment, 'id'> = {
+            planId: selectedPlan.id,
+            planName: selectedPlan.name,
+            amount: investmentAmount,
+            startDate: investmentStartDate,
+            endDate: investmentEndDate,
+            status: 'active',
+        };
+
+        try {
+            const batch = writeBatch(firestore);
+
+            // 1. Update user's balance
+            batch.update(userRef, { balance: newBalance });
+
+            // 2. Create new active investment document
+            batch.set(newInvestmentRef, newInvestment);
+
+            await batch.commit();
+
             toast({
                 title: "Investment Successful!",
                 description: `You have successfully invested $${investmentAmount} in the ${selectedPlan.name} plan.`
             });
-            setIsLoading(false);
             setSelectedPlan(null);
             setAmount('');
-        }, 2000);
+
+        } catch(error: any) {
+             if (error.code === 'permission-denied') {
+                const permissionError = new FirestorePermissionError({
+                    path: userRef.path, // Or a more specific path if identifiable
+                    operation: 'update', // This is a batch, so it's tricky. Let's use 'update' as it's the most sensitive part.
+                    requestResourceData: { balance: newBalance },
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            } else {
+                console.error("Investment failed:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Investment Failed',
+                    description: error.message || 'Could not process your investment. Please try again.',
+                });
+            }
+        } finally {
+            setIsLoading(false);
+        }
     }
     
     return (

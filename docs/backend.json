@@ -85,9 +85,48 @@
             "type": "string",
             "enum": ["pending", "completed", "failed"],
             "description": "The status of the transaction."
+        },
+        "walletAddress": {
+          "type": "string",
+          "description": "The crypto wallet address for withdrawals."
         }
       },
       "required": ["type", "amount", "date", "status"]
+    },
+    "ActiveInvestment": {
+      "title": "Active Investment",
+      "description": "Represents an active investment by a user.",
+      "type": "object",
+      "properties": {
+        "planId": {
+          "type": "string",
+          "description": "The ID of the investment plan."
+        },
+        "planName": {
+          "type": "string",
+          "description": "The name of the investment plan."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount invested."
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The start date of the investment."
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The end date of the investment."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["active", "completed"],
+            "description": "The status of the investment."
+        }
+      },
+      "required": ["planId", "planName", "amount", "startDate", "endDate", "status"]
     }
   },
   "auth": {
@@ -105,6 +144,10 @@
     "/users/{userId}/transactions/{transactionId}": {
       "schema": { "$ref": "#/entities/Transaction" },
       "description": "Stores user financial transactions."
+    },
+    "/users/{userId}/activeInvestments/{investmentId}": {
+      "schema": { "$ref": "#/entities/ActiveInvestment" },
+      "description": "Stores a user's active investments."
     }
   }
 }
