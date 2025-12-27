@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check for admin role
+    function isAdmin() {
+      return request.auth.token.admin == true;
+    }
+
+    // Helper function to check if the user is the owner of the document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Any authenticated user can create their own profile.
+      allow create: if request.auth != null && isOwner(userId);
+      
+      // Only the owner can read their own profile.
+      allow get: if isOwner(userId);
+      
+      // A user can update their own profile, but cannot change their balance, deposits or withdrawals.
+      // Only an admin can update the balance, deposits or withdrawals.
+      allow update: if isOwner(userId) && !('balance' in request.resource.data) && !('totalDeposits' in request.resource.data) && !('totalWithdrawals' in request.resource.data)
+                   || isAdmin();
+
+      // No one can delete a user profile for now.
+      allow delete: if false;
+
+      // Transactions subcollection
+      match /transactions/{transactionId} {
+        // The owner can create and read their own transactions.
+        allow create, list, get: if isOwner(userId);
+        
+        // No one can update or delete transactions for now to preserve history.
+        allow update, delete: if false;
+      }
+    }
+
+    // Investment Plans collection
+    match /investmentPlans/{planId} {
+      // Any authenticated user can read the investment plans.
+      allow get, list: if request.auth != null;
+
+      // Only admins can create, update, or delete investment plans.
+      allow write: if isAdmin();
+    }
+  }
+}

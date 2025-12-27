@@ -11,6 +11,7 @@ import { useFirestore } from '@/firebase/provider';
 import type { User, Transaction } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DollarSign, TrendingUp, TrendingDown, Briefcase } from 'lucide-react';
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-US', {
@@ -23,6 +24,21 @@ function formatDate(timestamp: any) {
     if (timestamp && typeof timestamp.toDate === 'function') {
         return timestamp.toDate().toLocaleDateString('en-US', {
             year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+    }
+    // Handle cases where the date might already be a string or other format
+    if (timestamp && timestamp.seconds) {
+        return new Date(timestamp.seconds * 1000).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+    }
+    if (typeof timestamp === 'string') {
+        return new Date(timestamp).toLocaleDateString('en-US', {
+             year: 'numeric',
             month: 'long',
             day: 'numeric',
         });
@@ -40,7 +56,7 @@ function DashboardSkeleton() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" className="h-4 w-4 text-muted-foreground"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <Skeleton className="h-8 w-3/4" />
@@ -50,7 +66,7 @@ function DashboardSkeleton() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Deposits</CardTitle>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8v1m0 6v1m4-4h.01M7 12h.01" /></svg>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                          <Skeleton className="h-8 w-3/4" />
@@ -60,7 +76,7 @@ function DashboardSkeleton() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Withdrawals</CardTitle>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
+                        <TrendingDown className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                          <Skeleton className="h-8 w-3/4" />
@@ -70,7 +86,7 @@ function DashboardSkeleton() {
                  <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Active Investments</CardTitle>
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                         <Briefcase className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <Skeleton className="h-8 w-3/4" />
@@ -123,7 +139,7 @@ export default function DashboardPage() {
     );
   }, [firestore, user]);
 
-  const { data: transactions, loading: transactionsLoading } = useCollection(transactionsQuery);
+  const { data: transactions, loading: transactionsLoading } = useCollection<Transaction>(transactionsQuery);
 
   const typedUserData = userData as User | null;
 
@@ -135,13 +151,6 @@ export default function DashboardPage() {
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <div className="flex items-center space-x-2">
-           {user && (
-            <Avatar>
-                <AvatarFallback>{user.email?.[0].toUpperCase() ?? 'U'}</AvatarFallback>
-            </Avatar>
-           )}
-        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -150,18 +159,7 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium">
               Total Balance
             </CardTitle>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              className="h-4 w-4 text-muted-foreground"
-            >
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -175,7 +173,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Deposits</CardTitle>
-             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted-foreground" fill="none" viewBox="00 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8v1m0 6v1m4-4h.01M7 12h.01" /></svg>
+             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -189,7 +187,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Withdrawals</CardTitle>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
+            <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -203,7 +201,7 @@ export default function DashboardPage() {
          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Investments</CardTitle>
-             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+             <Briefcase className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -232,7 +230,7 @@ export default function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactionsLoading && !transactions && (
+              {(transactionsLoading && !transactions) && (
                 [...Array(5)].map((_, i) => (
                     <TableRow key={i}>
                         <TableCell><Skeleton className="h-5 w-20" /></TableCell>
@@ -245,16 +243,20 @@ export default function DashboardPage() {
               {transactions?.map(tx => (
                 <TableRow key={tx.id}>
                   <TableCell>
-                    <div className={`capitalize font-medium ${tx.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`capitalize font-medium ${tx.type === 'deposit' ? 'text-green-500' : 'text-red-500'}`}>
                       {tx.type}
                     </div>
                   </TableCell>
                   <TableCell>{formatCurrency(tx.amount)}</TableCell>
                   <TableCell>
-                    <Badge variant={tx.status === 'completed' ? 'default' : 'secondary'} className={
-                        tx.status === 'completed' ? 'bg-green-100 text-green-800 border-green-200' :
-                        tx.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                        'bg-red-100 text-red-800 border-red-200'
+                    <Badge variant={
+                        tx.status === 'completed' ? 'default' :
+                        tx.status === 'pending' ? 'secondary' :
+                        'destructive'
+                    } className={
+                        tx.status === 'completed' ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700' :
+                        tx.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700' :
+                        'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700'
                     }>
                       {tx.status}
                     </Badge>
