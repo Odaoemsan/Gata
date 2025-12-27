@@ -6,7 +6,7 @@ export interface User {
 }
 
 export interface Transaction {
-    id?: string;
+    id: string;
     type: 'deposit' | 'withdrawal';
     amount: number;
     date: any; // Using `any` for Firebase Timestamp for simplicity

@@ -1,7 +1,7 @@
 'use client';
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 import { firebaseConfig } from './config';
 
 import { useCollection } from './firestore/use-collection';
@@ -20,6 +20,7 @@ import { FirebaseClientProvider } from './client-provider';
 let firebaseApp: FirebaseApp;
 let auth: Auth;
 let firestore: Firestore;
+let persistenceEnabled = false;
 
 function initializeFirebase() {
   if (!getApps().length) {
@@ -31,6 +32,18 @@ function initializeFirebase() {
     auth = getAuth(firebaseApp);
     firestore = getFirestore(firebaseApp);
   }
+
+  if (!persistenceEnabled && typeof window !== 'undefined') {
+    enableMultiTabIndexedDbPersistence(firestore)
+    .then(() => {
+        persistenceEnabled = true;
+        console.log("Firestore persistence enabled");
+    })
+    .catch((err) => {
+        console.error("Failed to enable Firestore persistence:", err);
+    });
+  }
+
   return { firebaseApp, auth, firestore };
 }
 
