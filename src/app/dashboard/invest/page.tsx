@@ -10,15 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Rocket, Zap, Crown, CheckCircle, Loader2, PackageOpen, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -133,7 +132,7 @@ export default function InvestPage() {
 
         const batch = writeBatch(firestore);
         
-        batch.update(userRef, { balance: newBalance, investmentAmount: investmentAmount });
+        batch.update(userRef, { balance: newBalance });
         batch.set(newInvestmentRef, newInvestment);
 
         batch.commit()
@@ -147,7 +146,7 @@ export default function InvestPage() {
             })
             .catch(async (error) => {
                  const permissionError = new FirestorePermissionError({
-                    path: userRef.path, // We assume the user balance update is the primary point of failure for permissions
+                    path: userRef.path,
                     operation: 'update',
                     requestResourceData: { balance: newBalance, investmentAmount: investmentAmount },
                 });
@@ -205,15 +204,15 @@ export default function InvestPage() {
                 )
             )}
             
-            <AlertDialog open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>Invest in {selectedPlan?.name}</AlertDialogTitle>
-                    <AlertDialogDescription>
+            <Dialog open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                    <DialogTitle>Invest in {selectedPlan?.name}</DialogTitle>
+                    <DialogDescription>
                         Your current balance is <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>. 
                         Enter the amount you wish to invest.
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
+                    </DialogDescription>
+                    </DialogHeader>
                     <div className="py-4">
                          <Label htmlFor="investment-amount">Amount (USD)</Label>
                          <Input 
@@ -223,17 +222,21 @@ export default function InvestPage() {
                             onChange={(e) => setAmount(e.target.value)}
                             placeholder={`e.g., 500. Min/Max: ${selectedPlan?.minMax}`} />
                     </div>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleInvest} disabled={isLoading || !amount}>
+                    <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleInvest} disabled={isLoading || !amount}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Confirm Investment
-                    </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                    </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
         </div>
     );
 }
+    
+
     
