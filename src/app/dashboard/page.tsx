@@ -12,7 +12,7 @@ import { useFirestore } from '@/firebase/provider';
 import type { User, Transaction } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DollarSign, TrendingUp, TrendingDown, Briefcase, PlusCircle, MinusCircle, Users, Rocket, ArrowRight } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Briefcase, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 function formatCurrency(amount: number) {
@@ -238,3 +238,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

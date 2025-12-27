@@ -40,6 +40,9 @@ export default function DepositPage() {
         setIsLoading(true);
 
         try {
+            if (!firestore) {
+                throw new Error("Firestore not initialized");
+            }
             const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
             await addDoc(transactionsRef, {
                 type: 'deposit',
@@ -126,3 +129,5 @@ export default function DepositPage() {
         </div>
     );
 }
+
+    

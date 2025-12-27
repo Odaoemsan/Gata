@@ -10,14 +10,14 @@ import { Copy, Gift, Users, Share2 } from 'lucide-react';
 import { useMemo } from 'react';
 
 export default function TeamPage() {
-    const { user } = useUser();
+    const { userData } = useUser();
     const { toast } = useToast();
 
     const referralLink = useMemo(() => {
-        if (typeof window === 'undefined' || !user) return '';
+        if (typeof window === 'undefined' || !userData?.username) return '';
         // In a real app, this might be a custom domain
-        return `${window.location.origin}/signup?ref=${user.uid}`;
-    }, [user]);
+        return `${window.location.origin}/signup?ref=${userData.username}`;
+    }, [userData]);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(referralLink);
@@ -103,3 +103,5 @@ export default function TeamPage() {
         </div>
     );
 }
+
+    

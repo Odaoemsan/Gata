@@ -36,13 +36,13 @@ export default function WithdrawPage() {
     const form = useForm<z.infer<typeof withdrawSchema>>({
         resolver: zodResolver(withdrawSchema),
         defaultValues: {
-            amount: 0,
+            amount: undefined,
             walletAddress: '',
         }
     });
 
     async function onSubmit(values: z.infer<typeof withdrawSchema>) {
-        if(!user || !userData) return;
+        if(!user || !userData || !firestore) return;
 
         if(values.amount > userData.balance) {
             form.setError("amount", {
@@ -153,3 +153,5 @@ export default function WithdrawPage() {
         </div>
     );
 }
+
+    

@@ -18,7 +18,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -134,9 +133,7 @@ export default function InvestPage() {
                                 </div>
                             </CardContent>
                             <CardFooter>
-                                <AlertDialogTrigger asChild onSelect={() => setSelectedPlan(plan)}>
-                                    <Button className="w-full">Choose Plan</Button>
-                                </AlertDialogTrigger>
+                                <Button className="w-full" onClick={() => setSelectedPlan(plan)}>Choose Plan</Button>
                             </CardFooter>
                         </Card>
                     ))}
@@ -173,3 +170,5 @@ export default function InvestPage() {
         </div>
     );
 }
+
+    
