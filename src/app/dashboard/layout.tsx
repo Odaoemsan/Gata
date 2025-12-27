@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -26,11 +27,11 @@ import React from 'react';
 function BottomNavBar() {
   const pathname = usePathname();
   const navItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: 'الرئيسية' },
-    { href: '/dashboard/my-investments', icon: Rocket, label: 'استثماراتي' },
-    { href: '/dashboard/earnings', icon: CircleDollarSign, label: 'أرباحي', isCentral: true },
-    { href: '/dashboard/team', icon: Users, label: 'فريقي' },
-    { href: '/dashboard/wallet', icon: Wallet, label: 'المحفظة' },
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
+    { href: '/dashboard/my-investments', icon: Rocket, label: 'My Investments' },
+    { href: '/dashboard/earnings', icon: CircleDollarSign, label: 'Earnings', isCentral: true },
+    { href: '/dashboard/team', icon: Users, label: 'Team' },
+    { href: '/dashboard/wallet', icon: Wallet, label: 'Wallet' },
   ];
 
   return (

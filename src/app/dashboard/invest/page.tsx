@@ -60,14 +60,14 @@ function EmptyPlans() {
     return (
         <div className="flex flex-col items-center justify-center text-center py-20 px-4">
             <PackageOpen className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold">لا توجد خطط استثمارية متاحة</h3>
+            <h3 className="text-xl font-semibold">No Investment Plans Available</h3>
             <p className="text-muted-foreground mt-2 max-w-md">
-                يبدو أنه لا توجد خطط مفعلة من قبل الإدارة في الوقت الحالي. يرجى التحقق مرة أخرى في وقت لاحق.
+                It seems there are no active plans from the administration at the moment. Please check back later.
             </p>
             <Button asChild className="mt-6">
                 <Link href="/dashboard">
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    العودة إلى لوحة التحكم
+                    Back to Dashboard
                 </Link>
             </Button>
         </div>
@@ -161,8 +161,8 @@ export default function InvestPage() {
     return (
         <div className="flex-1 space-y-6 p-4">
             <div className="text-center">
-                <h2 className="text-3xl font-bold tracking-tight">اختر خطتك الاستثمارية</h2>
-                <p className="text-muted-foreground mt-1">اختر الخطة التي تناسب أهدافك المالية.</p>
+                <h2 className="text-3xl font-bold tracking-tight">Choose Your Investment Plan</h2>
+                <p className="text-muted-foreground mt-1">Select the plan that suits your financial goals.</p>
             </div>
             
             {loading ? <PlanSkeleton /> : (
@@ -175,28 +175,28 @@ export default function InvestPage() {
                                         {planIcons[plan.name.toLowerCase()] || planIcons.default}
                                         <div>
                                             <CardTitle className="text-xl font-headline">{plan.name}</CardTitle>
-                                            <CardDescription>الحد الأدنى/الأقصى: {plan.minMax}</CardDescription>
+                                            <CardDescription>Min/Max: {plan.minMax}</CardDescription>
                                         </div>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-3 flex-grow">
                                     <div className="flex items-center">
-                                        <CheckCircle className="h-5 w-5 text-green-500 ml-3" />
-                                        <span><strong>{plan.dailyProfit}%</strong> ربح يومي</span>
+                                        <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                                        <span><strong>{plan.dailyProfit}%</strong> Daily Profit</span>
                                     </div>
                                     <div className="flex items-center">
-                                        <CheckCircle className="h-5 w-5 text-green-500 ml-3" />
-                                        <span><strong>{plan.duration} أيام</strong> المدة</span>
+                                        <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                                        <span><strong>{plan.duration} Days</strong> Duration</span>
                                     </div>
                                     <div className="flex items-center">
-                                        <CheckCircle className="h-5 w-5 text-green-500 ml-3" />
-                                        <span>يتم إرجاع رأس المال في النهاية</span>
+                                        <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                                        <span>Capital is returned at the end</span>
                                     </div>
 
                                 </CardContent>
                                 <CardFooter>
                                     <Button className="w-full transition-transform group-hover:scale-105" onClick={() => setSelectedPlan(plan)}>
-                                        استثمر الآن
+                                        Invest Now
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -208,26 +208,26 @@ export default function InvestPage() {
             <AlertDialog open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                    <AlertDialogTitle>استثمر في خطة {selectedPlan?.name}</AlertDialogTitle>
+                    <AlertDialogTitle>Invest in {selectedPlan?.name}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        رصيدك الحالي هو <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>. 
-                        أدخل المبلغ الذي ترغب في استثماره.
+                        Your current balance is <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>. 
+                        Enter the amount you wish to invest.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="py-4">
-                         <Label htmlFor="investment-amount">المبلغ (بالدولار الأمريكي)</Label>
+                         <Label htmlFor="investment-amount">Amount (USD)</Label>
                          <Input 
                             id="investment-amount" 
                             type="number" 
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            placeholder={`مثال: 500. الحد الأدنى/الأقصى: ${selectedPlan?.minMax}`} />
+                            placeholder={`e.g., 500. Min/Max: ${selectedPlan?.minMax}`} />
                     </div>
                     <AlertDialogFooter>
-                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction onClick={handleInvest} disabled={isLoading || !amount}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        تأكيد الاستثمار
+                        Confirm Investment
                     </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
