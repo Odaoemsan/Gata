@@ -25,7 +25,7 @@ export const getTeamSize = functions.https.onCall(async (data, context) => {
   try {
     const db = admin.firestore();
     const usersRef = db.collection("users");
-    // The field in the document is `referredBy`, but we query with the user's `referralCode`
+    // The field in the document is `referredBy`, which stores the referral code of the referrer.
     const snapshot = await usersRef.where("referredBy", "==", referralCode)
       .get();
 
