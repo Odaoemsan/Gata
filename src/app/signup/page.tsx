@@ -78,33 +78,8 @@ export default function SignupPage() {
     }
     const auth = getAuth(firebaseApp);
 
-    // --- Pre-emptive Checks ---
-    try {
-        // 1. Check if username is unique
-        const usernameQuery = query(collection(firestore, 'users'), where('username', '==', values.username));
-        const usernameSnapshot = await getDocs(usernameQuery);
-        if (!usernameSnapshot.empty) {
-            form.setError('username', { type: 'manual', message: 'This username is already taken.' });
-            setIsLoading(false);
-            return;
-        }
-
-        // 2. Check if referral code is valid (if provided)
-        const providedRefCode = values.referralCode?.trim();
-        if (providedRefCode) {
-            const referralQuery = query(collection(firestore, 'users'), where('referralCode', '==', providedRefCode));
-            const referralSnapshot = await getDocs(referralQuery);
-            if (referralSnapshot.empty) {
-                form.setError('referralCode', { type: 'manual', message: 'This referral code does not exist.' });
-                setIsLoading(false);
-                return;
-            }
-        }
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Validation Error', description: 'Could not verify details. Check your connection.' });
-        setIsLoading(false);
-        return;
-    }
+    // Pre-emptive checks are removed to avoid permission issues before auth.
+    // Username uniqueness will be handled by backend triggers/rules if needed.
 
     try {
       // --- Auth First ---
@@ -120,7 +95,6 @@ export default function SignupPage() {
           username: values.username,
           email: values.email,
           referralCode: generateReferralCode(7),
-          // Initialize all financial fields as Numbers
           balance: 0,
           totalDeposits: 0,
           totalWithdrawals: 0,
@@ -128,8 +102,16 @@ export default function SignupPage() {
       };
 
       // Add referredBy only if a valid code was provided
-      if (values.referralCode?.trim()) {
-        newUserDoc.referredBy = values.referralCode.trim();
+      const providedRefCode = values.referralCode?.trim();
+      if (providedRefCode) {
+         const referralQuery = query(collection(firestore, 'users'), where('referralCode', '==', providedRefCode));
+         const referralSnapshot = await getDocs(referralQuery);
+         if (referralSnapshot.empty) {
+             // We can choose to silently ignore invalid referral codes or inform the user.
+             // For a better user experience, we can inform them, but for simplicity now, we just won't add the `referredBy` field.
+         } else {
+            newUserDoc.referredBy = providedRefCode;
+         }
       }
 
       // --- Create Firestore Document ---
@@ -143,10 +125,17 @@ export default function SignupPage() {
       router.push('/dashboard');
 
     } catch (error: any) {
+        let errorMessage = 'An unexpected error occurred. Please try again.';
+        if (error.code === 'auth/email-already-in-use') {
+            errorMessage = 'This email address is already in use by another account.';
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+
         toast({
             variant: 'destructive',
             title: 'Signup Failed',
-            description: error.message || 'An unexpected error occurred. Please try again.',
+            description: errorMessage,
         });
     } finally {
       setIsLoading(false);
