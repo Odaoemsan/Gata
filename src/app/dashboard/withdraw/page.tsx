@@ -98,7 +98,7 @@ export default function WithdrawPage() {
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground space-y-2">
                     <p>• Minimum withdrawal amount is <strong>${MIN_WITHDRAWAL}</strong>.</p>
-                    <p>• Withdrawals are processed manually within 24 business hours.</p>
+                    <p>• Withdrawals are processed manually within 3 business days.</p>
                     <p>• A 5% fee applies to all withdrawals.</p>
                 </CardContent>
             </Card>
