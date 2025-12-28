@@ -28,9 +28,10 @@ service cloud.firestore {
                     && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
       // The owner or an admin can get a specific user profile.
-      // Any authenticated user can list users (required for referral queries).
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if request.auth != null;
+
+      // Listing users is disallowed for privacy. Team count is fetched client-side.
+      allow list: if false;
       
       // Admins can update displayName, username, and balance. 
       // Users can only update their own displayName and username.
@@ -128,7 +129,7 @@ service cloud.firestore {
         // Authenticated users can read tasks
         allow get, list: if request.auth != null;
         // Only admins can create, update, or delete tasks
-        allow write: if isAdmin();
+        allow create, update, delete: if isAdmin();
     }
     
     // Task Submissions collection

@@ -11,8 +11,6 @@ import { Label } from '@/components/ui/label';
 import { useMemo, useState, useEffect } from 'react';
 import { addDoc, collection, query, serverTimestamp, where } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 function formatDate(timestamp: any) {
     if (!timestamp) return 'N/A';
@@ -97,6 +95,8 @@ export default function TeamPage() {
     const { data: tasks, loading: tasksLoading } = useCollection<Task>(tasksQuery);
     const { data: teamMembers, loading: teamLoading } = useCollection<User>(referralsQuery);
 
+    const teamSize = teamMembers?.length ?? 0;
+
     const handleCopy = () => {
         if (!referralCode) return;
         const referralLink = `${window.location.origin}/signup?ref=${referralCode}`;
@@ -173,51 +173,20 @@ export default function TeamPage() {
                     </div>
                     <CardDescription>Users who joined using your code.</CardDescription>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent>
                     {teamLoading ? (
-                         <div className="p-6 space-y-4">
-                            {[...Array(3)].map((_, i) => (
-                                <div key={i} className="flex items-center gap-4">
-                                    <Skeleton className="h-10 w-10 rounded-full" />
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-4 w-24" />
-                                        <Skeleton className="h-3 w-32" />
-                                    </div>
-                                </div>
-                            ))}
+                         <div className="flex items-center justify-center h-24">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                         </div>
-                    ) : teamMembers && teamMembers.length > 0 ? (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Member</TableHead>
-                                    <TableHead className="hidden md:table-cell">Join Date</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {teamMembers.map(member => (
-                                    <TableRow key={member.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar>
-                                                    <AvatarFallback>{member.displayName?.[0] ?? 'U'}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <div className="font-medium">{member.displayName}</div>
-                                                    <div className="text-xs text-muted-foreground font-mono">@{member.username}</div>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="hidden md:table-cell">{formatDate(member.createdAt)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg m-6">
-                            <Users className="h-12 w-12 text-muted-foreground" />
-                            <p className="mt-4 text-muted-foreground">You have no team members yet.</p>
-                            <p className="text-sm text-muted-foreground">Start sharing your code to build your team!</p>
+                        <div className="flex flex-col items-center justify-center text-center p-4">
+                            <div className="text-5xl font-bold text-primary">{teamSize}</div>
+                            <p className="text-muted-foreground mt-1">
+                                {teamSize === 1 ? 'Member has joined your team.' : 'Members have joined your team.'}
+                            </p>
+                            {teamSize === 0 && (
+                                 <p className="text-sm text-muted-foreground mt-2">Start sharing your code to build your team!</p>
+                            )}
                         </div>
                     )}
                 </CardContent>
