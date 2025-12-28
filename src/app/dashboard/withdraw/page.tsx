@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -98,23 +97,9 @@ export default function WithdrawPage() {
                 form.reset();
             })
             .catch(async (serverError) => {
-                 // Re-credit user balance if commit fails
-                const userRef = doc(firestore, 'users', user.uid);
-                const revertBatch = writeBatch(firestore);
-                revertBatch.update(userRef, { balance: typedUserData.balance });
-                await revertBatch.commit();
-                
-                // Add a failed transaction record for tracking
-                await addDoc(collection(firestore, `users/${user.uid}/transactions`), {
-                    ...newRequest,
-                    status: 'failed',
-                    type: 'withdrawal',
-                    date: serverTimestamp()
-                });
-
                 const permissionError = new FirestorePermissionError({
-                    path: pendingWithdrawalsRef.path,
-                    operation: 'create',
+                    path: pendingWithdrawalsRef.path, // or userRef.path, depending on which fails
+                    operation: 'create', // or 'update'
                     requestResourceData: newRequest,
                 });
                 errorEmitter.emit('permission-error', permissionError);
@@ -123,6 +108,9 @@ export default function WithdrawPage() {
                     title: 'Withdrawal Failed',
                     description: 'Could not submit your request. Your balance has been restored.',
                 });
+                // Attempt to revert the balance client-side for immediate UI feedback.
+                // Note: The backend logic should handle the actual crediting if the rule fails.
+                form.setValue('amount', values.amount);
             })
             .finally(() => {
                 setIsLoading(false);

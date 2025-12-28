@@ -66,7 +66,7 @@ export default function DepositPage() {
 
         setIsLoading(true);
 
-        const newRequest: Omit<PendingTransaction, 'id' | 'status'> = {
+        const newRequest: Omit<PendingTransaction, 'id'> = {
             type: 'deposit',
             amount: parseFloat(amount),
             date: serverTimestamp(),
@@ -95,6 +95,11 @@ export default function DepositPage() {
                     requestResourceData: newRequest,
                 });
                 errorEmitter.emit('permission-error', permissionError);
+                 toast({
+                    variant: 'destructive',
+                    title: 'Deposit Failed',
+                    description: 'Could not submit your request. Please check your permissions and try again.',
+                });
             })
             .finally(() => {
                 setIsLoading(false);
