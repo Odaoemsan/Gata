@@ -84,44 +84,35 @@ export default function TeamPage() {
     const typedUserData = userData as User | null;
 
     useEffect(() => {
-        // Wait for user and typedUserData to be loaded
-        if (userLoading || !user || !typedUserData) {
-            // Keep showing loading indicator while user data is being fetched
-            setTeamLoading(true);
-            return;
+        if (userLoading || !user) {
+            return; 
         }
 
-        const referralCode = typedUserData.referralCode;
-
-        if (referralCode && firebaseApp) {
-            const functions = getFunctions(firebaseApp);
-            const getTeamStats = httpsCallable(functions, 'getTeamStats');
-            
-            // We already set teamLoading to true, no need to set it again
-            getTeamStats({ referralCode })
-                .then((result: any) => {
-                    setTeamStats(result.data);
-                })
-                .catch((error: any) => {
-                    console.error("Error calling getTeamStats function:", error);
-                    let description = "Could not fetch team stats. Please try again later.";
-                     if (error.details?.code === 'failed-precondition') {
-                         description = "Database setup required. Please check server logs for an index creation link.";
-                    }
-                    toast({
-                        variant: "destructive",
-                        title: "Function Error",
-                        description: description,
-                    });
-                })
-                .finally(() => {
-                    setTeamLoading(false);
+        const functions = getFunctions(firebaseApp);
+        const getTeamStats = httpsCallable(functions, 'getTeamStats');
+        
+        setTeamLoading(true);
+        // Call the function without any arguments
+        getTeamStats()
+            .then((result: any) => {
+                setTeamStats(result.data);
+            })
+            .catch((error: any) => {
+                console.error("Error calling getTeamStats function:", error);
+                let description = "Could not fetch team stats. Please try again later.";
+                 if (error.code === 'functions/failed-precondition' || (error.details && error.details.code === 'failed-precondition')) {
+                     description = "Database setup required for team stats. Please check server logs for an index creation link.";
+                }
+                toast({
+                    variant: "destructive",
+                    title: "Team Stats Error",
+                    description: description,
                 });
-        } else {
-            // If there's no referral code, stop loading.
-            setTeamLoading(false);
-        }
-    }, [user, typedUserData, userLoading, firebaseApp, toast]);
+            })
+            .finally(() => {
+                setTeamLoading(false);
+            });
+    }, [user, userLoading, firebaseApp, toast]);
 
 
     const tasksQuery = useMemo(() => {

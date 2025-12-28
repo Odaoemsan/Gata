@@ -6,15 +6,15 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 
 /**
- * Calculates the total number of referred users and their total deposits.
+ * Calculates the total number of referred users and their total deposits
+ * based on the calling user's referral code.
  *
- * @param {object} data - The data passed to the function.
- * @param {string} data.referralCode - The referral code of the user.
- * @param {functions.https.CallableContext} context - The context of the function call.
+ * @param {object} data - The data passed to the function (not used).
+ * @param {functions.https.CallableContext} context - The context of the function call, contains auth info.
  * @returns {Promise<{teamSize: number, teamTotalDeposits: number}>} - The total number of referred users and their total deposits.
  */
 export const getTeamStats = functions.https.onCall(async (data, context) => {
-  // Check if the user is authenticated.
+  // 1. Check if the user is authenticated.
   if (!context.auth) {
     throw new functions.https.HttpsError(
       "unauthenticated",
@@ -22,30 +22,38 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
     );
   }
 
-  const referralCode = data.referralCode;
-  if (!referralCode || typeof referralCode !== "string") {
-    throw new functions.https.HttpsError(
-      "invalid-argument",
-      "The function must be called with a valid 'referralCode'."
-    );
-  }
+  const userId = context.auth.uid;
+  const db = admin.firestore();
 
   try {
-    const db = admin.firestore();
-    const usersRef = db.collection("users");
-    // The query now uses 'referredBy' to match the manually created index.
-    const snapshot = await usersRef.where("referredBy", "==", referralCode).get();
+    // 2. Get the calling user's document to find their referral code.
+    const userDoc = await db.collection("users").doc(userId).get();
+    if (!userDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "User document not found.");
+    }
+
+    const userData = userDoc.data();
+    const referralCode = userData?.referralCode;
+
+    if (!referralCode || typeof referralCode !== "string") {
+      // User might not have a referral code, which is a valid state.
+      return { teamSize: 0, teamTotalDeposits: 0 };
+    }
+
+    // 3. Query for users who were referred by this code.
+    // This query requires a single-field index on 'referredBy'.
+    const snapshot = await db.collection("users").where("referredBy", "==", referralCode).get();
 
     if (snapshot.empty) {
       return { teamSize: 0, teamTotalDeposits: 0 };
     }
 
+    // 4. Calculate stats.
     let teamTotalDeposits = 0;
     snapshot.forEach((doc) => {
-      const userData = doc.data();
-      // Ensure totalDeposits is a number before adding
-      if (userData && typeof userData.totalDeposits === "number") {
-        teamTotalDeposits += userData.totalDeposits;
+      const referredUserData = doc.data();
+      if (referredUserData && typeof referredUserData.totalDeposits === "number") {
+        teamTotalDeposits += referredUserData.totalDeposits;
       }
     });
 
@@ -54,22 +62,23 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
       teamTotalDeposits: teamTotalDeposits,
     };
   } catch (error: any) {
-    // Check for the specific "FAILED_PRECONDITION" error which indicates a missing index.
+    console.error("Error fetching team stats for user:", userId, error);
+    
+    // Provide a more specific error for the client if an index is missing.
     if (error.code === "FAILED_PRECONDITION" && error.message.includes("index")) {
-        const errorMessage = `Query failed due to a missing index. Please create the required index in your Firebase console. The error message may contain a direct link to do so. Message: ${error.message}`;
+        const errorMessage = `Query failed due to a missing index on the 'referredBy' field. Please create the required index in your Firebase console. Original Message: ${error.message}`;
         console.error(errorMessage);
-        // Throw a specific error that the client can understand and handle.
         throw new functions.https.HttpsError(
             "failed-precondition",
-            "A database index is required for this operation. Check the function logs for a creation link.",
+            "A database index is required for this operation. Check the function logs for details.",
             { originalMessage: error.message }
         );
     }
 
-    console.error("Error fetching team stats:", error);
+    // For all other errors, throw a generic internal error.
     throw new functions.https.HttpsError(
       "internal",
-      "An error occurred while fetching the team stats.",
+      "An unexpected error occurred while fetching team stats.",
       { originalError: error.message }
     );
   }
