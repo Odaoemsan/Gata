@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection } from '@/firebase';
@@ -11,7 +10,7 @@ import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { useMemo, useState, useEffect } from 'react';
 import { addDoc, collection, query, serverTimestamp, where } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getFunctions, httpsCallable, HttpsCallableResult } from 'firebase/functions';
 import { useFirebaseApp } from '@/firebase/provider';
 
 
@@ -89,15 +88,21 @@ export default function TeamPage() {
             
             setTeamLoading(true);
             getTeamSize({ referralCode })
-                .then((result: any) => {
-                    setTeamSize(result.data.size);
+                .then((result: HttpsCallableResult) => {
+                    const data = result.data as { size: number };
+                    setTeamSize(data.size);
                 })
                 .catch((error) => {
                     console.error("Error calling getTeamSize function:", error);
+                    let description = "Could not fetch team size. Please try again later.";
+                    // Check for the specific error code from the Cloud Function
+                    if (error.code === 'failed-precondition') {
+                        description = "A database configuration error occurred. Please check server logs for an index creation link.";
+                    }
                     toast({
                         variant: "destructive",
                         title: "Error",
-                        description: "Could not fetch team size.",
+                        description: description,
                     });
                 })
                 .finally(() => {
