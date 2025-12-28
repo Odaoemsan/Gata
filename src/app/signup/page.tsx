@@ -75,7 +75,7 @@ export default function SignupPage() {
     const auth = getAuth(firebaseApp);
 
     try {
-      // 1. Pre-emptive checks for username and referral code uniqueness/existence
+      // 1. Pre-emptive checks
       const usernameQuery = query(collection(firestore, 'users'), where('username', '==', values.username));
       const usernameSnapshot = await getDocs(usernameQuery);
       if (!usernameSnapshot.empty) {
@@ -84,7 +84,7 @@ export default function SignupPage() {
         return;
       }
       
-      const referredByCode = values.referralCode?.trim() || null;
+      const referredByCode = values.referralCode?.trim();
       if (referredByCode) {
         const referralQuery = query(collection(firestore, 'users'), where('referralCode', '==', referredByCode));
         const referralSnapshot = await getDocs(referralQuery);
@@ -95,28 +95,28 @@ export default function SignupPage() {
         }
       }
 
-      // 2. Auth First: Create the user in Firebase Auth
+      // 2. Auth First
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
-      // 3. Prepare the complete user data object for Firestore
+      // 3. Prepare Firestore Data
       const newUserDoc: any = {
         displayName: values.displayName,
         username: values.username,
         email: values.email,
         referralCode: generateReferralCode(7),
-        // All financial fields initialized as Numbers, to match security rules
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
         referralCommissions: 0,
+        createdAt: serverTimestamp(),
       };
       
       if (referredByCode) {
           newUserDoc.referredBy = referredByCode;
       }
 
-      // 4. Firestore Document Creation: Use UID from auth as doc ID
+      // 4. Create Firestore Document
       await setDoc(doc(firestore, 'users', user.uid), newUserDoc);
       
       toast({
