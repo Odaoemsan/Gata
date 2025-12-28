@@ -10,14 +10,9 @@ import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { useMemo, useState, useEffect } from 'react';
 import { addDoc, collection, query, serverTimestamp, where } from 'firebase/firestore';
-import { Skeleton } from '@/components/ui/skeleton';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { useFirebaseApp } from '@/firebase/provider';
 
-function formatDate(timestamp: any) {
-    if (!timestamp) return 'N/A';
-    const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000 || timestamp);
-    if(isNaN(date.getTime())) return 'Invalid Date';
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-}
 
 function TaskCard({ task }: { task: Task }) {
     const { toast } = useToast();
@@ -75,9 +70,12 @@ function TaskCard({ task }: { task: Task }) {
 }
 
 export default function TeamPage() {
+    const app = useFirebaseApp();
     const { userData } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const [teamSize, setTeamSize] = useState(0);
+    const [teamLoading, setTeamLoading] = useState(true);
     
     const typedUserData = userData as User | null;
     const referralCode = typedUserData?.username ?? '';
@@ -87,15 +85,36 @@ export default function TeamPage() {
         return query(collection(firestore, 'tasks'));
     }, [firestore]);
 
-    const referralsQuery = useMemo(() => {
-        if (!firestore || !referralCode) return null;
-        return query(collection(firestore, 'users'), where('referredBy', '==', referralCode));
-    }, [firestore, referralCode]);
-
     const { data: tasks, loading: tasksLoading } = useCollection<Task>(tasksQuery);
-    const { data: teamMembers, loading: teamLoading } = useCollection<User>(referralsQuery);
+    
+    useEffect(() => {
+      async function fetchTeamSize() {
+        if (!referralCode) {
+          setTeamLoading(false);
+          return;
+        };
 
-    const teamSize = teamMembers?.length ?? 0;
+        try {
+          const functions = getFunctions(app);
+          const getTeamSize = httpsCallable(functions, 'getTeamSize');
+          const result = await getTeamSize({ referralCode });
+          const size = result.data as number;
+          setTeamSize(size);
+        } catch (error) {
+          console.error("Error fetching team size:", error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not fetch team size.",
+          });
+        } finally {
+          setTeamLoading(false);
+        }
+      }
+
+      fetchTeamSize();
+    }, [referralCode, app, toast]);
+
 
     const handleCopy = () => {
         if (!referralCode) return;
