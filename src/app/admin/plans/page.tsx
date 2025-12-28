@@ -51,7 +51,7 @@ export default function ManagePlansPage() {
 
     const form = useForm<z.infer<typeof planSchema>>({
         resolver: zodResolver(planSchema),
-        defaultValues: { name: '', dailyProfit: 0, duration: 0, minMax: '' }
+        defaultValues: { name: '', dailyProfit: '' as any, duration: '' as any, minMax: '' }
     });
 
     const openDialogForEdit = (plan: InvestmentPlan) => {
@@ -67,7 +67,7 @@ export default function ManagePlansPage() {
 
     const openDialogForNew = () => {
         setSelectedPlan(null);
-        form.reset({ name: '', dailyProfit: 0, duration: 0, minMax: '' });
+        form.reset({ name: '', dailyProfit: '' as any, duration: '' as any, minMax: '' });
         setDialogOpen(true);
     };
 
