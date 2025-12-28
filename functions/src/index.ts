@@ -30,7 +30,17 @@ export const getTeamSize = functions.https.onCall(async (data, context) => {
       .get();
 
     return { size: snapshot.size };
-  } catch (error) {
+  } catch (error: any) {
+    // Check for the specific "FAILED_PRECONDITION" error which indicates a missing index.
+    if (error.code === "FAILED_PRECONDITION" && error.message.includes("index")) {
+        console.error("Query failed due to a missing index. Please create the required index in your Firebase console. The error message may contain a direct link to do so.", error.message);
+        throw new functions.https.HttpsError(
+            "failed-precondition",
+            "A database index is required for this operation. Check the function logs for a creation link.",
+            error.message
+        );
+    }
+
     console.error("Error fetching team size:", error);
     throw new functions.https.HttpsError(
       "internal",
