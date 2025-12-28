@@ -15,7 +15,7 @@ export interface User {
 
 export interface Transaction {
     id: string;
-    type: 'deposit' | 'withdrawal' | 'commission';
+    type: 'deposit' | 'withdrawal' | 'commission' | 'task_reward';
     amount: number;
     date: any; // Using `any` for Firebase Timestamp for simplicity
     status: 'pending' | 'completed' | 'failed';
@@ -49,4 +49,24 @@ export interface Rank {
     name: string;
     requiredInvestment: number;
     commissionRate: number;
+}
+
+export interface Task {
+    id: string;
+    title: string;
+    description: string;
+    reward: number;
+    createdAt: any;
+}
+
+export interface TaskSubmission {
+    id: string;
+    taskId: string;
+    taskTitle: string;
+    userId: string;
+    userDisplayName: string;
+    userEmail: string;
+    submissionLink: string;
+    status: 'pending' | 'approved' | 'rejected';
+    submittedAt: any;
 }

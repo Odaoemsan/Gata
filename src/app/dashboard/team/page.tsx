@@ -1,20 +1,84 @@
+
 'use client';
 
-import { useUser } from '@/firebase/auth/use-user';
+import { useUser, useFirestore, useCollection } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Medal, Users, Share2, Award, ListTodo, Send } from 'lucide-react';
-import type { User } from '@/lib/types';
+import { Copy, Medal, Users, Share2, Award, ListTodo, Send, Loader2 } from 'lucide-react';
+import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
+import { useMemo, useState } from 'react';
+import { addDoc, collection, query, serverTimestamp } from 'firebase/firestore';
+
+function TaskCard({ task }: { task: Task }) {
+    const { toast } = useToast();
+    const { user, userData } = useUser();
+    const firestore = useFirestore();
+    const [submissionLink, setSubmissionLink] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleSubmit = async () => {
+        if (!submissionLink || !user || !userData || !firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please provide a valid submission link.' });
+            return;
+        }
+        setIsLoading(true);
+
+        const newSubmission = {
+            taskId: task.id,
+            taskTitle: task.title,
+            userId: user.uid,
+            userDisplayName: userData.displayName,
+            userEmail: userData.email,
+            submissionLink,
+            status: 'pending' as const,
+            submittedAt: serverTimestamp()
+        };
+
+        try {
+            await addDoc(collection(firestore, 'taskSubmissions'), newSubmission);
+            toast({ title: 'Submission Sent!', description: 'Your task submission has been sent for review.' });
+            setSubmissionLink('');
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit your task. Please try again.' });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="p-4 border rounded-lg space-y-3">
+            <h4 className="font-semibold">{task.title} - <span className="text-primary">${task.reward.toFixed(2)}</span></h4>
+            <p className="text-sm text-muted-foreground">{task.description}</p>
+            <div className="space-y-2">
+                <Label htmlFor={`task-link-${task.id}`}>Submission Link</Label>
+                <Input id={`task-link-${task.id}`} placeholder="https://example.com/proof" value={submissionLink} onChange={(e) => setSubmissionLink(e.target.value)} />
+            </div>
+            <Button size="sm" className="w-full" onClick={handleSubmit} disabled={isLoading || !submissionLink}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                Submit for Review
+            </Button>
+        </div>
+    );
+}
 
 export default function TeamPage() {
     const { userData } = useUser();
+    const firestore = useFirestore();
     const { toast } = useToast();
     
     const typedUserData = userData as User | null;
     const referralCode = typedUserData?.username ?? '';
+
+    const tasksQuery = useMemo(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'tasks'));
+    }, [firestore]);
+
+    const { data: tasks, loading: tasksLoading } = useCollection<Task>(tasksQuery);
 
     const handleCopy = () => {
         if (!referralCode) return;
@@ -110,30 +174,26 @@ export default function TeamPage() {
                 <CardHeader>
                      <div className="flex items-center gap-3">
                         <ListTodo className="h-6 w-6" />
-                        <CardTitle>المهام</CardTitle>
+                        <CardTitle>Tasks</CardTitle>
                     </div>
-                    <CardDescription>أكمل المهام التالية للحصول على مكافآت.</CardDescription>
+                    <CardDescription>Complete the following tasks to get rewards.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     <div className="p-4 border rounded-lg space-y-3">
-                        <h4 className="font-semibold">مهمة #1: مشاركة على فيسبوك</h4>
-                        <p className="text-sm text-muted-foreground">
-                            قم بعمل منشور عن تجربتك مع GORA على حسابك في فيسبوك. يجب أن يكون المنشور عامًا.
-                        </p>
-                        <div className="space-y-2">
-                            <Label htmlFor="task-link">رابط المنشور</Label>
-                            <Input id="task-link" placeholder="https://facebook.com/user/post/123..." />
+                    {tasksLoading && (
+                         <div className="flex flex-col items-center justify-center h-48">
+                            <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
                         </div>
-                        <Button size="sm" className="w-full">
-                            <Send className="mr-2 h-4 w-4" />
-                            إرسال للتحقق
-                        </Button>
-                    </div>
-                    <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg">
-                        <ListTodo className="h-12 w-12 text-muted-foreground" />
-                        <p className="mt-4 text-muted-foreground">لا توجد مهام أخرى متاحة حاليًا.</p>
-                        <p className="text-sm text-muted-foreground">يرجى التحقق مرة أخرى لاحقًا.</p>
-                    </div>
+                    )}
+                    {!tasksLoading && tasks && tasks.length > 0 && tasks.map(task => (
+                        <TaskCard key={task.id} task={task} />
+                    ))}
+                    {!tasksLoading && (!tasks || tasks.length === 0) && (
+                        <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg">
+                            <ListTodo className="h-12 w-12 text-muted-foreground" />
+                            <p className="mt-4 text-muted-foreground">No other tasks are available at the moment.</p>
+                            <p className="text-sm text-muted-foreground">Please check back later.</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

@@ -58,9 +58,9 @@ service cloud.firestore {
                           && request.resource.data.amount is number
                           && request.resource.data.walletAddress is string
                           && request.resource.data.status == 'pending'
-                          && request.resource.data.date == request.time
-                          && request.resource.data.userId == userId
-                          && request.resource.data.keys().hasAll(['type', 'amount', 'walletAddress', 'status', 'date', 'userId', 'userDisplayName', 'userEmail']))
+                          && request.resource.data.date == request.time) ||
+                        // Task reward transaction validation
+                        (request.resource.data.type == 'task_reward' && isAdmin())
                       );
         
         // Admins can update status, but users cannot.
@@ -104,6 +104,31 @@ service cloud.firestore {
       allow get, list: if request.auth != null;
       // Only admins can create, update, or delete ranks.
       allow write: if isAdmin();
+    }
+
+    // Tasks collection
+    match /tasks/{taskId} {
+        // Authenticated users can read tasks
+        allow get, list: if request.auth != null;
+        // Only admins can create, update, or delete tasks
+        allow write: if isAdmin();
+    }
+    
+    // Task Submissions collection
+    match /taskSubmissions/{submissionId} {
+        // Users can create their own submissions
+        allow create: if isOwner(request.resource.data.userId)
+                      && request.resource.data.status == 'pending'
+                      && request.resource.data.submittedAt == request.time;
+        
+        // Admins can read all submissions
+        allow get, list: if isAdmin();
+        
+        // Admins can update the status of a submission
+        allow update: if isAdmin() && request.resource.data.status != resource.data.status;
+        
+        // No one can delete submissions
+        allow delete: if false;
     }
   }
 }

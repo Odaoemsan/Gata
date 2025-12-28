@@ -78,7 +78,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["deposit", "withdrawal", "commission"],
+          "enum": ["deposit", "withdrawal", "commission", "task_reward"],
           "description": "The type of transaction."
         },
         "amount": {
@@ -172,6 +172,73 @@
         }
       },
       "required": ["name", "requiredInvestment", "commissionRate"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Represents a task a user can complete for a reward.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the task."
+        },
+        "reward": {
+          "type": "number",
+          "description": "The monetary reward for completing the task."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the task was created."
+        }
+      },
+      "required": ["title", "description", "reward", "createdAt"]
+    },
+    "TaskSubmission": {
+      "title": "Task Submission",
+      "description": "Represents a user's submission for a task.",
+      "type": "object",
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "description": "The ID of the submitted task."
+        },
+        "taskTitle": {
+          "type": "string",
+          "description": "The title of the submitted task."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who submitted the task."
+        },
+        "userDisplayName": {
+          "type": "string",
+          "description": "The display name of the user."
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "The email of the user."
+        },
+        "submissionLink": {
+          "type": "string",
+          "description": "The link provided by the user as proof of completion."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "description": "The status of the submission."
+        },
+        "submittedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the submission was made."
+        }
+      },
+      "required": ["taskId", "taskTitle", "userId", "userDisplayName", "userEmail", "submissionLink", "status", "submittedAt"]
     }
   },
   "auth": {
@@ -195,8 +262,16 @@
       "description": "Stores a user's active investments."
     },
     "/ranks/{rankId}": {
-        "schema": { "$ref": "#/entities/Rank" },
-        "description": "Stores the referral ranks and their requirements."
+      "schema": { "$ref": "#/entities/Rank" },
+      "description": "Stores the referral ranks and their requirements."
+    },
+    "/tasks/{taskId}": {
+        "schema": { "$ref": "#/entities/Task" },
+        "description": "Stores available tasks for users."
+    },
+    "/taskSubmissions/{submissionId}": {
+        "schema": { "$ref": "#/entities/TaskSubmission" },
+        "description": "Stores user submissions for tasks."
     }
   }
 }
