@@ -27,6 +27,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const planSchema = z.object({
   name: z.string().min(3, "Plan name must be at least 3 characters."),
@@ -75,39 +77,66 @@ export default function ManagePlansPage() {
         if (!firestore || !confirm('Are you sure you want to delete this plan? This action cannot be undone.')) return;
         
         setIsLoading(true);
-        try {
-            const planRef = doc(firestore, 'investmentPlans', planId);
-            await deleteDoc(planRef);
-            toast({ title: "Success", description: "Investment plan deleted successfully." });
-        } catch (error) {
-            console.error("Error deleting plan: ", error);
-            toast({ variant: "destructive", title: "Error", description: "Failed to delete plan." });
-        } finally {
-            setIsLoading(false);
-        }
+        const planRef = doc(firestore, 'investmentPlans', planId);
+
+        deleteDoc(planRef)
+            .then(() => {
+                toast({ title: "Success", description: "Investment plan deleted successfully." });
+            })
+            .catch(async (error) => {
+                const permissionError = new FirestorePermissionError({ path: planRef.path, operation: 'delete' });
+                errorEmitter.emit('permission-error', permissionError);
+                toast({ variant: "destructive", title: "Error", description: "Failed to delete plan." });
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
     };
     
     async function onSubmit(values: z.infer<typeof planSchema>) {
         if (!firestore) return;
         setIsLoading(true);
 
-        try {
-            if (selectedPlan) {
-                // Update existing plan
-                const planRef = doc(firestore, 'investmentPlans', selectedPlan.id);
-                await updateDoc(planRef, values);
-                toast({ title: "Success", description: "Investment plan updated successfully." });
-            } else {
-                // Create new plan
-                await addDoc(collection(firestore, 'investmentPlans'), values);
-                toast({ title: "Success", description: "New investment plan created." });
-            }
-            setDialogOpen(false);
-        } catch (error) {
-            console.error("Error saving plan: ", error);
-            toast({ variant: "destructive", title: "Error", description: "Failed to save plan." });
-        } finally {
-            setIsLoading(false);
+        if (selectedPlan) {
+            // Update existing plan
+            const planRef = doc(firestore, 'investmentPlans', selectedPlan.id);
+            updateDoc(planRef, values)
+                .then(() => {
+                    toast({ title: "Success", description: "Investment plan updated successfully." });
+                    setDialogOpen(false);
+                })
+                .catch(async (error) => {
+                     const permissionError = new FirestorePermissionError({
+                        path: planRef.path,
+                        operation: 'update',
+                        requestResourceData: values,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    toast({ variant: "destructive", title: "Error", description: "Failed to save plan." });
+                })
+                .finally(() => {
+                    setIsLoading(false);
+                });
+        } else {
+            // Create new plan
+            const plansCollectionRef = collection(firestore, 'investmentPlans');
+            addDoc(plansCollectionRef, values)
+                .then(() => {
+                    toast({ title: "Success", description: "New investment plan created." });
+                    setDialogOpen(false);
+                })
+                .catch(async (error) => {
+                     const permissionError = new FirestorePermissionError({
+                        path: plansCollectionRef.path,
+                        operation: 'create',
+                        requestResourceData: values,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    toast({ variant: "destructive", title: "Error", description: "Failed to save plan." });
+                })
+                .finally(() => {
+                    setIsLoading(false);
+                });
         }
     }
 
