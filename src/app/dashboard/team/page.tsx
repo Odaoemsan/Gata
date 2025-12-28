@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection } from '@/firebase';
@@ -84,6 +83,7 @@ export default function TeamPage() {
     const typedUserData = userData as User | null;
 
     useEffect(() => {
+        // Guard Clause: Wait for user to be loaded
         if (userLoading || !user) {
             return; 
         }
@@ -92,7 +92,7 @@ export default function TeamPage() {
         const getTeamStats = httpsCallable(functions, 'getTeamStats');
         
         setTeamLoading(true);
-        // Call the function without any arguments
+        // Call the function without any arguments, as it uses the user's auth context
         getTeamStats()
             .then((result: any) => {
                 setTeamStats(result.data);
@@ -247,4 +247,5 @@ export default function TeamPage() {
             </Card>
         </div>
     );
-}
+
+    
