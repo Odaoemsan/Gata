@@ -22,17 +22,18 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      // Allow creation only if the user is the owner.
-      // Simplified to ensure all required fields are present without being overly strict on optional ones.
+      // SIMPLIFIED RULE:
+      // Allow creation if the user is the owner, provides required fields, and initializes financial data as numbers.
+      // The referral code is now handled in the application logic, not strictly enforced here.
       allow create: if isOwner(userId)
+                    && request.resource.data.email == request.auth.token.email
                     && request.resource.data.displayName is string
                     && request.resource.data.username is string
-                    && request.resource.data.email == request.auth.token.email
+                    && request.resource.data.referralCode is string
                     && request.resource.data.balance == 0
                     && request.resource.data.totalDeposits == 0
                     && request.resource.data.totalWithdrawals == 0
-                    && request.resource.data.referralCommissions == 0
-                    && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
+                    && request.resource.data.referralCommissions == 0;
       
       allow get: if isOwner(userId) || isAdmin();
 

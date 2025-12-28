@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useFirebaseApp } from '@/firebase';
-import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, query, where, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,9 +24,6 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-
 
 // Schema for form validation
 const signupSchema = z.object({
@@ -37,9 +34,6 @@ const signupSchema = z.object({
     referralCode: z.string().optional(),
 });
 
-// Function to create a delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 // Helper function to generate a new user's referral code
 const generateReferralCode = (length: number) => {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -49,6 +43,9 @@ const generateReferralCode = (length: number) => {
     }
     return result;
 };
+
+// Function to create a delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 
 export default function SignupPage() {
@@ -83,6 +80,7 @@ export default function SignupPage() {
 
     // --- Pre-emptive Checks ---
     try {
+        // 1. Check if username is unique
         const usernameQuery = query(collection(firestore, 'users'), where('username', '==', values.username));
         const usernameSnapshot = await getDocs(usernameQuery);
         if (!usernameSnapshot.empty) {
@@ -91,6 +89,7 @@ export default function SignupPage() {
             return;
         }
 
+        // 2. Check if referral code is valid (if provided)
         const providedRefCode = values.referralCode?.trim();
         if (providedRefCode) {
             const referralQuery = query(collection(firestore, 'users'), where('referralCode', '==', providedRefCode));
@@ -102,69 +101,53 @@ export default function SignupPage() {
             }
         }
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Validation Error', description: 'Could not verify user details. Please check your connection and try again.' });
+        toast({ variant: 'destructive', title: 'Validation Error', description: 'Could not verify details. Check your connection.' });
         setIsLoading(false);
         return;
     }
 
-    let userCredential;
     try {
-      // --- 1. Auth First ---
-      userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      
-      // --- 2. Brief delay for auth state propagation ---
-      await delay(500); 
-
+      // --- Auth First ---
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
-      // --- 3. Prepare Firestore Data ---
-      const newUserDoc = {
+      // Brief delay for auth state propagation
+      await delay(500); 
+
+      // --- Prepare Firestore Data ---
+      const newUserDoc: any = {
           displayName: values.displayName,
           username: values.username,
           email: values.email,
           referralCode: generateReferralCode(7),
-          // Set financial fields as Numbers
+          // Initialize all financial fields as Numbers
           balance: 0,
           totalDeposits: 0,
           totalWithdrawals: 0,
           referralCommissions: 0,
-          // Set referredBy to the provided code, or null if it's empty/whitespace
-          referredBy: values.referralCode?.trim() || null,
       };
 
-      // --- 4. Create Firestore Document ---
+      // Add referredBy only if a valid code was provided
+      if (values.referralCode?.trim()) {
+        newUserDoc.referredBy = values.referralCode.trim();
+      }
+
+      // --- Create Firestore Document ---
       const userDocRef = doc(firestore, 'users', user.uid);
       await setDoc(userDocRef, newUserDoc);
 
       toast({
         title: 'Account Created',
-        description: 'Welcome! Your account has been created successfully.',
+        description: "Welcome! You're being redirected to your dashboard.",
       });
       router.push('/dashboard');
 
     } catch (error: any) {
-       // --- 5. Error Handling ---
-       const isAuthError = error.code && error.code.startsWith('auth/');
-        if (isAuthError) {
-             toast({
-                variant: 'destructive',
-                title: 'Signup Failed',
-                description: error.message, // Display the actual auth error
-            });
-        } else {
-             // This is likely a Firestore security rule error
-             const permissionError = new FirestorePermissionError({
-                path: `/users/${auth.currentUser?.uid || 'unknown_uid'}`,
-                operation: 'create',
-                requestResourceData: "See newUserDoc object in the signup page code.", 
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            toast({
-                variant: 'destructive',
-                title: 'Signup Failed',
-                description: error.message || 'Could not save your user data. Please contact support.',
-            });
-        }
+        toast({
+            variant: 'destructive',
+            title: 'Signup Failed',
+            description: error.message || 'An unexpected error occurred. Please try again.',
+        });
     } finally {
       setIsLoading(false);
     }
