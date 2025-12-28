@@ -116,8 +116,9 @@ export default function TransactionsPage() {
             getDocs(withdrawalsQuery)
         ]);
 
-        const pendingDeposits = depositsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
-        const pendingWithdrawals = withdrawalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
+        const pendingDeposits = depositsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), path: doc.ref.path } as Transaction & {path: string}));
+        const pendingWithdrawals = withdrawalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), path: doc.ref.path } as Transaction & {path: string}));
+
 
         setDeposits(pendingDeposits);
         setWithdrawals(pendingWithdrawals);
@@ -181,23 +182,36 @@ export default function TransactionsPage() {
       try {
           const userRef = doc(firestore, 'users', tx.userId);
           const txRef = doc(firestore, `users/${tx.userId}/transactions`, tx.id);
-          const batch = writeBatch(firestore);
-
+          
           if (approved) {
-              batch.update(userRef, {
-                  totalWithdrawals: increment(tx.amount)
-              });
-              batch.update(txRef, { status: 'completed' });
+             await runTransaction(firestore, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) {
+                    throw new Error("User not found");
+                }
+                // On approval, we only update the totalWithdrawals and the transaction status.
+                // The balance was already debited when the user made the request.
+                transaction.update(userRef, {
+                    totalWithdrawals: increment(tx.amount)
+                });
+                transaction.update(txRef, { status: 'completed' });
+            });
+             toast({ title: 'Success', description: `Withdrawal request has been completed.` });
           } else {
-              // If rejected, return the funds to the user's balance
-              batch.update(userRef, {
-                  balance: increment(tx.amount)
+              // If rejected, return the funds to the user's balance and fail the transaction.
+              await runTransaction(firestore, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) {
+                    throw new Error("User not found");
+                }
+                 transaction.update(userRef, {
+                    balance: increment(tx.amount)
+                });
+                transaction.update(txRef, { status: 'failed' });
               });
-              batch.update(txRef, { status: 'failed' });
+              toast({ title: 'Success', description: `Withdrawal request has been rejected.` });
           }
 
-          await batch.commit();
-          toast({ title: 'Success', description: `Withdrawal request has been ${approved ? 'completed' : 'rejected'}.` });
           fetchPendingTransactions();
       } catch (error) {
         console.error("Error processing withdrawal: ", error);
@@ -313,4 +327,5 @@ export default function TransactionsPage() {
   );
 }
 
+    
     
