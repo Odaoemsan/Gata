@@ -136,7 +136,8 @@ service cloud.firestore {
                       && request.resource.data.userEmail is string
                       && request.resource.data.submissionLink is string;
         
-        allow get, list: if isAdmin();
+        allow get: if isAdmin() || isOwner(resource.data.userId);
+        allow list: if isAdmin() || (request.query.where[0][0] == 'userId' && request.query.where[0][2] == request.auth.uid);
         
         allow update: if isAdmin() && request.resource.data.status != resource.data.status;
         
