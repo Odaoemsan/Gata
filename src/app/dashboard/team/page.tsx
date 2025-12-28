@@ -1,15 +1,18 @@
+
 'use client';
 
 import { useUser, useFirestore, useCollection } from '@/firebase';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, Medal, Users, Share2, ListTodo, Send, Loader2 } from 'lucide-react';
 import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
-import { useMemo, useState } from 'react';
-import { addDoc, collection, query, serverTimestamp, where } from 'firebase/firestore';
+import { useMemo, useState, useEffect } from 'react';
+import { addDoc, collection, query, serverTimestamp, where, getFirestore, doc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { useFirebaseApp } from '@/firebase/provider';
 
 
 function TaskCard({ task }: { task: Task }) {
@@ -68,21 +71,48 @@ function TaskCard({ task }: { task: Task }) {
 }
 
 export default function TeamPage() {
-    const { userData } = useUser();
+    const { userData, user } = useUser();
+    const firebaseApp = useFirebaseApp();
     const firestore = useFirestore();
     const { toast } = useToast();
     
+    const [teamSize, setTeamSize] = useState(0);
+    const [teamLoading, setTeamLoading] = useState(true);
+
     const typedUserData = userData as User | null;
     const referralCode = typedUserData?.referralCode;
 
-    const teamQuery = useMemo(() => {
-        if (!firestore || !referralCode) return null;
-        // Query to count users referred by the current user's referral code.
-        return query(collection(firestore, 'users'), where('referredBy', '==', referralCode));
-    }, [firestore, referralCode]);
+    useEffect(() => {
+        if (referralCode && firebaseApp) {
+            const functions = getFunctions(firebaseApp);
+            const getTeamSize = httpsCallable(functions, 'getTeamSize');
+            
+            setTeamLoading(true);
+            getTeamSize({ referralCode })
+                .then((result: any) => {
+                    setTeamSize(result.data.size);
+                })
+                .catch((error) => {
+                    console.error("Error calling getTeamSize function:", error);
+                    let description = "Could not fetch team size. Please try again later.";
+                    // Check for the specific error code from the Cloud Function
+                    if (error.details?.code === 'failed-precondition') {
+                         description = "Database setup required. Please check server logs for an index creation link.";
+                    }
+                    toast({
+                        variant: "destructive",
+                        title: "Error",
+                        description: description,
+                    });
+                })
+                .finally(() => {
+                    setTeamLoading(false);
+                });
+        } else if (typedUserData) {
+            setTeamLoading(false);
+        }
+    }, [referralCode, firebaseApp, toast, typedUserData]);
 
-    const { data: teamMembers, loading: teamLoading } = useCollection(teamQuery);
-    const teamSize = teamMembers?.length ?? 0;
 
     const tasksQuery = useMemo(() => {
         if (!firestore) return null;
