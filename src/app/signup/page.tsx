@@ -109,7 +109,6 @@ export default function SignupPage() {
         totalDeposits: 0,
         totalWithdrawals: 0,
         referralCommissions: 0,
-        createdAt: serverTimestamp(),
       };
       
       if (referredByCode) {
@@ -126,17 +125,13 @@ export default function SignupPage() {
       router.push('/dashboard');
 
     } catch (error: any) {
-       let description = "An unexpected error occurred. Please try again.";
-        if (error.code === 'auth/email-already-in-use') {
-            description = 'This email address is already in use. Please try logging in.';
-        } else if (error.name === 'FirebaseError') {
-             description = 'Failed to create user profile. Please check your data and try again.';
-        }
+      // Display the exact error from Firebase for debugging
       toast({
         variant: 'destructive',
         title: 'Signup Failed',
-        description: description,
+        description: error.message || "An unexpected error occurred. Please check the console.",
       });
+      console.error("Signup Error:", error);
     } finally {
       setIsLoading(false);
     }
