@@ -11,9 +11,8 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   updateProfile,
-  signOut,
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, serverTimestamp, runTransaction, query, collection, where, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp, query, collection, where, getDocs } from 'firebase/firestore';
 import { useFirebaseApp } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,8 +33,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Rocket, Loader2 } from 'lucide-react';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z.object({
   displayName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
@@ -108,26 +105,25 @@ function SignUpForm() {
     const auth = getAuth(firebaseApp);
     const firestore = getFirestore(firebaseApp);
 
-    // Check for username uniqueness before creating auth user
-    const usernameIsUnique = await isUsernameUnique(firestore, values.username.toLowerCase());
-    if (!usernameIsUnique) {
-      form.setError('username', { type: 'manual', message: 'This username is already taken.' });
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // Step 1: Create user in Firebase Auth
+      const usernameIsUnique = await isUsernameUnique(firestore, values.username.toLowerCase());
+      if (!usernameIsUnique) {
+        form.setError('username', { type: 'manual', message: 'This username is already taken.' });
+        setIsLoading(false);
+        return;
+      }
+      
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         values.email,
         values.password
       );
       const user = userCredential.user;
-
-      // At this point, the user is authenticated. Now we can perform other checks and writes.
       
-      // Generate a unique referral code
+      await updateProfile(user, {
+        displayName: values.displayName,
+      });
+
       let referralCode = '';
       let isUnique = false;
       while(!isUnique) {
@@ -135,12 +131,6 @@ function SignUpForm() {
           isUnique = await isReferralCodeUnique(firestore, referralCode);
       }
 
-      // Step 2: Update user profile in Auth
-      await updateProfile(user, {
-        displayName: values.displayName,
-      });
-
-      // Step 3: Create user document in Firestore
       const userDocRef = doc(firestore, 'users', user.uid);
       const newUserDoc: any = {
         displayName: values.displayName,
@@ -151,7 +141,7 @@ function SignUpForm() {
         totalWithdrawals: 0,
         createdAt: serverTimestamp(),
         referralCommissions: 0,
-        referralCode: referralCode
+        referralCode: referralCode,
       };
 
       if (values.referredBy) {
