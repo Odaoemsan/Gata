@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Medal, Users, Share2, Award } from 'lucide-react';
+import { Copy, Medal, Users, Share2, Award, ListTodo } from 'lucide-react';
 import type { User } from '@/lib/types';
 
 export default function TeamPage() {
@@ -101,6 +101,23 @@ export default function TeamPage() {
                         <Users className="h-12 w-12 text-muted-foreground" />
                         <p className="mt-4 text-muted-foreground">You have no team members yet.</p>
                         <p className="text-sm text-muted-foreground">Start sharing your code to build your team!</p>
+                    </div>
+                </CardContent>
+            </Card>
+
+             <Card>
+                <CardHeader>
+                     <div className="flex items-center gap-3">
+                        <ListTodo className="h-6 w-6" />
+                        <CardTitle>المهام</CardTitle>
+                    </div>
+                    <CardDescription>أكمل المهام التالية للحصول على مكافآت.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg">
+                        <ListTodo className="h-12 w-12 text-muted-foreground" />
+                        <p className="mt-4 text-muted-foreground">لا توجد مهام متاحة حاليًا.</p>
+                        <p className="text-sm text-muted-foreground">يرجى التحقق مرة أخرى لاحقًا.</p>
                     </div>
                 </CardContent>
             </Card>
