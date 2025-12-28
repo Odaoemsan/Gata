@@ -79,7 +79,7 @@ export default function TeamPage() {
     const [teamLoading, setTeamLoading] = useState(true);
     
     const typedUserData = userData as User | null;
-    const referralCode = typedUserData?.referralCode ?? '';
+    const referralCode = typedUserData?.referralCode;
 
     const tasksQuery = useMemo(() => {
         if (!firestore) return null;
@@ -94,11 +94,12 @@ export default function TeamPage() {
           setTeamLoading(false);
           return;
         };
-
+        
+        setTeamLoading(true);
         try {
           const functions = getFunctions(app);
-          const getTeamSize = httpsCallable(functions, 'getTeamSize');
-          const result = await getTeamSize({ referralCode });
+          const getTeamSizeFunc = httpsCallable(functions, 'getTeamSize');
+          const result = await getTeamSizeFunc({ referralCode });
           const size = result.data as number;
           setTeamSize(size);
         } catch (error) {
@@ -241,5 +242,7 @@ export default function TeamPage() {
         </div>
     );
 }
+
+    
 
     
