@@ -9,12 +9,9 @@ import { Copy, Medal, Users, Share2, ListTodo, Send, Loader2, DollarSign } from 
 import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { useMemo, useState, useEffect } from 'react';
-import { addDoc, collection, query, serverTimestamp } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { useFirebaseApp } from '@/firebase/provider';
+import { addDoc, collection, query, serverTimestamp, where } from 'firebase/firestore';
 import { formatCurrency } from '@/lib/formatters';
 import { Skeleton } from '@/components/ui/skeleton';
-
 
 function TaskCard({ task }: { task: Task }) {
     const { toast } = useToast();
@@ -73,45 +70,23 @@ function TaskCard({ task }: { task: Task }) {
 
 export default function TeamPage() {
     const { userData, user, loading: userLoading } = useUser();
-    const firebaseApp = useFirebaseApp();
     const firestore = useFirestore();
     const { toast } = useToast();
     
-    const [teamStats, setTeamStats] = useState<{ teamTotalDeposits: number } | null>(null);
-    const [teamLoading, setTeamLoading] = useState(true);
-
     const typedUserData = userData as User | null;
 
-    useEffect(() => {
-        if (userLoading || !user) {
-            return; 
-        }
+    // Direct client-side query for referred users
+    const teamQuery = useMemo(() => {
+        if (!firestore || !typedUserData?.referralCode) return null;
+        return query(collection(firestore, 'users'), where('referredBy', '==', typedUserData.referralCode));
+    }, [firestore, typedUserData?.referralCode]);
 
-        const functions = getFunctions(firebaseApp);
-        const getTeamStats = httpsCallable(functions, 'getTeamStats');
-        
-        setTeamLoading(true);
-        getTeamStats()
-            .then((result: any) => {
-                setTeamStats(result.data);
-            })
-            .catch((error: any) => {
-                console.error("Error calling getTeamStats function:", error);
-                let description = "Could not fetch team stats. Please try again later.";
-                 if (error.code === 'functions/failed-precondition' || (error.details && error.details.code === 'failed-precondition')) {
-                     description = "Database setup required for team stats. Please check server logs for an index creation link.";
-                }
-                toast({
-                    variant: "destructive",
-                    title: "Team Stats Error",
-                    description: description,
-                });
-            })
-            .finally(() => {
-                setTeamLoading(false);
-            });
-    }, [user, userLoading, firebaseApp, toast]);
+    const { data: teamMembers, loading: teamLoading } = useCollection<User>(teamQuery);
 
+    const teamTotalDeposits = useMemo(() => {
+        if (!teamMembers) return 0;
+        return teamMembers.reduce((sum, member) => sum + (member.totalDeposits || 0), 0);
+    }, [teamMembers]);
 
     const tasksQuery = useMemo(() => {
         if (!firestore) return null;
@@ -122,12 +97,15 @@ export default function TeamPage() {
 
     const handleCopy = () => {
         if (!typedUserData?.referralCode) return;
-        navigator.clipboard.writeText(typedUserData.referralCode);
+        const fullLink = `${window.location.origin}/signup?ref=${typedUserData.referralCode}`;
+        navigator.clipboard.writeText(fullLink);
         toast({
             title: 'Copied!',
-            description: 'Referral code copied to clipboard.',
+            description: 'Referral link copied to clipboard.',
         });
     };
+
+    const isLoading = userLoading || teamLoading;
 
     return (
         <div className="flex-1 space-y-6 p-4">
@@ -139,23 +117,23 @@ export default function TeamPage() {
                 <CardHeader>
                     <div className="flex items-center gap-3">
                         <Share2 className="h-6 w-6 text-primary" />
-                        <CardTitle>Your Referral Code</CardTitle>
+                        <CardTitle>Your Referral Link</CardTitle>
                     </div>
-                    <CardDescription>Share this code with new members to add them to your team.</CardDescription>
+                    <CardDescription>Share this link with new members to add them to your team.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="relative">
                         <Input
                             readOnly
-                            value={userLoading || !typedUserData ? "Loading..." : typedUserData.referralCode}
-                            className="pr-12 text-lg md:text-xl font-mono tracking-widest text-center"
+                            value={isLoading ? "Loading..." : `${window.location.origin}/signup?ref=${typedUserData?.referralCode || ''}`}
+                            className="pr-12 text-sm md:text-base font-mono tracking-wide text-center"
                         />
                         <Button
                             variant="ghost"
                             size="icon"
                             className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                             onClick={handleCopy}
-                            disabled={userLoading || !typedUserData?.referralCode}
+                            disabled={isLoading}
                         >
                             <Copy className="h-4 w-4" />
                         </Button>
@@ -170,7 +148,7 @@ export default function TeamPage() {
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                       {teamLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold">{formatCurrency(teamStats?.teamTotalDeposits)}</div>}
+                       {isLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold">{formatCurrency(teamTotalDeposits)}</div>}
                     </CardContent>
                 </Card>
                  <Card>
