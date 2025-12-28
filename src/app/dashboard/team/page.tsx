@@ -1,12 +1,11 @@
-
 'use client';
 
 import { useUser } from '@/firebase/auth/use-user';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Gift, Users, Share2 } from 'lucide-react';
+import { Copy, Medal, Users, Share2, Award } from 'lucide-react';
 import type { User } from '@/lib/types';
 
 export default function TeamPage() {
@@ -62,25 +61,31 @@ export default function TeamPage() {
              <Card>
                 <CardHeader>
                      <div className="flex items-center gap-3">
-                        <Gift className="h-6 w-6 text-yellow-500" />
-                        <CardTitle>المستويات</CardTitle>
+                        <Medal className="h-6 w-6 text-yellow-500" />
+                        <CardTitle>الرتب</CardTitle>
                     </div>
-                    <CardDescription>Our commission structure.</CardDescription>
+                    <CardDescription>يتم تحديد نسبة الربح ورصيد الفريق المطلوب لكل رتبة من قبل المسؤول.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                        <span className="font-medium">Level 1 Commission:</span>
+                        <span className="font-medium">الرتبة 1:</span>
                         <span className="font-bold text-primary">7%</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                        <span className="font-medium">Level 2 Commission:</span>
+                        <span className="font-medium">الرتبة 2:</span>
                         <span className="font-bold text-yellow-500">3%</span>
                     </div>
                      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                       <span className="font-medium">Level 3 Commission:</span>
+                       <span className="font-medium">الرتبة 3:</span>
                         <span className="font-bold text-purple-500">1%</span>
                     </div>
                 </CardContent>
+                 <CardFooter>
+                    <Button className="w-full" variant="outline">
+                        <Award className="mr-2 h-4 w-4" />
+                        التحقق من الوصول الى الرتبة
+                    </Button>
+                </CardFooter>
             </Card>
 
              <Card>
