@@ -132,12 +132,12 @@ export default function DashboardPage() {
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-             <Button variant="outline" asChild>
+             <Button asChild>
                 <Link href="/dashboard/deposit">
                     <Landmark className="mr-2 h-4 w-4" /> Deposit
                 </Link>
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="secondary" asChild>
                 <Link href="/dashboard/withdraw">
                     <Wallet className="mr-2 h-4 w-4" /> Withdraw
                 </Link>
