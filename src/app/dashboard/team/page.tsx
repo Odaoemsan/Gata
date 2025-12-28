@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useUser, useFirestore, useCollection } from '@/firebase';
+import { useUser, useFirestore, useCollection, useFirebaseApp } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,8 @@ import { Copy, Medal, Users, Share2, Award, ListTodo, Send, Loader2 } from 'luci
 import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { useMemo, useState, useEffect } from 'react';
-import { addDoc, collection, query, serverTimestamp, where, getCountFromServer } from 'firebase/firestore';
+import { addDoc, collection, query, serverTimestamp } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 
 function TaskCard({ task }: { task: Task }) {
@@ -71,6 +72,7 @@ function TaskCard({ task }: { task: Task }) {
 export default function TeamPage() {
     const { userData } = useUser();
     const firestore = useFirestore();
+    const firebaseApp = useFirebaseApp();
     const { toast } = useToast();
     const [teamSize, setTeamSize] = useState(0);
     const [teamLoading, setTeamLoading] = useState(true);
@@ -87,16 +89,18 @@ export default function TeamPage() {
     
     useEffect(() => {
       async function fetchTeamSize() {
-        if (!referralCode || !firestore) {
+        if (!referralCode || !firebaseApp) {
           setTeamLoading(false);
           return;
         };
         
         setTeamLoading(true);
         try {
-          const teamQuery = query(collection(firestore, "users"), where("referredBy", "==", referralCode));
-          const snapshot = await getCountFromServer(teamQuery);
-          setTeamSize(snapshot.data().count);
+          const functions = getFunctions(firebaseApp);
+          const getTeamSizeFn = httpsCallable(functions, 'getTeamSize');
+          const result = await getTeamSizeFn({ referralCode });
+          const size = (result.data as {size: number}).size;
+          setTeamSize(size);
         } catch (error) {
           console.error("Error fetching team size:", error);
           toast({
@@ -109,12 +113,12 @@ export default function TeamPage() {
         }
       }
 
-      if(referralCode && firestore) {
+      if(referralCode && firebaseApp) {
         fetchTeamSize();
       } else {
          setTeamLoading(false);
       }
-    }, [referralCode, firestore, toast]);
+    }, [referralCode, firebaseApp, toast]);
 
 
     const handleCopy = () => {
