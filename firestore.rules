@@ -31,9 +31,7 @@ service cloud.firestore {
       // Admins can update any field. 
       // Users can update their balance only when making an investment, 
       // ensuring the new balance is correctly calculated.
-      allow update: if isAdmin() || 
-                     (isOwner(userId) && 
-                      request.resource.data.balance == resource.data.balance - request.resource.data.investmentAmount);
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.balance == resource.data.balance - request.resource.data.investmentAmount);
 
       // No one can delete a user profile for now.
       allow delete: if false;
