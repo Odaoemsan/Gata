@@ -104,28 +104,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-                <h3 className="font-headline text-4xl font-bold text-primary">12K+</h3>
-                <p className="text-muted-foreground mt-2">Active Investors</p>
-            </div>
-             <div>
-                <h3 className="font-headline text-4xl font-bold text-primary">$5M+</h3>
-                <p className="text-muted-foreground mt-2">Total Invested</p>
-            </div>
-             <div>
-                <h3 className="font-headline text-4xl font-bold text-primary">$1.2M+</h3>
-                <p className="text-muted-foreground mt-2">Total Profits Paid</p>
-            </div>
-             <div>
-                <h3 className="font-headline text-4xl font-bold text-primary">24/7</h3>
-                <p className="text-muted-foreground mt-2">Support</p>
-            </div>
-        </div>
-      </section>
-
       {/* Features Section */}
       <section id="features" className="container mx-auto px-4">
         <div className="text-center space-y-3">
