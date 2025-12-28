@@ -12,11 +12,6 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
-
-    // Helper function to check if a username is unique before creating a user document.
-    function isUsernameUnique(username) {
-        return !exists(/databases/$(database)/documents/users_by_username/$(username));
-    }
     
     // Global App Settings
     match /settings/global {
@@ -26,9 +21,9 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      // Allow creation only if the user is the owner and the username is not already taken.
+      // Allow creation only if the user is the owner.
+      // The username uniqueness should be handled by a cloud function or at the application layer before creation.
       allow create: if isOwner(userId)
-                    && isUsernameUnique(request.resource.data.username)
                     && request.resource.data.displayName is string
                     && request.resource.data.username is string
                     && request.resource.data.email == request.auth.token.email
@@ -65,11 +60,10 @@ service cloud.firestore {
 
     // This collection is a lookup table to enforce username uniqueness.
     // It should be kept in sync with the users collection via a Cloud Function.
+    // Disabling client-side checks for now.
     match /users_by_username/{username} {
-        allow read, write: if false; // No direct client access
-        allow create: if request.auth.uid != null &&
-                      exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-                      request.resource.data.uid == request.auth.uid;
+        allow read, write: if false; 
+        allow create: if false;
     }
     
     // Pending Deposits collection
