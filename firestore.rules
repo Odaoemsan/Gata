@@ -18,7 +18,7 @@ service cloud.firestore {
     match /users/{userId} {
       // Any authenticated user can create their own profile upon signup.
       // Allow an optional 'referredBy' field.
-      allow create: if request.auth != null && isOwner(userId)
+      allow create: if request.auth.uid == userId
                     && request.resource.data.displayName is string
                     && request.resource.data.username is string
                     && request.resource.data.email == request.auth.token.email
