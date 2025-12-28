@@ -5,16 +5,18 @@ import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
+const COMMISSION_RATE = 0.07; // 7%
+
 /**
- * Calculates the total number of referred users and their total deposits
- * based on the calling user's referral code.
+ * Calculates team size, total deposits, and commissions for the calling user.
+ * The function identifies the user via their auth context, finds their referral code,
+ * queries for users referred by that code, and calculates the stats.
  *
  * @param {object} data - The data passed to the function (not used).
  * @param {functions.https.CallableContext} context - The context of the function call, contains auth info.
- * @returns {Promise<{teamSize: number, teamTotalDeposits: number}>} - The total number of referred users and their total deposits.
+ * @returns {Promise<{teamSize: number, teamTotalDeposits: number, totalCommissions: number}>}
  */
 export const getTeamStats = functions.https.onCall(async (data, context) => {
-  // 1. Check if the user is authenticated.
   if (!context.auth) {
     throw new functions.https.HttpsError(
       "unauthenticated",
@@ -26,7 +28,6 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
   const db = admin.firestore();
 
   try {
-    // 2. Get the calling user's document to find their referral code.
     const userDoc = await db.collection("users").doc(userId).get();
     if (!userDoc.exists) {
       throw new functions.https.HttpsError("not-found", "User document not found.");
@@ -36,19 +37,16 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
     const referralCode = userData?.referralCode;
 
     if (!referralCode || typeof referralCode !== "string") {
-      // User might not have a referral code, which is a valid state.
-      return { teamSize: 0, teamTotalDeposits: 0 };
+      return { teamSize: 0, teamTotalDeposits: 0, totalCommissions: 0 };
     }
 
-    // 3. Query for users who were referred by this code.
     // This query requires a single-field index on 'referredBy'.
     const snapshot = await db.collection("users").where("referredBy", "==", referralCode).get();
 
     if (snapshot.empty) {
-      return { teamSize: 0, teamTotalDeposits: 0 };
+      return { teamSize: 0, teamTotalDeposits: 0, totalCommissions: 0 };
     }
 
-    // 4. Calculate stats.
     let teamTotalDeposits = 0;
     snapshot.forEach((doc) => {
       const referredUserData = doc.data();
@@ -57,14 +55,16 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
       }
     });
 
+    const totalCommissions = teamTotalDeposits * COMMISSION_RATE;
+
     return {
       teamSize: snapshot.size,
       teamTotalDeposits: teamTotalDeposits,
+      totalCommissions: totalCommissions
     };
   } catch (error: any) {
     console.error("Error fetching team stats for user:", userId, error);
     
-    // Provide a more specific error for the client if an index is missing.
     if (error.code === "FAILED_PRECONDITION" && error.message.includes("index")) {
         const errorMessage = `Query failed due to a missing index on the 'referredBy' field. Please create the required index in your Firebase console. Original Message: ${error.message}`;
         console.error(errorMessage);
@@ -75,7 +75,6 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
         );
     }
 
-    // For all other errors, throw a generic internal error.
     throw new functions.https.HttpsError(
       "internal",
       "An unexpected error occurred while fetching team stats.",

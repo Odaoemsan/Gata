@@ -38,11 +38,11 @@
         },
         "referredBy": {
           "type": "string",
-          "description": "The username of the user who referred this user."
+          "description": "The referral code of the user who referred this user."
         },
         "referralCode": {
           "type": "string",
-          "description": "The user's unique 6-character referral code."
+          "description": "The user's unique 7-character referral code."
         },
         "referralCommissions": {
             "type": "number",

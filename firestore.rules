@@ -22,12 +22,11 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       // Allow creation only if the user is the owner.
-      // The username uniqueness should be handled by a cloud function or at the application layer before creation.
       allow create: if isOwner(userId)
                     && request.resource.data.displayName is string
                     && request.resource.data.username is string
                     && request.resource.data.email == request.auth.token.email
-                    && request.resource.data.referralCode is string && request.resource.data.referralCode.size() == 6
+                    && request.resource.data.referralCode is string && request.resource.data.referralCode.size() == 7
                     && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
       allow get: if isOwner(userId) || isAdmin();

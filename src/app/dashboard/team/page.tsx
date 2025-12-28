@@ -77,13 +77,12 @@ export default function TeamPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     
-    const [teamStats, setTeamStats] = useState<{ teamSize: number; teamTotalDeposits: number } | null>(null);
+    const [teamStats, setTeamStats] = useState<{ teamSize: number; teamTotalDeposits: number; totalCommissions: number } | null>(null);
     const [teamLoading, setTeamLoading] = useState(true);
 
     const typedUserData = userData as User | null;
 
     useEffect(() => {
-        // Guard Clause: Wait for user to be loaded
         if (userLoading || !user) {
             return; 
         }
@@ -92,7 +91,6 @@ export default function TeamPage() {
         const getTeamStats = httpsCallable(functions, 'getTeamStats');
         
         setTeamLoading(true);
-        // Call the function without any arguments, as it uses the user's auth context
         getTeamStats()
             .then((result: any) => {
                 setTeamStats(result.data);
@@ -124,11 +122,10 @@ export default function TeamPage() {
 
     const handleCopy = () => {
         if (!typedUserData?.referralCode) return;
-        const referralLink = `${window.location.origin}/signup?ref=${typedUserData.referralCode}`;
-        navigator.clipboard.writeText(referralLink);
+        navigator.clipboard.writeText(typedUserData.referralCode);
         toast({
             title: 'Copied!',
-            description: 'Referral link copied to clipboard.',
+            description: 'Referral code copied to clipboard.',
         });
     };
 
@@ -136,22 +133,22 @@ export default function TeamPage() {
         <div className="flex-1 space-y-6 p-4">
              <div className="text-center">
                 <h2 className="text-3xl font-bold tracking-tight">My Team</h2>
-                <p className="text-muted-foreground mt-1">Invite friends and earn commissions.</p>
+                <p className="text-muted-foreground mt-1">Invite friends and earn commissions from their investments.</p>
             </div>
             <Card>
                 <CardHeader>
                     <div className="flex items-center gap-3">
                         <Share2 className="h-6 w-6 text-primary" />
-                        <CardTitle>Your Referral Link</CardTitle>
+                        <CardTitle>Your Referral Code</CardTitle>
                     </div>
-                    <CardDescription>Share your link to invite new members and earn commissions.</CardDescription>
+                    <CardDescription>Share this code with new members to add them to your team.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="relative">
                         <Input
                             readOnly
-                            value={userLoading ? "Loading..." : `${process.env.NEXT_PUBLIC_BASE_URL || window.location.origin}/signup?ref=${typedUserData?.referralCode}`}
-                            className="pr-12 text-sm md:text-base font-mono tracking-wide text-center"
+                            value={userLoading || !typedUserData ? "Loading..." : typedUserData.referralCode}
+                            className="pr-12 text-lg md:text-xl font-mono tracking-widest text-center"
                         />
                         <Button
                             variant="ghost"
@@ -166,31 +163,32 @@ export default function TeamPage() {
                 </CardContent>
             </Card>
 
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium">Team Members</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        {teamLoading ? (
-                            <Skeleton className="h-8 w-1/4" />
-                        ) : (
-                            <div className="text-2xl font-bold">{teamStats?.teamSize ?? 0}</div>
-                        )}
+                        {teamLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">{teamStats?.teamSize ?? 0}</div>}
                     </CardContent>
                 </Card>
                 <Card>
                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Team Total Deposits</CardTitle>
+                        <CardTitle className="text-sm font-medium">Team Deposits</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                       {teamLoading ? (
-                            <Skeleton className="h-8 w-1/3" />
-                        ) : (
-                             <div className="text-2xl font-bold">{formatCurrency(teamStats?.teamTotalDeposits)}</div>
-                        )}
+                       {teamLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold">{formatCurrency(teamStats?.teamTotalDeposits)}</div>}
+                    </CardContent>
+                </Card>
+                 <Card>
+                     <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">My Commissions</CardTitle>
+                        <Medal className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                       {teamLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold text-green-500">{formatCurrency(teamStats?.totalCommissions)}</div>}
                     </CardContent>
                 </Card>
             </div>
@@ -198,34 +196,10 @@ export default function TeamPage() {
              <Card>
                 <CardHeader>
                      <div className="flex items-center gap-3">
-                        <Medal className="h-6 w-6 text-yellow-500" />
-                        <CardTitle>Commission Ranks</CardTitle>
-                    </div>
-                    <CardDescription>Earn commissions from your team's investments across three levels.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                        <span className="font-medium">Level 1:</span>
-                        <span className="font-bold text-primary">7%</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                        <span className="font-medium">Level 2:</span>
-                        <span className="font-bold text-yellow-500">3%</span>
-                    </div>
-                     <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                       <span className="font-medium">Level 3:</span>
-                        <span className="font-bold text-purple-500">1%</span>
-                    </div>
-                </CardContent>
-            </Card>
-
-             <Card>
-                <CardHeader>
-                     <div className="flex items-center gap-3">
                         <ListTodo className="h-6 w-6" />
-                        <CardTitle>Tasks</CardTitle>
+                        <CardTitle>Bonus Tasks</CardTitle>
                     </div>
-                    <CardDescription>Complete the following tasks to get rewards.</CardDescription>
+                    <CardDescription>Complete the following tasks to get extra rewards.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {tasksLoading && (
@@ -247,5 +221,4 @@ export default function TeamPage() {
             </Card>
         </div>
     );
-
-    
+}
