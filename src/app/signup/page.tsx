@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useFirebaseApp } from '@/firebase';
-import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, query, where, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
@@ -110,8 +110,13 @@ export default function SignupPage() {
         totalDeposits: 0,
         totalWithdrawals: 0,
         referralCommissions: 0,
-        referredBy: referredByCode,
+        createdAt: serverTimestamp(),
       };
+      
+      if (referredByCode) {
+          newUserDoc.referredBy = referredByCode;
+      }
+
 
       // 4. Firestore Document Creation: Use UID from auth as doc ID
       await setDoc(doc(firestore, 'users', user.uid), newUserDoc);
@@ -233,4 +238,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
