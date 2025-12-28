@@ -17,7 +17,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
 import { getAuth, signOut } from 'firebase/auth';
-import { useFirebaseApp, useFirestore } from '@/firebase/provider';
+import { useFirebaseApp, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import React, { useMemo } from 'react';
