@@ -26,7 +26,7 @@ function RootLayoutContent({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const showHeaderFooter = pathname === '/';
+  const showHeaderFooter = !pathname.startsWith('/dashboard') && !pathname.startsWith('/admin') && !pathname.startsWith('/login') && !pathname.startsWith('/signup');
 
   return (
     <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
