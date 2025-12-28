@@ -56,7 +56,9 @@ export function useUser() {
   const { data: userData, loading: userLoading } = useDoc(userDocRef);
 
   useEffect(() => {
-    const isAuthPage = pathname === '/login' || pathname === '/signup';
+    // Let auth pages be accessible without a user
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
+    
     if (!authLoading && !user && !isAuthPage) {
       router.push('/login');
     }
