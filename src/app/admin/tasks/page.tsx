@@ -212,7 +212,7 @@ function ReviewSubmissions() {
     }, [firestore, toast]);
     
     useEffect(() => { 
-        fetchSubmissions() 
+        fetchSubmissions(); 
     }, [fetchSubmissions]);
 
     const handleApproval = async (submission: TaskSubmission, approved: boolean) => {
@@ -226,9 +226,11 @@ function ReviewSubmissions() {
             await runTransaction(firestore, async (transaction) => {
                 const taskRef = doc(firestore, 'tasks', submission.taskId);
                 const taskDoc = await transaction.get(taskRef);
-                const task = taskDoc.data() as Task;
                 
-                if (!task && approved) throw new Error("Task not found!");
+                if (!taskDoc.exists() && approved) {
+                    throw new Error("Task not found!");
+                }
+                const task = taskDoc.data() as Task;
 
                 if (approved) {
                     // 1. Add reward to user's balance
@@ -337,5 +339,7 @@ export default function ManageTasksPage() {
     </div>
   );
 }
+
+    
 
     
