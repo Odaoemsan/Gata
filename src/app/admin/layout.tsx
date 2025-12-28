@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Settings, LogOut, LayoutDashboard, Shield, Package, Users, Wallet } from 'lucide-react';
+import { Settings, LogOut, LayoutDashboard, Shield, Package, Users, Wallet, Award, ListTodo } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
@@ -34,11 +34,13 @@ function AdminBottomNavBar() {
     { href: '/admin/plans', icon: Package, label: 'Plans' },
     { href: '/admin/transactions', icon: Wallet, label: 'Transactions' },
     { href: '/admin/users', icon: Users, label: 'Users' },
+    { href: '/admin/ranks', icon: Award, label: 'Ranks' },
+    { href: '/admin/tasks', icon: ListTodo, label: 'Tasks' },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-sm md:hidden">
-      <div className="grid h-16 grid-cols-4 items-center justify-around">
+      <div className="grid h-16 grid-cols-6 items-center justify-around">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href) && (item.href !== '/admin' || pathname === '/admin');
           return (
@@ -47,8 +49,8 @@ function AdminBottomNavBar() {
                 "flex flex-col items-center gap-1 p-2 rounded-md transition-colors",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}>
-                <item.icon className="h-6 w-6" />
-                <span className="text-xs font-medium">{item.label}</span>
+                <item.icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium">{item.label}</span>
               </div>
             </Link>
           );
@@ -115,7 +117,8 @@ export default function AdminLayout({
     { href: '/admin/plans', icon: Package, label: 'Manage Plans' },
     { href: '/admin/transactions', icon: Wallet, label: 'Transactions' },
     { href: '/admin/users', icon: Users, label: 'Manage Users' },
-    // Add other admin links here
+    { href: '/admin/ranks', icon: Award, label: 'Manage Ranks' },
+    { href: '/admin/tasks', icon: ListTodo, label: 'Manage Tasks' },
   ];
 
   return (
