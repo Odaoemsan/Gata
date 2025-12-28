@@ -4,7 +4,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check for admin role
+    // Helper function to check for admin role via custom claims
     function isAdmin() {
       return request.auth.token.admin == true;
     }
@@ -25,13 +25,14 @@ service cloud.firestore {
                     && request.resource.data.balance == 0
                     && request.resource.data.totalDeposits == 0
                     && request.resource.data.totalWithdrawals == 0
+                    && request.resource.data.referralCommissions == 0
                     && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
       // Only the owner or an admin can read the profile.
       allow get: if isOwner(userId) || isAdmin();
       
       // Admins can update any field. 
-      // Users can update their balance.
+      // Users can update their balance (this might be too broad, consider restricting)
       allow update: if isAdmin() || isOwner(userId);
 
       // No one can delete a user profile for now.
@@ -40,7 +41,7 @@ service cloud.firestore {
       // Transactions subcollection
       match /transactions/{transactionId} {
         // The owner can list and read their own transactions.
-        allow list, get: if isOwner(userId);
+        allow list, get: if isOwner(userId) || isAdmin();
 
         // The owner can create transactions with valid data.
         allow create: if isOwner(userId)
@@ -71,7 +72,7 @@ service cloud.firestore {
       // Active Investments subcollection
       match /activeInvestments/{investmentId} {
         // Owner can read their own investments
-        allow list, get: if isOwner(userId);
+        allow list, get: if isOwner(userId) || isAdmin();
 
         // Owner can create a new investment if the data is valid
         allow create: if isOwner(userId) 
@@ -89,8 +90,8 @@ service cloud.firestore {
 
     // Investment Plans collection
     match /investmentPlans/{planId} {
-      // Allow public read access to investment plans.
-      allow get, list: if true;
+      // Allow public read access to investment plans for all authenticated users.
+      allow get, list: if request.auth != null;
 
       // Only admins can create, update, or delete investment plans.
       allow write: if isAdmin();
