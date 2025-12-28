@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection } from '@/firebase';
@@ -114,7 +113,9 @@ export default function TeamPage() {
         }
       }
 
-      fetchTeamSize();
+      if(referralCode && app) {
+        fetchTeamSize();
+      }
     }, [referralCode, app, toast]);
 
 
@@ -242,7 +243,3 @@ export default function TeamPage() {
         </div>
     );
 }
-
-    
-
-    
