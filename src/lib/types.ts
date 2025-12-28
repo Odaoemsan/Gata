@@ -3,6 +3,7 @@
 
 
 
+
 export interface User {
     id: string;
     displayName: string;
@@ -94,7 +95,6 @@ export interface TaskSubmission {
 }
 
 export interface AppSettings {
-    id: string;
     supportLink: string;
     depositWalletAddress: string;
 }
