@@ -91,7 +91,7 @@ export default function ManageUsersPage() {
                 toast({ title: "Success", description: "User profile updated successfully." });
                 setDialogOpen(false);
             })
-            .catch((error) => {
+            .catch(async (error) => {
                 const permissionError = new FirestorePermissionError({
                     path: userRef.path,
                     operation: 'update',
