@@ -22,6 +22,7 @@ export interface Transaction {
     walletAddress?: string;
     transactionId?: string; // For deposit verification
     userId?: string; // Added to identify the user for admin queries
+    username?: string; // Added for display in admin panel
     userDisplayName?: string; // Added for display in admin panel
     userEmail?: string; // Added for display in admin panel
 }
@@ -64,6 +65,7 @@ export interface TaskSubmission {
     taskId: string;
     taskTitle: string;
     userId: string;
+    username: string;
     userDisplayName: string;
     userEmail: string;
     submissionLink: string;

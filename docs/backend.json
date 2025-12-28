@@ -107,6 +107,10 @@
           "type": "string",
           "description": "The ID of the user who initiated the transaction."
         },
+        "username": {
+          "type": "string",
+          "description": "The username of the user for admin convenience."
+        },
         "userDisplayName": {
           "type": "string",
           "description": "The display name of the user for admin convenience."
@@ -215,6 +219,10 @@
           "type": "string",
           "description": "The ID of the user who submitted the task."
         },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
         "userDisplayName": {
           "type": "string",
           "description": "The display name of the user."
@@ -238,7 +246,7 @@
           "description": "The date the submission was made."
         }
       },
-      "required": ["taskId", "taskTitle", "userId", "userDisplayName", "userEmail", "submissionLink", "status", "submittedAt"]
+      "required": ["taskId", "taskTitle", "userId", "username", "userDisplayName", "userEmail", "submissionLink", "status", "submittedAt"]
     }
   },
   "auth": {

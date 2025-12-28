@@ -18,9 +18,10 @@ function TaskCard({ task }: { task: Task }) {
     const firestore = useFirestore();
     const [submissionLink, setSubmissionLink] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const typedUserData = userData as User;
 
     const handleSubmit = async () => {
-        if (!submissionLink || !user || !userData || !firestore) {
+        if (!submissionLink || !user || !typedUserData || !firestore) {
             toast({ variant: 'destructive', title: 'Error', description: 'Please provide a valid submission link.' });
             return;
         }
@@ -30,8 +31,9 @@ function TaskCard({ task }: { task: Task }) {
             taskId: task.id,
             taskTitle: task.title,
             userId: user.uid,
-            userDisplayName: userData.displayName,
-            userEmail: userData.email,
+            username: typedUserData.username,
+            userDisplayName: typedUserData.displayName,
+            userEmail: typedUserData.email,
             submissionLink,
             status: 'pending' as const,
             submittedAt: serverTimestamp()

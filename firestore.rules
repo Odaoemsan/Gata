@@ -52,7 +52,7 @@ service cloud.firestore {
                           && request.resource.data.date == request.time
                           && request.resource.data.transactionId is string
                           && request.resource.data.userId == userId
-                          && request.resource.data.keys().hasAll(['type', 'amount', 'status', 'date', 'transactionId', 'userId', 'userDisplayName', 'userEmail'])) ||
+                          && request.resource.data.keys().hasAll(['type', 'amount', 'status', 'date', 'transactionId', 'userId', 'username', 'userDisplayName', 'userEmail'])) ||
                         // Withdrawal transaction validation
                         (request.resource.data.type == 'withdrawal'
                           && request.resource.data.amount is number
@@ -61,12 +61,12 @@ service cloud.firestore {
                           && request.resource.data.date == request.time) ||
                         // Task reward transaction validation (only by admin logic)
                         (request.resource.data.type == 'task_reward' 
-                          && isAdmin()
+                          && isAdmin() // This check happens in a transaction run by an admin
                           && request.resource.data.amount is number
                           && request.resource.data.status == 'completed'
                           && request.resource.data.date == request.time
                           && request.resource.data.userId == userId
-                          && request.resource.data.keys().hasAll(['type', 'amount', 'status', 'date', 'userId', 'userDisplayName', 'userEmail']))
+                          && request.resource.data.keys().hasAll(['type', 'amount', 'status', 'date', 'userId', 'username', 'userDisplayName', 'userEmail']))
                       );
         
         // Admins can update status, but users cannot.
@@ -138,5 +138,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

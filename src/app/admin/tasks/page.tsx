@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import type { Task, TaskSubmission } from '@/lib/types';
+import type { Task, TaskSubmission, User } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -231,6 +231,12 @@ function ReviewSubmissions() {
                     throw new Error("Task not found!");
                 }
                 const task = taskDoc.data() as Task;
+                const userDoc = await transaction.get(userRef);
+                 if (!userDoc.exists()) {
+                    throw new Error("User not found!");
+                }
+                const user = userDoc.data() as User;
+
 
                 if (approved) {
                     // 1. Add reward to user's balance
@@ -244,8 +250,9 @@ function ReviewSubmissions() {
                         date: serverTimestamp(),
                         status: 'completed',
                         userId: submission.userId,
-                        userDisplayName: submission.userDisplayName,
-                        userEmail: submission.userEmail,
+                        username: user.username,
+                        userDisplayName: user.displayName,
+                        userEmail: user.email,
                     });
                 }
                 

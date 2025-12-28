@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Copy, Check, X, User as UserIcon, Mail, Hash, Wallet, ArrowUpRight, ArrowDownLeft, Inbox, AtSign } from 'lucide-react';
+import { Loader2, Copy, Check, X, User as UserIcon, Mail, Hash, Wallet, ArrowUpRight, ArrowDownLeft, Inbox, AtSign, Fingerprint } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
@@ -259,6 +259,7 @@ export default function TransactionsPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-3 text-sm">
                                     <div className="flex items-center gap-2 text-muted-foreground"><UserIcon size={16}/> <span>{tx.userDisplayName}</span></div>
+                                    <div className="flex items-center gap-2 text-muted-foreground"><Fingerprint size={16}/> <span>{tx.username}</span></div>
                                     <div className="flex items-center gap-2 text-muted-foreground"><AtSign size={16}/> <span>{tx.userEmail}</span></div>
                                     <div className="flex items-center gap-2 text-muted-foreground">
                                         <Hash size={16}/>
@@ -301,6 +302,7 @@ export default function TransactionsPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-3 text-sm">
                                      <div className="flex items-center gap-2 text-muted-foreground"><UserIcon size={16}/> <span>{tx.userDisplayName}</span></div>
+                                     <div className="flex items-center gap-2 text-muted-foreground"><Fingerprint size={16}/> <span>{tx.username}</span></div>
                                      <div className="flex items-center gap-2 text-muted-foreground"><AtSign size={16}/> <span>{tx.userEmail}</span></div>
                                     <div className="flex items-center gap-2 text-muted-foreground">
                                         <Wallet size={16}/>

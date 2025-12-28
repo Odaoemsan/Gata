@@ -65,6 +65,10 @@ export default function WithdrawPage() {
             walletAddress: values.walletAddress,
             status: 'pending' as const,
             date: serverTimestamp(),
+            userId: user.uid,
+            username: typedUserData.username,
+            userDisplayName: typedUserData.displayName,
+            userEmail: typedUserData.email,
         };
 
         const batch = writeBatch(firestore);

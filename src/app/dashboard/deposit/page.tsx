@@ -56,6 +56,7 @@ export default function DepositPage() {
             date: serverTimestamp(),
             transactionId: transactionId,
             userId: user.uid,
+            username: typedUserData.username,
             userDisplayName: typedUserData.displayName,
             userEmail: typedUserData.email
         };
