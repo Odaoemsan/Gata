@@ -205,39 +205,37 @@ export default function InvestPage() {
                 )
             )}
             
-            <Dialog open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)}>
-                <DialogContent>
-                    {selectedPlan && (
-                        <>
-                            <DialogHeader>
-                                <DialogTitle>Invest in {selectedPlan.name}</DialogTitle>
-                                <DialogDescription>
-                                    Your current balance is <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>.
-                                    Enter the amount you wish to invest.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="py-4">
-                                <Label htmlFor="investment-amount">Amount (USD)</Label>
-                                <Input
-                                    id="investment-amount"
-                                    type="number"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    placeholder={`e.g., 500. Min/Max: ${selectedPlan.minMax}`} />
-                            </div>
-                            <DialogFooter>
-                                <DialogClose asChild>
-                                    <Button variant="outline">Cancel</Button>
-                                </DialogClose>
-                                <Button onClick={handleInvest} disabled={isLoading || !amount}>
-                                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Confirm Investment
-                                </Button>
-                            </DialogFooter>
-                        </>
-                    )}
-                </DialogContent>
-            </Dialog>
+            {selectedPlan && (
+                <Dialog open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Invest in {selectedPlan.name}</DialogTitle>
+                            <DialogDescription>
+                                Your current balance is <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong>.
+                                Enter the amount you wish to invest.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4">
+                            <Label htmlFor="investment-amount">Amount (USD)</Label>
+                            <Input
+                                id="investment-amount"
+                                type="number"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                placeholder={`e.g., 500. Min/Max: ${selectedPlan.minMax}`} />
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button variant="outline">Cancel</Button>
+                            </DialogClose>
+                            <Button onClick={handleInvest} disabled={isLoading || !amount}>
+                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Confirm Investment
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
 
         </div>
     );
