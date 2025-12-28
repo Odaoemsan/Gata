@@ -1,7 +1,6 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import type { Metadata } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseProvider } from '@/firebase';
@@ -21,13 +20,6 @@ const lexend = Lexend({
   variable: '--font-lexend',
 });
 
-// Metadata is defined in a wrapper component to allow usePathname in the layout
-// export const metadata: Metadata = {
-//   title: 'GORA HYIP - High-Yield Investment Program',
-//   description:
-//     'Invest with GORA and watch your capital grow. Secure, profitable, and user-friendly investment platform.',
-// };
-
 function RootLayoutContent({
   children,
 }: Readonly<{
@@ -39,7 +31,20 @@ function RootLayoutContent({
   return (
     <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
       <head>
+        <meta name="application-name" content="GORA" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="GORA" />
+        <meta name="description" content="Invest with GORA and watch your capital grow." />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-config" content="/icons/browserconfig.xml" />
+        <meta name="msapplication-TileColor" content="#1e40af" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="theme-color" content="#0a0a0a" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <link rel="manifest" href="/manifest.json" />
+        <title>GORA HYIP - High-Yield Investment Program</title>
       </head>
       <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
         <FirebaseProvider>
