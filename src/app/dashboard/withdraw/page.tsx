@@ -53,6 +53,8 @@ export default function WithdrawPage() {
         mode: 'onChange', // Validate on change to provide immediate feedback
     });
 
+    const watchAmount = form.watch('amount');
+
     async function onSubmit(values: z.infer<typeof withdrawSchema>) {
         if(!user || !typedUserData || !firestore) return;
 
@@ -168,7 +170,7 @@ export default function WithdrawPage() {
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit" disabled={isLoading || !form.formState.isValid || loading} className="w-full">
+                            <Button type="submit" disabled={isLoading || !form.formState.isValid || loading || (watchAmount > userBalance)} className="w-full">
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Submit Withdrawal Request
                             </Button>
@@ -179,5 +181,3 @@ export default function WithdrawPage() {
         </div>
     );
 }
-
-    
