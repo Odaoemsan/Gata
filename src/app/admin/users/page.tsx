@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
+  DialogDescription,
 } from "@/components/ui/dialog"
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -203,6 +204,9 @@ export default function ManageUsersPage() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Edit User: {selectedUser?.displayName}</DialogTitle>
+                        <DialogDescription>
+                            You can edit user details here.
+                        </DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">

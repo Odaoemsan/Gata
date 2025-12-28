@@ -7,7 +7,7 @@ import { collection, query, addDoc, updateDoc, deleteDoc, doc, runTransaction, w
 import { useFirestore } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Edit, Trash2, Loader2, ListTodo, Check, X, User as UserIcon, LinkIcon, Inbox, Fingerprint, AtSign } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, ListTodo, Check, X, User as UserIcon, Link as LinkIcon, Inbox, Fingerprint, AtSign } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
