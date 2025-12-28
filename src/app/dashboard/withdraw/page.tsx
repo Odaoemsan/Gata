@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -21,11 +20,13 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 const MIN_WITHDRAWAL = 50;
 
-const withdrawSchema = z.object({
+// Function to create the schema with the user's balance
+const createWithdrawSchema = (balance: number) => z.object({
     amount: z.coerce
         .number()
         .positive({ message: "Amount must be greater than 0." })
-        .min(MIN_WITHDRAWAL, { message: `Minimum withdrawal amount is $${MIN_WITHDRAWAL}.` }),
+        .min(MIN_WITHDRAWAL, { message: `Minimum withdrawal amount is $${MIN_WITHDRAWAL}.` })
+        .max(balance, { message: "Withdrawal amount cannot exceed your balance." }),
     walletAddress: z.string().min(26, { message: "Please enter a valid crypto wallet address."}),
 });
 
@@ -37,18 +38,24 @@ export default function WithdrawPage() {
     const [isLoading, setIsLoading] = useState(false);
 
     const typedUserData = userData as User | null;
+    const userBalance = typedUserData?.balance ?? 0;
+
+    // Create the schema dynamically with the user's balance
+    const withdrawSchema = createWithdrawSchema(userBalance);
 
     const form = useForm<z.infer<typeof withdrawSchema>>({
         resolver: zodResolver(withdrawSchema),
         defaultValues: {
             amount: undefined,
             walletAddress: '',
-        }
+        },
+        mode: 'onChange', // Validate on change to provide immediate feedback
     });
 
     async function onSubmit(values: z.infer<typeof withdrawSchema>) {
         if(!user || !typedUserData || !firestore) return;
 
+        // The schema validation already handles this, but as a safeguard:
         if(values.amount > typedUserData.balance) {
             form.setError("amount", {
                 type: "manual",
@@ -129,7 +136,7 @@ export default function WithdrawPage() {
             <Card>
                  <CardHeader>
                     <CardTitle className="text-lg">Request Withdrawal</CardTitle>
-                    <CardDescription>Enter the amount and your USDT (TRC20) wallet address. Current balance: <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong></CardDescription>
+                    <CardDescription>Enter the amount and your USDT (TRC20) wallet address. Current balance: <strong>${userBalance.toFixed(2)}</strong></CardDescription>
                 </CardHeader>
                 <CardContent>
                      <Form {...form}>
