@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -46,7 +47,7 @@ export default function WithdrawPage() {
     const form = useForm<z.infer<typeof withdrawSchema>>({
         resolver: zodResolver(withdrawSchema),
         defaultValues: {
-            amount: undefined,
+            amount: '' as any,
             walletAddress: '',
         },
         mode: 'onChange', // Validate on change to provide immediate feedback
