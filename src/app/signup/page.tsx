@@ -90,12 +90,12 @@ export default function SignupPage() {
         displayName: values.displayName,
         username: values.username,
         email: values.email,
+        referralCode: generateReferralCode(7),
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
         referralCommissions: 0,
         createdAt: serverTimestamp(),
-        referralCode: generateReferralCode(7),
         ...(values.referralCode && { referredBy: values.referralCode }),
       };
 
