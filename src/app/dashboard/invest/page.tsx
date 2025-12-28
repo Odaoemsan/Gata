@@ -100,6 +100,7 @@ export default function InvestPage() {
     const handleInvest = async () => {
         setIsLoading(true);
         const investmentAmount = parseFloat(amount);
+        
         if (!selectedPlan || !user || !typedUserData || !investmentAmount || !firestore) {
             toast({ variant: "destructive", title: "Error", description: "Invalid plan, user, or amount."});
             setIsLoading(false);

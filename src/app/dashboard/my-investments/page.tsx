@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Rocket, History, CheckCircle, Hourglass } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -22,6 +21,8 @@ function formatCurrency(amount: number | undefined | null) {
 }
 
 function formatDate(timestamp: any) {
+    if (!timestamp) return 'N/A';
+    // Handle Firestore Timestamp object
     if (timestamp && typeof timestamp.toDate === 'function') {
         return timestamp.toDate().toLocaleDateString('en-US', {
             year: 'numeric',
@@ -29,13 +30,15 @@ function formatDate(timestamp: any) {
             day: 'numeric',
         });
     }
-     if (timestamp && timestamp.seconds) {
+    // Handle object with seconds and nanoseconds (from server-side rendering or direct object)
+     if (timestamp.seconds) {
         return new Date(timestamp.seconds * 1000).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
         });
     }
+    // Handle ISO string
     if (typeof timestamp === 'string') {
         try {
             const date = new Date(timestamp);
@@ -206,4 +209,3 @@ export default function MyInvestmentsPage() {
         </div>
     );
 }
-
