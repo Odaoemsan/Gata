@@ -94,22 +94,27 @@ export default function SignupPage() {
         }
       }
 
+      // 1. Auth First: Create the user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
+      // 2. Prepare the user data for Firestore
       const newUser = {
         displayName: values.displayName,
         username: values.username,
         email: values.email,
         referralCode: generateReferralCode(7),
+        createdAt: serverTimestamp(),
+        // 3. Initial Data (Numbers): Set all monetary fields to 0 as numbers
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
         referralCommissions: 0,
-        createdAt: serverTimestamp(),
+        // 4. Referral Code (Optional): Conditionally add the 'referredBy' field
         ...(values.referralCode && { referredBy: values.referralCode }),
       };
 
+      // 5. Document ID & Creation: Use the UID from auth as the document ID
       await setDoc(doc(firestore, 'users', user.uid), newUser);
       
       toast({
@@ -118,6 +123,7 @@ export default function SignupPage() {
       });
       router.push('/dashboard');
     } catch (error: any) {
+       // 6. Error Handling
        let description = "An unexpected error occurred. Please try again.";
         if (error.code === 'auth/email-already-in-use') {
             description = 'This email address is already in use. Please try logging in.';
