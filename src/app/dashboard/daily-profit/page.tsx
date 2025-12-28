@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { ActiveInvestment, User, Transaction } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/formatters';
+import Link from 'next/link';
 
 const COOLDOWN_HOURS = 24;
 
@@ -71,7 +72,7 @@ export default function DailyProfitPage() {
     const typedUserData = userData as User | null;
 
     const activeInvestmentsQuery = useMemo(() => {
-        if (!user) return null;
+        if (!user || !firestore) return null;
         return query(collection(firestore, `users/${user.uid}/activeInvestments`), where('status', '==', 'active'));
     }, [user, firestore]);
 
@@ -118,15 +119,14 @@ export default function DailyProfitPage() {
             clearInterval(interval);
             
             const totalInvestment = activeInvestments.reduce((sum, inv) => sum + inv.amount, 0);
-            const totalDailyProfitRate = activeInvestments.reduce((sum, inv) => sum + (inv.dailyProfit / 100) * inv.amount, 0) / totalInvestment;
-            const profit = totalInvestment * totalDailyProfitRate;
+            const totalDailyProfit = activeInvestments.reduce((sum, inv) => sum + (inv.dailyProfit / 100) * inv.amount, 0);
 
             const userRef = doc(firestore, 'users', user.uid);
             const transactionRef = doc(collection(firestore, `users/${user.uid}/transactions`));
             
             const newTransaction: Omit<Transaction, 'id' | 'date' | 'status'> = {
                 type: 'daily_profit',
-                amount: profit,
+                amount: totalDailyProfit,
                 userId: user.uid,
                 username: typedUserData.username,
                 userDisplayName: typedUserData.displayName,
@@ -136,7 +136,7 @@ export default function DailyProfitPage() {
             try {
                 const batch = writeBatch(firestore);
                 batch.update(userRef, { 
-                    balance: increment(profit),
+                    balance: increment(totalDailyProfit),
                     lastTradeTime: serverTimestamp() 
                 });
                 batch.set(transactionRef, { ...newTransaction, date: serverTimestamp(), status: 'completed' });
@@ -144,7 +144,7 @@ export default function DailyProfitPage() {
 
                 toast({
                     title: "Profit Claimed!",
-                    description: `${formatCurrency(profit)} has been added to your balance.`,
+                    description: `${formatCurrency(totalDailyProfit)} has been added to your balance.`,
                 });
             } catch (error) {
                 console.error("Error claiming profit:", error);
@@ -211,7 +211,7 @@ export default function DailyProfitPage() {
             </Card>
 
             <Dialog open={simulationDialogOpen} onOpenChange={setSimulationDialogOpen}>
-                <DialogContent className="sm:max-w-md text-center" hideCloseButton>
+                <DialogContent className="sm:max-w-md text-center" hideCloseButton={isTrading}>
                      <DialogHeader>
                         <DialogTitle className="text-2xl">Initiate Daily Trade</DialogTitle>
                         <DialogDescription>
