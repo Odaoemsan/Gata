@@ -9,9 +9,7 @@ import { Copy, Medal, Users, Share2, Award, ListTodo, Send, Loader2 } from 'luci
 import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { useMemo, useState, useEffect } from 'react';
-import { addDoc, collection, query, serverTimestamp, where } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { useFirebaseApp } from '@/firebase/provider';
+import { addDoc, collection, query, serverTimestamp, where, getCountFromServer } from 'firebase/firestore';
 
 
 function TaskCard({ task }: { task: Task }) {
@@ -70,7 +68,6 @@ function TaskCard({ task }: { task: Task }) {
 }
 
 export default function TeamPage() {
-    const app = useFirebaseApp();
     const { userData } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -89,18 +86,16 @@ export default function TeamPage() {
     
     useEffect(() => {
       async function fetchTeamSize() {
-        if (!referralCode || !app) {
+        if (!referralCode || !firestore) {
           setTeamLoading(false);
           return;
         };
         
         setTeamLoading(true);
         try {
-          const functions = getFunctions(app);
-          const getTeamSizeFunc = httpsCallable(functions, 'getTeamSize');
-          const result = await getTeamSizeFunc({ referralCode });
-          const size = result.data as number;
-          setTeamSize(size);
+          const teamQuery = query(collection(firestore, "users"), where("referredBy", "==", referralCode));
+          const snapshot = await getCountFromServer(teamQuery);
+          setTeamSize(snapshot.data().count);
         } catch (error) {
           console.error("Error fetching team size:", error);
           toast({
@@ -113,12 +108,12 @@ export default function TeamPage() {
         }
       }
 
-      if(referralCode && app) {
+      if(referralCode && firestore) {
         fetchTeamSize();
-      } else if (!referralCode && !teamLoading) {
+      } else {
          setTeamLoading(false);
       }
-    }, [referralCode, app, toast]);
+    }, [referralCode, firestore, toast]);
 
 
     const handleCopy = () => {

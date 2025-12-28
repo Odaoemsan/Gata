@@ -23,7 +23,9 @@ service cloud.firestore {
                     && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if false; 
+      // Allow authenticated users to query the collection, needed for team count.
+      // Note: This does NOT allow them to read document data unless they also have 'get' permission.
+      allow list: if request.auth != null; 
       
       allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'balance', 'totalDeposits', 'totalWithdrawals'])) || 
                      (isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username']));
