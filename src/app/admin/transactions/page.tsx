@@ -30,6 +30,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Copy, Check, X, User as UserIcon, Mail, Hash, Wallet, ArrowUpRight, ArrowDownLeft, Inbox, AtSign, Fingerprint } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 function formatCurrency(amount: number) {
     if (typeof amount !== 'number') return '$0.00';
@@ -100,20 +102,30 @@ export default function TransactionsPage() {
     setLoading(true);
 
     try {
+        const transactionsCollectionGroup = collectionGroup(firestore, 'transactions');
+        
         const depositsQuery = query(
-            collectionGroup(firestore, 'transactions'),
+            transactionsCollectionGroup,
             where('type', '==', 'deposit'),
             where('status', '==', 'pending')
         );
         const withdrawalsQuery = query(
-            collectionGroup(firestore, 'transactions'),
+            transactionsCollectionGroup,
             where('type', '==', 'withdrawal'),
             where('status', '==', 'pending')
         );
 
         const [depositsSnapshot, withdrawalsSnapshot] = await Promise.all([
-            getDocs(depositsQuery),
-            getDocs(withdrawalsQuery)
+            getDocs(depositsQuery).catch(error => {
+                 const permissionError = new FirestorePermissionError({ path: 'transactions', operation: 'list' });
+                 errorEmitter.emit('permission-error', permissionError);
+                 throw permissionError;
+            }),
+            getDocs(withdrawalsQuery).catch(error => {
+                 const permissionError = new FirestorePermissionError({ path: 'transactions', operation: 'list' });
+                 errorEmitter.emit('permission-error', permissionError);
+                 throw permissionError;
+            })
         ]);
 
         const pendingDeposits = depositsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), path: doc.ref.path } as Transaction & {path: string}));
@@ -122,9 +134,8 @@ export default function TransactionsPage() {
 
         setDeposits(pendingDeposits);
         setWithdrawals(pendingWithdrawals);
-    } catch (error) {
-        console.error("Error fetching transactions: ", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch pending transactions.' });
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch pending transactions. Check permissions.' });
     } finally {
         setLoading(false);
     }
@@ -330,5 +341,3 @@ export default function TransactionsPage() {
     </div>
   );
 }
-
-    
