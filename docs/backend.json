@@ -89,6 +89,10 @@
         "walletAddress": {
           "type": "string",
           "description": "The crypto wallet address for withdrawals."
+        },
+        "transactionId": {
+          "type": "string",
+          "description": "The blockchain transaction ID for deposit verification."
         }
       },
       "required": ["type", "amount", "date", "status"]
@@ -137,7 +141,7 @@
       "schema": { "$ref": "#/entities/User" },
       "description": "Stores user profile information."
     },
-    "/investmentPlans": {
+    "/investmentPlans/{planId}": {
       "schema": { "$ref": "#/entities/InvestmentPlan" },
       "description": "Stores the available investment plans."
     },

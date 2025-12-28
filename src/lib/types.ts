@@ -16,6 +16,7 @@ export interface Transaction {
     date: any; // Using `any` for Firebase Timestamp for simplicity
     status: 'pending' | 'completed' | 'failed';
     walletAddress?: string;
+    transactionId?: string; // For deposit verification
 }
 
 export interface InvestmentPlan {

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, Copy, Loader2 } from 'lucide-react';
+import { DollarSign, Copy, Loader2, Hash } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 import { collection, addDoc, serverTimestamp, type DocumentReference } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
@@ -24,6 +24,7 @@ export default function DepositPage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const [amount, setAmount] = useState('');
+    const [transactionId, setTransactionId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleCopy = (address: string) => {
@@ -35,8 +36,8 @@ export default function DepositPage() {
     };
 
     const handleDepositRequest = () => {
-        if (!user || !amount) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please enter an amount.' });
+        if (!user || !amount || !transactionId) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please fill in all fields.' });
             return;
         }
         if (!firestore) {
@@ -51,6 +52,7 @@ export default function DepositPage() {
             amount: parseFloat(amount),
             status: 'pending' as const,
             date: serverTimestamp(),
+            transactionId: transactionId,
         };
 
         const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
@@ -62,6 +64,7 @@ export default function DepositPage() {
                     description: `Your request to deposit $${amount} is under review. Your balance will be updated within 1-2 hours after confirmation.`,
                 });
                 setAmount('');
+                setTransactionId('');
             })
             .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({
@@ -108,7 +111,7 @@ export default function DepositPage() {
              <Card>
                  <CardHeader>
                     <CardTitle className="text-lg">2. Confirm Your Deposit</CardTitle>
-                    <CardDescription>After sending the funds, enter the amount and submit your request for manual review.</CardDescription>
+                    <CardDescription>After sending the funds, enter the amount, transaction ID, and submit your request.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-2">
@@ -125,7 +128,21 @@ export default function DepositPage() {
                             />
                         </div>
                     </div>
-                    <Button onClick={handleDepositRequest} disabled={!amount || isLoading} className="w-full">
+                     <div className="space-y-2">
+                        <Label htmlFor="transactionId">Transaction ID (TXID)</Label>
+                        <div className="relative">
+                            <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input 
+                                id="transactionId" 
+                                type="text" 
+                                placeholder="Enter the transaction hash/ID from your wallet" 
+                                className="pl-10 text-base" 
+                                value={transactionId}
+                                onChange={(e) => setTransactionId(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <Button onClick={handleDepositRequest} disabled={!amount || !transactionId || isLoading} className="w-full">
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Submit Deposit Request
                     </Button>
