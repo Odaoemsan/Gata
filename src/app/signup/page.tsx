@@ -11,8 +11,9 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   updateProfile,
+  deleteUser,
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, serverTimestamp, query, collection, where, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirebaseApp } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import {
@@ -58,18 +59,6 @@ function generateReferralCode(): string {
     return result;
 }
 
-async function isUsernameUnique(firestore: any, username: string): Promise<boolean> {
-    const q = query(collection(firestore, 'users'), where('username', '==', username));
-    const snapshot = await getDocs(q);
-    return snapshot.empty;
-}
-
-async function isReferralCodeUnique(firestore: any, code: string): Promise<boolean> {
-    const q = query(collection(firestore, 'users'), where('referralCode', '==', code));
-    const snapshot = await getDocs(q);
-    return snapshot.empty;
-}
-
 function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -106,13 +95,6 @@ function SignUpForm() {
     const firestore = getFirestore(firebaseApp);
 
     try {
-      const usernameIsUnique = await isUsernameUnique(firestore, values.username.toLowerCase());
-      if (!usernameIsUnique) {
-        form.setError('username', { type: 'manual', message: 'This username is already taken.' });
-        setIsLoading(false);
-        return;
-      }
-      
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         values.email,
@@ -120,60 +102,76 @@ function SignUpForm() {
       );
       const user = userCredential.user;
       
-      await updateProfile(user, {
-        displayName: values.displayName,
-      });
+      try {
+        await updateProfile(user, {
+            displayName: values.displayName,
+        });
 
-      let referralCode = '';
-      let isUnique = false;
-      while(!isUnique) {
-          referralCode = generateReferralCode();
-          isUnique = await isReferralCodeUnique(firestore, referralCode);
+        const referralCode = generateReferralCode(); // We assume it's unique enough for this flow.
+        const userDocRef = doc(firestore, 'users', user.uid);
+        
+        const newUserDoc: any = {
+            displayName: values.displayName,
+            username: values.username.toLowerCase(),
+            email: values.email.toLowerCase(),
+            balance: 0,
+            totalDeposits: 0,
+            totalWithdrawals: 0,
+            referralCommissions: 0,
+            createdAt: serverTimestamp(),
+            referralCode: referralCode,
+        };
+
+        if (values.referredBy) {
+            newUserDoc.referredBy = values.referredBy;
+        }
+
+        await setDoc(userDocRef, newUserDoc);
+        
+        toast({
+            title: 'Account Created',
+            description: "You've been successfully signed up!",
+        });
+        router.push('/dashboard');
+
+      } catch (firestoreError: any) {
+        // This catch block handles errors during Firestore document creation,
+        // like permission denied due to a non-unique username.
+        await deleteUser(user); // Important: Clean up the created auth user.
+
+        if (firestoreError.code === 'permission-denied') {
+            form.setError('username', { type: 'manual', message: 'This username is already taken. Please choose another one.' });
+            toast({
+                variant: 'destructive',
+                title: 'Sign Up Failed',
+                description: 'This username is already taken.',
+            });
+        } else {
+             toast({
+                variant: 'destructive',
+                title: 'Sign Up Failed',
+                description: 'An error occurred while setting up your profile.',
+            });
+        }
+        setIsLoading(false);
       }
 
-      const userDocRef = doc(firestore, 'users', user.uid);
-      const newUserDoc: any = {
-        displayName: values.displayName,
-        username: values.username.toLowerCase(),
-        email: values.email.toLowerCase(),
-        balance: 0,
-        totalDeposits: 0,
-        totalWithdrawals: 0,
-        createdAt: serverTimestamp(),
-        referralCommissions: 0,
-        referralCode: referralCode,
-      };
-
-      if (values.referredBy) {
-        newUserDoc.referredBy = values.referredBy;
-      }
-      
-      await setDoc(userDocRef, newUserDoc);
-      
-      toast({
-        title: 'Account Created',
-        description: "You've been successfully signed up!",
-      });
-      router.push('/dashboard');
-
-    } catch (error: any) {
-      console.error(error);
-      let errorMessage = 'An unknown error occurred.';
-       if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email address is already in use.';
-        form.setError('email', { type: 'manual', message: errorMessage });
-      } else if (error.code === 'permission-denied') {
-        errorMessage = 'Missing or insufficient permissions. Check Firestore rules.';
-      }
-      else {
-        errorMessage = error.message || 'Failed to create account. Please try again later.';
-      }
-      toast({
-        variant: 'destructive',
-        title: 'Sign Up Failed',
-        description: errorMessage,
-      });
-      setIsLoading(false);
+    } catch (authError: any) {
+        // This catch block handles errors from createUserWithEmailAndPassword,
+        // like email-already-in-use.
+        let errorMessage = 'An unknown error occurred.';
+        if (authError.code === 'auth/email-already-in-use') {
+            errorMessage = 'This email address is already in use.';
+            form.setError('email', { type: 'manual', message: errorMessage });
+        } else {
+            errorMessage = authError.message || 'Failed to create account. Please try again later.';
+        }
+        toast({
+            variant: 'destructive',
+            title: 'Sign Up Failed',
+            description: errorMessage,
+        });
+        setIsLoading(false);
     }
   }
 

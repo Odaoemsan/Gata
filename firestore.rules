@@ -12,6 +12,11 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
+
+    // Helper function to check if a username is unique before creating a user document.
+    function isUsernameUnique(username) {
+        return !exists(/databases/$(database)/documents/users_by_username/$(username));
+    }
     
     // Global App Settings
     match /settings/global {
@@ -21,7 +26,9 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
+      // Allow creation only if the user is the owner and the username is not already taken.
       allow create: if isOwner(userId)
+                    && isUsernameUnique(request.resource.data.username)
                     && request.resource.data.displayName is string
                     && request.resource.data.username is string
                     && request.resource.data.email == request.auth.token.email
@@ -29,9 +36,6 @@ service cloud.firestore {
                     && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
       allow get: if isOwner(userId) || isAdmin();
-      
-      // Allow authenticated users to query the collection for username/referral code uniqueness checks.
-      allow list: if request.auth != null;
       
       allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'balance', 'totalDeposits', 'totalWithdrawals'])) || 
                      (isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username']));
@@ -57,6 +61,15 @@ service cloud.firestore {
                       && request.resource.data.startDate == request.time;
         allow update, delete: if false;
       }
+    }
+
+    // This collection is a lookup table to enforce username uniqueness.
+    // It should be kept in sync with the users collection via a Cloud Function.
+    match /users_by_username/{username} {
+        allow read, write: if false; // No direct client access
+        allow create: if request.auth.uid != null &&
+                      exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                      request.resource.data.uid == request.auth.uid;
     }
     
     // Pending Deposits collection
