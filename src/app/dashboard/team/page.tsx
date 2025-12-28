@@ -41,8 +41,10 @@ function TeamAndRanks() {
 
     const ranksQuery = useMemo(() => {
         if (!firestore) return null;
+        // The rules are set to public read, so this query is safe.
         return query(collection(firestore, 'ranks'));
     }, [firestore]);
+
     const { data: ranks, loading: ranksLoading } = useCollection<Rank>(ranksQuery);
 
     const teamTotalDeposits = useMemo(() => {
@@ -157,7 +159,7 @@ function TeamAndRanks() {
                                     <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
                                 </TableRow>
                             ))}
-                            {!ranksLoading && ranks?.sort((a, b) => a.requiredInvestment - b.requiredInvestment).map(rank => (
+                            {!ranksLoading && ranks && ranks.length > 0 && ranks.sort((a, b) => a.requiredInvestment - b.requiredInvestment).map(rank => (
                                 <TableRow key={rank.id} className={!isLoading && teamTotalDeposits >= rank.requiredInvestment ? 'bg-primary/10' : ''}>
                                     <TableCell className="font-medium flex items-center gap-2">
                                         {!isLoading && teamTotalDeposits >= rank.requiredInvestment && <Check className="h-4 w-4 text-green-500" />}
@@ -167,7 +169,7 @@ function TeamAndRanks() {
                                     <TableCell className="text-right font-semibold">{rank.commissionRate}%</TableCell>
                                 </TableRow>
                             ))}
-                             {!ranksLoading && ranks?.length === 0 && (
+                             {!ranksLoading && (!ranks || ranks.length === 0) && (
                                 <TableRow>
                                     <TableCell colSpan={3} className="h-24 text-center">
                                         No ranks have been configured by the admin yet.
@@ -188,12 +190,12 @@ function TeamAndRanks() {
 
 function TasksTab() {
     const firestore = useFirestore();
-    const { user, userData } = useUser();
+    const { user, userData, loading: userLoading } = useUser();
     const { toast } = useToast();
     
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [submissionLink, setSubmissionLink] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [submittedTasks, setSubmittedTasks] = useState<Set<string>>(new Set());
 
     const typedUserData = userData as User | null;
@@ -203,31 +205,36 @@ function TasksTab() {
         return query(collection(firestore, 'tasks'));
     }, [firestore]);
     
-    const { data: tasks, loading } = useCollection<Task>(tasksQuery);
+    const { data: tasks, loading: tasksLoading } = useCollection<Task>(tasksQuery);
 
      // Fetch tasks this user has already submitted
     useEffect(() => {
         if (!firestore || !user) return;
+        
         const fetchSubmitted = async () => {
             const submissionsQuery = query(
                 collection(firestore, 'taskSubmissions'),
                 where('userId', '==', user.uid)
             );
-            const snapshot = await getDocs(submissionsQuery);
-            const submittedIds = new Set(snapshot.docs.map(doc => doc.data().taskId));
-            setSubmittedTasks(submittedIds);
+            try {
+                const snapshot = await getDocs(submissionsQuery);
+                const submittedIds = new Set(snapshot.docs.map(doc => doc.data().taskId));
+                setSubmittedTasks(submittedIds);
+            } catch(e) {
+                console.error("Failed to fetch user's task submissions:", e);
+                // Non-critical error, so we don't show a toast.
+            }
         }
         fetchSubmitted();
     }, [firestore, user]);
 
 
     const handleSubmit = async () => {
-        setIsLoading(true);
         if (!selectedTask || !user || !typedUserData || !submissionLink || !firestore) {
             toast({ variant: "destructive", title: "Error", description: "Missing required information."});
-            setIsLoading(false);
             return;
         }
+        setIsSubmitting(true);
 
         const newSubmission: Omit<TaskSubmission, 'id'> = {
             taskId: selectedTask.id,
@@ -256,14 +263,16 @@ function TasksTab() {
                     requestResourceData: newSubmission,
                 });
                 errorEmitter.emit('permission-error', permissionError);
-                toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit your task.' });
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit your task. Please check permissions and try again.' });
             })
             .finally(() => {
-                setIsLoading(false);
+                setIsSubmitting(false);
             });
     }
 
-    if (loading) {
+    const isLoading = tasksLoading || userLoading;
+
+    if (isLoading) {
          return (
             <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
@@ -318,11 +327,11 @@ function TasksTab() {
             })}
             
             {selectedTask && (
-                <Dialog open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
+                <Dialog open={!!selectedTask} onOpenChange={(open) => {if(!open){ setSelectedTask(null); setSubmissionLink('');}}}>
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>{selectedTask.title}</DialogTitle>
-                            <DialogDescription className="py-4 whitespace-pre-wrap">{selectedTask.description}</DialogDescription>
+                            <DialogDescription className="pt-2 pb-1 whitespace-pre-wrap">{selectedTask.description}</DialogDescription>
                         </DialogHeader>
                         <div className="py-2">
                             <Label htmlFor="submission-link">Proof of Completion (Link)</Label>
@@ -339,8 +348,8 @@ function TasksTab() {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setSelectedTask(null)}>Cancel</Button>
-                            <Button onClick={handleSubmit} disabled={isLoading || !submissionLink}>
-                                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Button onClick={handleSubmit} disabled={isSubmitting || !submissionLink}>
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Submit for Review
                             </Button>
                         </DialogFooter>
