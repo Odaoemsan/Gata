@@ -14,39 +14,8 @@ import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, Briefcase, Landmark, Rocket, TrendingDown, TrendingUp, Users, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 
-function formatCurrency(amount: number | undefined | null) {
-  if (typeof amount !== 'number') return '$0.00';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
-
-function formatDate(timestamp: any) {
-    if (timestamp && typeof timestamp.toDate === 'function') {
-        return timestamp.toDate().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        });
-    }
-    if (timestamp && timestamp.seconds) {
-        return new Date(timestamp.seconds * 1000).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        });
-    }
-    if (typeof timestamp === 'string') {
-        return new Date(timestamp).toLocaleDateString('en-US', {
-             year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        });
-    }
-    return 'Invalid date';
-}
 
 function DashboardSkeleton() {
     return (
@@ -246,7 +215,7 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <div className="capitalize font-medium">{tx.type}</div>
-                        <div className="text-xs text-muted-foreground">{formatDate(tx.date)}</div>
+                        <div className="text-xs text-muted-foreground">{formatDate(tx.date, false)}</div>
                       </div>
                     </div>
                   </TableCell>

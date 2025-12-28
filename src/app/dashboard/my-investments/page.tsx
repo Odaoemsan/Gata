@@ -11,49 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Rocket, History, CheckCircle, Hourglass } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-
-function formatCurrency(amount: number | undefined | null) {
-  if (typeof amount !== 'number') return '$0.00';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
-
-function formatDate(timestamp: any) {
-    if (!timestamp) return 'N/A';
-    // Handle Firestore Timestamp object
-    if (timestamp && typeof timestamp.toDate === 'function') {
-        return timestamp.toDate().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-        });
-    }
-    // Handle object with seconds and nanoseconds (from server-side rendering or direct object)
-     if (timestamp.seconds) {
-        return new Date(timestamp.seconds * 1000).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-        });
-    }
-    // Handle ISO string
-    if (typeof timestamp === 'string') {
-        try {
-            const date = new Date(timestamp);
-            if(isNaN(date.getTime())) return 'Invalid Date';
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-            });
-        } catch (e) {
-            return 'Invalid Date';
-        }
-    }
-    return 'N/A';
-}
+import { formatCurrency, formatDate } from '@/lib/formatters';
 
 
 function StatusBadge({ status }: { status: ActiveInvestment['status'] }) {

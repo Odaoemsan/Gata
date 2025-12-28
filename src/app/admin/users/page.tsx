@@ -27,11 +27,8 @@ import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/lib/formatters';
 
-function formatCurrency(amount: number) {
-    if (typeof amount !== 'number') return '$0.00';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-}
 
 const userSchema = z.object({
   displayName: z.string().min(2, "Full name is required."),

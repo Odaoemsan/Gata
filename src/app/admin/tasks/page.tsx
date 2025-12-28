@@ -29,19 +29,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/lib/formatters';
 
 const taskSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters."),
   description: z.string().min(10, "Description must be at least 10 characters."),
   reward: z.coerce.number().positive("Reward must be a positive number."),
 });
-
-function formatDate(timestamp: any) {
-    if (!timestamp) return 'N/A';
-    const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000 || timestamp);
-    if(isNaN(date.getTime())) return 'Invalid Date';
-    return date.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-}
 
 
 function ManageTasks() {
@@ -293,7 +287,7 @@ function ReviewSubmissions() {
                     <Card key={sub.id}>
                         <CardHeader>
                             <CardTitle className="text-lg">{sub.taskTitle}</CardTitle>
-                            <CardDescription>Submitted on {formatDate(sub.submittedAt)}</CardDescription>
+                            <CardDescription>Submitted on {formatDate(sub.submittedAt, true)}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
                             <div className="flex items-center gap-2 text-muted-foreground"><UserIcon size={16}/> <span>{sub.userDisplayName}</span></div>
@@ -361,5 +355,3 @@ export default function ManageTasksPage() {
     </div>
   );
 }
-
-    

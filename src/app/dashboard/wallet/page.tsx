@@ -27,32 +27,9 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
-
-function formatDate(timestamp: any, includeTime = true) {
-    if (!timestamp) return 'N/A';
-    
-    const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000 || timestamp);
-    if(isNaN(date.getTime())) return 'Invalid Date';
-
-    const options: Intl.DateTimeFormatOptions = {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-    };
-    if (includeTime) {
-        options.hour = '2-digit';
-        options.minute = '2-digit';
-    }
-    return date.toLocaleString('en-US', options);
-}
 
 function StatusBadge({ status, className }: { status: Transaction['status'], className?: string }) {
     const variant = {

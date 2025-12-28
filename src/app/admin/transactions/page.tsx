@@ -31,28 +31,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 
-function formatCurrency(amount: number) {
-    if (typeof amount !== 'number') return '$0.00';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  }
-  
-function formatDate(timestamp: any) {
-    if (!timestamp) return 'N/A';
-    const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000 || timestamp);
-    if(isNaN(date.getTime())) return 'Invalid Date';
-
-    return date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
 
 function RequestSkeleton() {
     return (
@@ -278,7 +258,7 @@ export default function TransactionsPage() {
                                         <div>
                                             <CardTitle className="text-lg flex items-center gap-2"><ArrowUpRight className="text-green-500"/> Deposit Request</CardTitle>
                                             <CardDescription>
-                                               Requested on {formatDate(tx.date)}
+                                               Requested on {formatDate(tx.date, true)}
                                             </CardDescription>
                                         </div>
                                         <div className="font-bold text-2xl text-green-500">{formatCurrency(tx.amount)}</div>
@@ -321,7 +301,7 @@ export default function TransactionsPage() {
                                         <div>
                                             <CardTitle className="text-lg flex items-center gap-2"><ArrowDownLeft className="text-red-500"/> Withdrawal Request</CardTitle>
                                             <CardDescription>
-                                               Requested on {formatDate(tx.date)}
+                                               Requested on {formatDate(tx.date, true)}
                                             </CardDescription>
                                         </div>
                                         <div className="font-bold text-2xl text-red-500">{formatCurrency(tx.amount)}</div>
