@@ -43,7 +43,7 @@ export function CommonSidebarFooter({ settingsPath, children }: CommonSidebarFoo
         title: 'Signed Out',
         description: 'You have been successfully signed out.',
       });
-      router.push('/login');
+      router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);
       toast({
