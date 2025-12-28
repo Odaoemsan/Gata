@@ -63,7 +63,7 @@ export default function TeamPage() {
                 <CardHeader>
                      <div className="flex items-center gap-3">
                         <Gift className="h-6 w-6 text-yellow-500" />
-                        <CardTitle>Referral Program</CardTitle>
+                        <CardTitle>المستويات</CardTitle>
                     </div>
                     <CardDescription>Our commission structure.</CardDescription>
                 </CardHeader>
