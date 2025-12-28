@@ -30,6 +30,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/formatters';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 const taskSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters."),
@@ -73,36 +76,52 @@ function ManageTasks() {
         if (!firestore || !confirm('Are you sure you want to delete this task?')) return;
         
         setIsLoading(true);
-        try {
-            await deleteDoc(doc(firestore, 'tasks', taskId));
-            toast({ title: "Success", description: "Task deleted successfully." });
-        } catch (error) {
-            console.error("Error deleting task: ", error);
-            toast({ variant: "destructive", title: "Error", description: "Failed to delete task." });
-        } finally {
-            setIsLoading(false);
-        }
+        const taskRef = doc(firestore, 'tasks', taskId);
+        deleteDoc(taskRef)
+            .then(() => {
+                toast({ title: "Success", description: "Task deleted successfully." });
+            })
+            .catch((error) => {
+                const permissionError = new FirestorePermissionError({ path: taskRef.path, operation: 'delete' });
+                errorEmitter.emit('permission-error', permissionError);
+                toast({ variant: "destructive", title: "Error", description: "Failed to delete task." });
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
     };
     
     async function onSubmit(values: z.infer<typeof taskSchema>) {
         if (!firestore) return;
         setIsLoading(true);
 
-        try {
-            if (selectedTask) {
-                const taskRef = doc(firestore, 'tasks', selectedTask.id);
-                await updateDoc(taskRef, values);
-                toast({ title: "Success", description: "Task updated successfully." });
-            } else {
-                await addDoc(collection(firestore, 'tasks'), { ...values, createdAt: serverTimestamp() });
-                toast({ title: "Success", description: "New task created." });
-            }
-            setDialogOpen(false);
-        } catch (error) {
-            console.error("Error saving task: ", error);
-            toast({ variant: "destructive", title: "Error", description: "Failed to save task." });
-        } finally {
-            setIsLoading(false);
+        if (selectedTask) {
+            const taskRef = doc(firestore, 'tasks', selectedTask.id);
+            updateDoc(taskRef, values)
+                .then(() => {
+                    toast({ title: "Success", description: "Task updated successfully." });
+                    setDialogOpen(false);
+                })
+                .catch((error) => {
+                    const permissionError = new FirestorePermissionError({ path: taskRef.path, operation: 'update', requestResourceData: values });
+                    errorEmitter.emit('permission-error', permissionError);
+                    toast({ variant: "destructive", title: "Error", description: "Failed to save task." });
+                })
+                .finally(() => setIsLoading(false));
+        } else {
+            const tasksCollectionRef = collection(firestore, 'tasks');
+            const dataToSave = { ...values, createdAt: serverTimestamp() };
+            addDoc(tasksCollectionRef, dataToSave)
+                .then(() => {
+                    toast({ title: "Success", description: "New task created." });
+                    setDialogOpen(false);
+                })
+                .catch((error) => {
+                    const permissionError = new FirestorePermissionError({ path: tasksCollectionRef.path, operation: 'create', requestResourceData: dataToSave });
+                    errorEmitter.emit('permission-error', permissionError);
+                    toast({ variant: "destructive", title: "Error", description: "Failed to save task." });
+                })
+                .finally(() => setIsLoading(false));
         }
     }
     
@@ -198,7 +217,8 @@ function ReviewSubmissions() {
             const pendingSubmissions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TaskSubmission));
             setSubmissions(pendingSubmissions);
         } catch (error) {
-            console.error("Error fetching submissions:", error);
+            const permissionError = new FirestorePermissionError({ path: 'taskSubmissions', operation: 'list' });
+            errorEmitter.emit('permission-error', permissionError);
             toast({ variant: "destructive", title: "Error", description: "Failed to fetch submissions." });
         } finally {
             setLoading(false);
@@ -221,7 +241,7 @@ function ReviewSubmissions() {
                 const taskRef = doc(firestore, 'tasks', submission.taskId);
                 const taskDoc = await transaction.get(taskRef);
                 
-                if (!taskDoc.exists()) { // Check for task existence for both approve/reject
+                if (!taskDoc.exists()) {
                     throw new Error("Task not found!");
                 }
                 const task = taskDoc.data() as Task;
@@ -232,44 +252,33 @@ function ReviewSubmissions() {
                 const user = userDoc.data() as User;
 
                 const newTransactionRef = doc(collection(firestore, `users/${submission.userId}/transactions`));
+                const status = approved ? 'approved' : 'rejected';
+                const txStatus = approved ? 'completed' : 'failed';
 
                 if (approved) {
-                    // 1. Add reward to user's balance
                     transaction.update(userRef, { balance: increment(task.reward) });
-                    
-                    // 2. Create a transaction record for the reward
-                    transaction.set(newTransactionRef, {
-                        type: 'task_reward',
-                        amount: task.reward,
-                        date: serverTimestamp(),
-                        status: 'completed',
-                        userId: submission.userId,
-                        username: user.username,
-                        userDisplayName: user.displayName,
-                        userEmail: user.email,
-                    });
-                } else {
-                    // Create a failed transaction record on rejection
-                     transaction.set(newTransactionRef, {
-                        type: 'task_reward',
-                        amount: task.reward, // Still log the potential amount for tracking
-                        date: serverTimestamp(),
-                        status: 'failed',
-                        userId: submission.userId,
-                        username: user.username,
-                        userDisplayName: user.displayName,
-                        userEmail: user.email,
-                    });
                 }
                 
-                // 3. Update the submission status
-                transaction.update(submissionRef, { status: approved ? 'approved' : 'rejected' });
+                const transactionData = {
+                    type: 'task_reward',
+                    amount: task.reward,
+                    date: serverTimestamp(),
+                    status: txStatus,
+                    userId: submission.userId,
+                    username: user.username,
+                    userDisplayName: user.displayName,
+                    userEmail: user.email,
+                };
+
+                transaction.set(newTransactionRef, transactionData);
+                transaction.update(submissionRef, { status: status });
             });
 
             toast({ title: 'Success', description: `Submission has been ${approved ? 'approved' : 'rejected'}.` });
             fetchSubmissions(); // Refresh the list
         } catch (error) {
-            console.error("Error processing submission:", error);
+            const permissionError = new FirestorePermissionError({ path: submissionRef.path, operation: approved ? 'update' : 'delete' });
+            errorEmitter.emit('permission-error', permissionError);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to process submission.' });
         } finally {
             setProcessingId(null);
@@ -355,3 +364,5 @@ export default function ManageTasksPage() {
     </div>
   );
 }
+
+    

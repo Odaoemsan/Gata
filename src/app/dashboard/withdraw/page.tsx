@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -12,7 +13,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, writeBatch, doc, increment } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import type { User, PendingTransaction } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -55,18 +56,9 @@ export default function WithdrawPage() {
     async function onSubmit(values: z.infer<typeof withdrawSchema>) {
         if(!user || !typedUserData || !firestore) return;
 
-        // The schema validation already handles this, but as a safeguard:
-        if(values.amount > typedUserData.balance) {
-            form.setError("amount", {
-                type: "manual",
-                message: "Withdrawal amount cannot exceed your balance.",
-            });
-            return;
-        }
-
         setIsLoading(true);
 
-        const newRequest: Omit<PendingTransaction, 'id' | 'status'> = {
+        const newRequest: Omit<PendingTransaction, 'id'> = {
             type: 'withdrawal',
             amount: values.amount,
             walletAddress: values.walletAddress,
@@ -76,16 +68,14 @@ export default function WithdrawPage() {
             userDisplayName: typedUserData.displayName,
             userEmail: typedUserData.email,
         };
-
-        const batch = writeBatch(firestore);
         
-        // Debit the user's balance immediately
+        const batch = writeBatch(firestore);
         const userRef = doc(firestore, 'users', user.uid);
-        const newBalance = typedUserData.balance - values.amount;
-        batch.update(userRef, { balance: newBalance });
-
-        // Create the pending withdrawal request for the admin
         const pendingWithdrawalsRef = doc(collection(firestore, 'pendingWithdrawals'));
+
+        // 1. Debit the user's balance
+        batch.update(userRef, { balance: increment(-values.amount) });
+        // 2. Create the pending withdrawal request
         batch.set(pendingWithdrawalsRef, newRequest);
         
         batch.commit()
@@ -97,20 +87,21 @@ export default function WithdrawPage() {
                 form.reset();
             })
             .catch(async (serverError) => {
+                // Since this is a batch, we'll emit a general permission error.
+                // The most likely failure point is creating the pendingWithdrawal doc.
                 const permissionError = new FirestorePermissionError({
-                    path: pendingWithdrawalsRef.path, // or userRef.path, depending on which fails
-                    operation: 'create', // or 'update'
+                    path: pendingWithdrawalsRef.path,
+                    operation: 'create',
                     requestResourceData: newRequest,
                 });
                 errorEmitter.emit('permission-error', permissionError);
+
                  toast({
                     variant: 'destructive',
                     title: 'Withdrawal Failed',
-                    description: 'Could not submit your request. Your balance has been restored.',
+                    description: 'Could not submit your request. Your balance has not been changed.',
                 });
-                // Attempt to revert the balance client-side for immediate UI feedback.
-                // Note: The backend logic should handle the actual crediting if the rule fails.
-                form.setValue('amount', values.amount);
+                // NO NEED to revert balance client-side, as the batch fails atomically.
             })
             .finally(() => {
                 setIsLoading(false);
@@ -188,3 +179,5 @@ export default function WithdrawPage() {
         </div>
     );
 }
+
+    
