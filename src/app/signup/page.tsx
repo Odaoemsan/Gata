@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -105,18 +105,16 @@ export default function SignupPage() {
         username: values.username,
         email: values.email,
         referralCode: generateReferralCode(7),
-        // All financial fields initialized as Numbers
+        // All financial fields initialized as Numbers, to match security rules
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
         referralCommissions: 0,
-        createdAt: serverTimestamp(),
       };
       
       if (referredByCode) {
           newUserDoc.referredBy = referredByCode;
       }
-
 
       // 4. Firestore Document Creation: Use UID from auth as doc ID
       await setDoc(doc(firestore, 'users', user.uid), newUserDoc);
