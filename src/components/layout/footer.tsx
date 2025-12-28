@@ -2,17 +2,16 @@
 
 import Link from 'next/link';
 import { Rocket, Twitter, Linkedin, Facebook } from 'lucide-react';
+import React from 'react';
 
 export function Footer() {
-  const currentYear = new Date().getFullYear();
-
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
   };
 
   return (
-    <footer className="border-t bg-card">
-      <div className="container mx-auto max-w-7xl px-4 py-8">
+    <footer className="border-t border-border/20 bg-background">
+      <div className="container mx-auto max-w-7xl px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="flex flex-col gap-4">
             <Link href="/" className="flex items-center gap-2">
@@ -62,7 +61,7 @@ export function Footer() {
             </ul>
           </div>
         </div>
-        <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
+        <div className="mt-12 pt-8 border-t border-border/20 text-center text-sm text-muted-foreground">
           <p>&copy; {new Date().getFullYear()} GORA HYIP. All rights reserved.</p>
         </div>
       </div>

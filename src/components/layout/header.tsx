@@ -25,7 +25,7 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-foreground/60 transition-colors hover:text-foreground/80"
+              className="text-muted-foreground transition-colors hover:text-foreground"
             >
               {link.label}
             </Link>
@@ -35,7 +35,7 @@ export function Header() {
           <Button variant="ghost" asChild>
             <Link href="/login">Login</Link>
           </Button>
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+          <Button asChild>
             <Link href="/signup">Sign Up</Link>
           </Button>
         </div>
@@ -61,7 +61,7 @@ export function Header() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="text-foreground/80 transition-colors hover:text-foreground"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {link.label}
                   </Link>
@@ -71,7 +71,7 @@ export function Header() {
                 <Button variant="ghost" size="lg" asChild>
                   <Link href="/login">Login</Link>
                 </Button>
-                <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+                <Button size="lg" asChild>
                   <Link href="/signup">Sign Up</Link>
                 </Button>
               </div>

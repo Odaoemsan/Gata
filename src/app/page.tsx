@@ -6,11 +6,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { CheckCircle, ShieldCheck, TrendingUp, Users } from 'lucide-react';
+import { CheckCircle, ShieldCheck, TrendingUp, Users, ArrowRight, Star } from 'lucide-react';
 import { EarningsCalculator } from '@/components/earnings-calculator';
 
 export default function LandingPage() {
-    const heroBg = PlaceHolderImages.find(img => img.id === 'hero-bg');
     const avatar1 = PlaceHolderImages.find(img => img.id === 'avatar1');
     const avatar2 = PlaceHolderImages.find(img => img.id === 'avatar2');
     const avatar3 = PlaceHolderImages.find(img => img.id === 'avatar3');
@@ -76,39 +75,53 @@ export default function LandingPage() {
             question: "Is my investment secure?",
             answer: "We employ advanced security measures, including data encryption and secure server infrastructure, to protect your funds and personal information. However, like all investments, there is inherent risk, and we encourage you to invest responsibly."
         }
-    ]
+    ];
 
   return (
-    <div className="flex-1 space-y-24 md:space-y-32">
+    <div className="flex-1 space-y-24 md:space-y-32 text-foreground bg-background">
       {/* Hero Section */}
-       <section className="relative -mt-8 -mx-4 md:-mx-8">
-        <div className="absolute inset-0 overflow-hidden">
-            {heroBg && (
-                <Image
-                    src={heroBg.imageUrl}
-                    alt={heroBg.description}
-                    data-ai-hint={heroBg.imageHint}
-                    fill
-                    className="object-cover opacity-10"
-                    priority
-                />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
-        </div>
-        <div className="relative container mx-auto px-4 pt-24 pb-16 text-center">
-             <h1 className="font-headline text-4xl md:text-6xl font-extrabold tracking-tight animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                Securely Grow Your Digital Assets
+       <section className="relative overflow-hidden">
+        <div className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-primary/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 translate-x-1/2 translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-secondary/20 rounded-full blur-3xl" />
+        
+        <div className="container mx-auto px-4 pt-24 pb-16 text-center relative z-10">
+             <h1 className="font-headline text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                The Future of Intelligent Investing
             </h1>
             <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
                 Join GORA's high-yield investment platform to unlock daily profits and maximize your financial potential through our expertly managed plans.
             </p>
             <div className="mt-8 flex justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
                 <Button size="lg" asChild>
-                    <Link href="/signup">Get Started</Link>
+                    <Link href="/signup">
+                      Create Account <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                    <Link href="#plans">View Plans</Link>
+                    <Link href="#plans">Explore Plans</Link>
                 </Button>
+            </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="container mx-auto px-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div>
+                <h3 className="font-headline text-4xl font-bold text-primary">12K+</h3>
+                <p className="text-muted-foreground mt-2">Active Investors</p>
+            </div>
+             <div>
+                <h3 className="font-headline text-4xl font-bold text-primary">$5M+</h3>
+                <p className="text-muted-foreground mt-2">Total Invested</p>
+            </div>
+             <div>
+                <h3 className="font-headline text-4xl font-bold text-primary">$1.2M+</h3>
+                <p className="text-muted-foreground mt-2">Total Profits Paid</p>
+            </div>
+             <div>
+                <h3 className="font-headline text-4xl font-bold text-primary">24/7</h3>
+                <p className="text-muted-foreground mt-2">Support</p>
             </div>
         </div>
       </section>
@@ -123,7 +136,7 @@ export default function LandingPage() {
         </div>
         <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {features.map((feature, index) => (
-            <Card key={index} className="text-center shadow-sm hover:shadow-primary/20 transition-shadow">
+            <Card key={index} className="text-center bg-secondary/50 border-border/50 hover:border-primary/50 hover:bg-primary/10 transition-all duration-300 transform hover:-translate-y-1">
                 <CardHeader className="items-center">
                     <div className="p-4 bg-primary/10 rounded-full w-fit">
                         <feature.icon className="h-8 w-8 text-primary" />
@@ -146,24 +159,25 @@ export default function LandingPage() {
                     Getting started with GORA is quick and straightforward.
                 </p>
             </div>
-            <div className="mt-12 grid gap-8 md:grid-cols-3">
-                <div className="text-center">
+            <div className="mt-12 grid gap-12 md:grid-cols-3 relative">
+                <div className="absolute top-8 left-0 w-full h-px bg-border/50 hidden md:block" />
+                <div className="relative text-center">
                     <div className="flex items-center justify-center mb-4">
-                        <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground font-bold text-2xl">1</div>
+                        <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground font-bold text-2xl border-4 border-background z-10">1</div>
                     </div>
                     <h3 className="text-lg font-semibold">Create an Account</h3>
                     <p className="mt-2 text-sm text-muted-foreground">Sign up for a free account in minutes and secure your profile.</p>
                 </div>
-                 <div className="text-center">
+                 <div className="relative text-center">
                     <div className="flex items-center justify-center mb-4">
-                        <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground font-bold text-2xl">2</div>
+                        <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground font-bold text-2xl border-4 border-background z-10">2</div>
                     </div>
                     <h3 className="text-lg font-semibold">Make a Deposit</h3>
                     <p className="mt-2 text-sm text-muted-foreground">Deposit funds using our secure USDT (TRC20) payment gateway.</p>
                 </div>
-                 <div className="text-center">
+                 <div className="relative text-center">
                     <div className="flex items-center justify-center mb-4">
-                        <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground font-bold text-2xl">3</div>
+                        <div className="flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground font-bold text-2xl border-4 border-background z-10">3</div>
                     </div>
                     <h3 className="text-lg font-semibold">Watch it Grow</h3>
                     <p className="mt-2 text-sm text-muted-foreground">Choose an investment plan and start earning daily profits.</p>
@@ -196,10 +210,19 @@ export default function LandingPage() {
         </div>
         <div className="mt-12 grid gap-8 md:grid-cols-1 lg:grid-cols-3">
           {testimonials.map((testimonial) => (
-            <Card key={testimonial.name} className="shadow-sm">
-                <CardContent className="pt-6">
-                    <p className="italic text-muted-foreground">"{testimonial.quote}"</p>
-                     <div className="mt-4 flex items-center gap-4">
+            <Card key={testimonial.name} className="bg-secondary/50 border-border/50">
+                <CardHeader>
+                    <div className="flex text-yellow-400">
+                        <Star className="h-5 w-5 fill-current" />
+                        <Star className="h-5 w-5 fill-current" />
+                        <Star className="h-5 w-5 fill-current" />
+                        <Star className="h-5 w-5 fill-current" />
+                        <Star className="h-5 w-5 fill-current" />
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                    <p className="italic">"{testimonial.quote}"</p>
+                     <div className="mt-6 flex items-center gap-4">
                         {testimonial.avatar && (
                              <Image
                                 src={testimonial.avatar.imageUrl}
@@ -229,8 +252,8 @@ export default function LandingPage() {
              <Accordion type="single" collapsible className="w-full mt-8">
                 {faqs.map((faq, index) => (
                      <AccordionItem key={index} value={`item-${index + 1}`}>
-                        <AccordionTrigger className="text-left font-semibold">{faq.question}</AccordionTrigger>
-                        <AccordionContent className="text-muted-foreground">
+                        <AccordionTrigger className="text-left text-lg font-semibold">{faq.question}</AccordionTrigger>
+                        <AccordionContent className="text-base text-muted-foreground">
                             {faq.answer}
                         </AccordionContent>
                     </AccordionItem>

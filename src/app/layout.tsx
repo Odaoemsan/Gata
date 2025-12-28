@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseProvider } from '@/firebase';
-import { Inter, Poppins } from 'next/font/google';
+import { Inter, Lexend } from 'next/font/google';
 import React from 'react';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
@@ -12,10 +12,10 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-const poppins = Poppins({
+const lexend = Lexend({
   subsets: ['latin'],
   weight: ['600', '700', '800'],
-  variable: '--font-poppins',
+  variable: '--font-lexend',
 })
 
 export const metadata: Metadata = {
@@ -44,8 +44,8 @@ export default function RootLayout({
 
   if (isAuthPage || isDashboard) {
      return (
-        <html lang="en" suppressHydrationWarning>
-          <body className={`${inter.variable} ${poppins.variable} font-body antialiased`}>
+        <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
+          <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
             <FirebaseProvider>
               {children}
               <Toaster />
@@ -56,12 +56,12 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${poppins.variable} font-body antialiased`}>
+    <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
+      <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
         <FirebaseProvider>
           <div className="flex flex-col min-h-screen">
             <Header />
-            <main className="flex-grow container mx-auto px-4 py-8">
+            <main className="flex-grow">
               {children}
             </main>
             <Footer />

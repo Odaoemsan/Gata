@@ -18,33 +18,37 @@ const investmentPlans = [
 export function EarningsCalculator() {
   const [amount, setAmount] = useState('1000');
   const [planId, setPlanId] = useState(investmentPlans[0].id);
-  const [earnings, setEarnings] = useState<string | null>(null);
+  const [totalReturn, setTotalReturn] = useState<number>(0);
+  const [profit, setProfit] = useState<number>(0);
 
   const calculateEarnings = () => {
     const selectedPlan = investmentPlans.find(p => p.id === planId);
     if (!selectedPlan || !amount) {
-        setEarnings(null);
+        setTotalReturn(0);
+        setProfit(0);
         return;
     }
     const principal = parseFloat(amount);
     if(isNaN(principal) || principal <= 0) {
-        setEarnings('Invalid amount');
+        setTotalReturn(0);
+        setProfit(0);
         return;
     }
 
-    const totalReturn = principal * (1 + selectedPlan.dailyInterest * selectedPlan.duration);
-    const profit = totalReturn - principal;
+    const calculatedTotalReturn = principal * (1 + selectedPlan.dailyInterest * selectedPlan.duration);
+    const calculatedProfit = calculatedTotalReturn - principal;
     
-    setEarnings(`Profit: $${profit.toFixed(2)} | Total Return: $${totalReturn.toFixed(2)}`);
+    setTotalReturn(calculatedTotalReturn);
+    setProfit(calculatedProfit);
   };
 
   useEffect(() => {
     calculateEarnings();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [amount, planId]);
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-lg">
+    <Card className="w-full max-w-md mx-auto shadow-lg bg-secondary/50 border-border/50">
       <CardHeader>
         <CardTitle className="font-headline text-center text-2xl">Earnings Calculator</CardTitle>
         <CardDescription className="text-center">Estimate your potential profit.</CardDescription>
@@ -59,12 +63,13 @@ export function EarningsCalculator() {
               placeholder="e.g., 1000"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              className="bg-background"
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="plan">Investment Plan</Label>
             <Select value={planId} onValueChange={setPlanId}>
-              <SelectTrigger id="plan">
+              <SelectTrigger id="plan" className="bg-background">
                 <SelectValue placeholder="Select a plan" />
               </SelectTrigger>
               <SelectContent>
@@ -76,15 +81,21 @@ export function EarningsCalculator() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={calculateEarnings} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-            <TrendingUp className="mr-2 h-4 w-4" />
-            Calculate Earnings
-          </Button>
-          {earnings && (
-            <div className="mt-4 p-4 bg-primary/10 rounded-lg text-center">
-              <p className="font-semibold text-primary">{earnings}</p>
+          
+          <div className="!mt-6 pt-6 border-t border-border/20">
+            <div className="flex justify-between items-center text-lg">
+                <span className="text-muted-foreground">Profit</span>
+                <span className="font-bold text-primary">
+                    ${profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
             </div>
-          )}
+            <div className="flex justify-between items-center text-xl mt-2">
+                <span className="text-muted-foreground">Total Return</span>
+                <span className="font-bold text-foreground">
+                   ${totalReturn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
