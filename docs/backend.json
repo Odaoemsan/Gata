@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -34,6 +35,14 @@
           "type": "string",
           "format": "date-time",
           "description": "The date and time the user was created."
+        },
+        "referredBy": {
+          "type": "string",
+          "description": "The username of the user who referred this user."
+        },
+        "referralCommissions": {
+            "type": "number",
+            "description": "Total commissions earned from referrals."
         }
       },
       "required": ["displayName", "username", "email", "balance", "totalDeposits", "totalWithdrawals", "createdAt"]
@@ -69,7 +78,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["deposit", "withdrawal"],
+          "enum": ["deposit", "withdrawal", "commission"],
           "description": "The type of transaction."
         },
         "amount": {

@@ -17,21 +17,22 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       // Any authenticated user can create their own profile upon signup.
+      // Allow an optional 'referredBy' field.
       allow create: if request.auth != null && isOwner(userId)
                     && request.resource.data.displayName is string
                     && request.resource.data.username is string
                     && request.resource.data.email == request.auth.token.email
                     && request.resource.data.balance == 0
                     && request.resource.data.totalDeposits == 0
-                    && request.resource.data.totalWithdrawals == 0;
+                    && request.resource.data.totalWithdrawals == 0
+                    && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
       // Only the owner or an admin can read the profile.
       allow get: if isOwner(userId) || isAdmin();
       
       // Admins can update any field. 
-      // Users can update their balance only when making an investment, 
-      // ensuring the new balance is correctly calculated.
-      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.balance == resource.data.balance - request.resource.data.investmentAmount);
+      // Users can update their balance.
+      allow update: if isAdmin() || isOwner(userId);
 
       // No one can delete a user profile for now.
       allow delete: if false;

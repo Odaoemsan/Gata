@@ -1,8 +1,9 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -11,7 +12,7 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, serverTimestamp, runTransaction, query, collection, where, getDocs } from 'firebase/firestore';
 import { useFirebaseApp } from '@/firebase/provider';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,13 +48,16 @@ const formSchema = z.object({
   password: z
     .string()
     .min(6, { message: 'Password must be at least 6 characters.' }),
+  referralCode: z.string().optional(),
 });
 
-export default function SignUpPage() {
+function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const refCode = searchParams.get('ref');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -62,8 +66,15 @@ export default function SignUpPage() {
       username: '',
       email: '',
       password: '',
+      referralCode: refCode || '',
     },
   });
+  
+   useEffect(() => {
+    if (refCode) {
+      form.setValue('referralCode', refCode);
+    }
+  }, [refCode, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -76,6 +87,15 @@ export default function SignUpPage() {
     const firestore = getFirestore(firebaseApp);
 
     try {
+      // Step 0: Check if username is unique
+      const usernameQuery = query(collection(firestore, 'users'), where('username', '==', values.username.toLowerCase()));
+      const usernameSnapshot = await getDocs(usernameQuery);
+      if (!usernameSnapshot.empty) {
+        form.setError('username', { type: 'manual', message: 'This username is already taken.' });
+        setIsLoading(false);
+        return;
+      }
+      
       // Step 1: Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -91,7 +111,7 @@ export default function SignUpPage() {
 
       // Step 3: Create user document in Firestore
       const userDocRef = doc(firestore, 'users', user.uid);
-      const newUserDoc = {
+      const newUserDoc: any = {
         displayName: values.displayName,
         username: values.username.toLowerCase(),
         email: values.email.toLowerCase(),
@@ -99,16 +119,14 @@ export default function SignUpPage() {
         totalDeposits: 0,
         totalWithdrawals: 0,
         createdAt: serverTimestamp(),
+        referralCommisions: 0
       };
+
+      if (values.referralCode) {
+        newUserDoc.referredBy = values.referralCode;
+      }
       
-      setDoc(userDocRef, newUserDoc)
-        .then(() => {
-            toast({
-              title: 'Account Created',
-              description: "You've been successfully signed up!",
-            });
-            router.push('/dashboard');
-        })
+      await setDoc(userDocRef, newUserDoc)
         .catch(async (error) => {
             if (error.code === 'permission-denied') {
                  const permissionError = new FirestorePermissionError({
@@ -117,27 +135,26 @@ export default function SignUpPage() {
                     requestResourceData: newUserDoc,
                 });
                 errorEmitter.emit('permission-error', permissionError);
+                 throw new Error("Failed to create user profile in database.");
             } else {
-                 toast({
-                    variant: 'destructive',
-                    title: 'Sign Up Failed',
-                    description: 'Failed to create user profile in database.',
-                });
+                 throw new Error("Failed to create user profile in database.");
             }
-        })
-        .finally(() => {
-          // Setting loading to false is handled in the chained promises.
         });
+      
+      toast({
+        title: 'Account Created',
+        description: "You've been successfully signed up!",
+      });
+      router.push('/dashboard');
 
     } catch (error: any) {
-      // This catch block handles Auth errors
       let errorMessage = 'An unknown error occurred.';
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'This email address is already in use.';
         form.setError('email', { type: 'manual', message: errorMessage });
       }
       else {
-        errorMessage = 'Failed to create account. Please try again later.';
+        errorMessage = error.message || 'Failed to create account. Please try again later.';
       }
       toast({
         variant: 'destructive',
@@ -149,108 +166,134 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-           <div className="flex items-center justify-center gap-2 mb-4">
-            <Rocket className="h-8 w-8 text-primary" />
-            <span className="font-headline text-3xl font-bold text-primary">
-              GORA
-            </span>
-          </div>
-          <CardTitle className="text-2xl">Sign Up</CardTitle>
-          <CardDescription>
-            Create an account to start your investment journey.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-              <FormField
+    <Card className="w-full max-w-sm">
+      <CardHeader className="text-center">
+         <div className="flex items-center justify-center gap-2 mb-4">
+          <Rocket className="h-8 w-8 text-primary" />
+          <span className="font-headline text-3xl font-bold text-primary">
+            GORA
+          </span>
+        </div>
+        <CardTitle className="text-2xl">Sign Up</CardTitle>
+        <CardDescription>
+          Create an account to start your investment journey.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+            <FormField
+              control={form.control}
+              name="displayName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="John Doe"
+                      {...field}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="johndoe"
+                      {...field}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="m@example.com"
+                      {...field}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      {...field}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
                 control={form.control}
-                name="displayName"
+                name="referralCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>Referral Code (Optional)</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="John Doe"
+                        placeholder="Enter referral code"
                         {...field}
-                        disabled={isLoading}
+                        disabled={isLoading || !!refCode}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="johndoe"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="m@example.com"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Create Account
-              </Button>
-            </form>
-          </Form>
-          <div className="mt-4 text-center text-sm">
-            Already have an account?{' '}
-            <Link href="/login" className="underline">
-              Login
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Create Account
+            </Button>
+          </form>
+        </Form>
+        <div className="mt-4 text-center text-sm">
+          Already have an account?{' '}
+          <Link href="/login" className="underline">
+            Login
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
   );
+}
+
+
+export default function SignUpPage() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Suspense fallback={<Loader2 className="h-12 w-12 animate-spin text-primary" />}>
+        <SignUpForm />
+      </Suspense>
+    </div>
+  )
 }

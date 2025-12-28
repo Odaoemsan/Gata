@@ -7,23 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Copy, Gift, Users, Share2 } from 'lucide-react';
-import { useMemo } from 'react';
+import type { User } from '@/lib/types';
 
 export default function TeamPage() {
     const { userData } = useUser();
     const { toast } = useToast();
-
-    const referralLink = useMemo(() => {
-        if (typeof window === 'undefined' || !userData?.username) return '';
-        // In a real app, this might be a custom domain
-        return `${window.location.origin}/signup?ref=${userData.username}`;
-    }, [userData]);
+    
+    const typedUserData = userData as User | null;
+    const referralCode = typedUserData?.username ?? '';
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(referralLink);
+        if (!referralCode) return;
+        navigator.clipboard.writeText(referralCode);
         toast({
             title: 'Copied!',
-            description: 'Referral link copied to clipboard.',
+            description: 'Referral code copied to clipboard.',
         });
     };
 
@@ -37,22 +35,23 @@ export default function TeamPage() {
                 <CardHeader>
                     <div className="flex items-center gap-3">
                         <Share2 className="h-6 w-6 text-primary" />
-                        <CardTitle>Your Referral Link</CardTitle>
+                        <CardTitle>Your Referral Code</CardTitle>
                     </div>
-                    <CardDescription>Share this link to invite new members.</CardDescription>
+                    <CardDescription>Share your code to invite new members.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="relative">
                         <Input
                             readOnly
-                            value={referralLink}
-                            className="pr-12 text-sm"
+                            value={referralCode}
+                            className="pr-12 text-lg font-mono tracking-widest text-center"
                         />
                         <Button
                             variant="ghost"
                             size="icon"
                             className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                             onClick={handleCopy}
+                            disabled={!referralCode}
                         >
                             <Copy className="h-4 w-4" />
                         </Button>
@@ -90,18 +89,16 @@ export default function TeamPage() {
                         <Users className="h-6 w-6" />
                         <CardTitle>Your Team Members</CardTitle>
                     </div>
-                    <CardDescription>Users who joined using your link.</CardDescription>
+                    <CardDescription>Users who joined using your code.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg">
                         <Users className="h-12 w-12 text-muted-foreground" />
                         <p className="mt-4 text-muted-foreground">You have no team members yet.</p>
-                        <p className="text-sm text-muted-foreground">Start sharing your link to build your team!</p>
+                        <p className="text-sm text-muted-foreground">Start sharing your code to build your team!</p>
                     </div>
                 </CardContent>
             </Card>
         </div>
     );
 }
-
-    

@@ -1,3 +1,4 @@
+
 export interface User {
     id: string;
     displayName: string;
@@ -7,11 +8,13 @@ export interface User {
     totalDeposits: number;
     totalWithdrawals: number;
     createdAt: any; // Using `any` for Firebase Timestamp for simplicity
+    referredBy?: string;
+    referralCommissions?: number;
 }
 
 export interface Transaction {
     id: string;
-    type: 'deposit' | 'withdrawal';
+    type: 'deposit' | 'withdrawal' | 'commission';
     amount: number;
     date: any; // Using `any` for Firebase Timestamp for simplicity
     status: 'pending' | 'completed' | 'failed';
