@@ -38,9 +38,9 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
 
       // Allow a user to list other users ONLY if they are querying by their own referral code
-      allow list: if request.auth != null &&
+      allow list: if (request.auth != null &&
                    request.query.where[0][0] == 'referredBy' &&
-                   request.query.where[0][2] == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.referralCode;
+                   request.query.where[0][2] == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.referralCode) || isAdmin();
       
       allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'balance', 'totalDeposits', 'totalWithdrawals', 'referralCommissions'])) || 
                      (isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'rankName']));
@@ -137,6 +137,9 @@ service cloud.firestore {
                       && request.resource.data.submissionLink is string;
         
         allow get: if isAdmin() || isOwner(resource.data.userId);
+        
+        // Admins can list all submissions.
+        // Users can list ONLY their own submissions.
         allow list: if isAdmin() || (request.query.where[0][0] == 'userId' && request.query.where[0][2] == request.auth.uid);
         
         allow update: if isAdmin() && request.resource.data.status != resource.data.status;
