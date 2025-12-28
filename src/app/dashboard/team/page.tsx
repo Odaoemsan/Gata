@@ -11,6 +11,8 @@ import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { useMemo, useState, useEffect } from 'react';
 import { addDoc, collection, query, serverTimestamp, where } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { useFirebaseApp } from '@/firebase/provider';
 
 
 function TaskCard({ task }: { task: Task }) {
@@ -71,17 +73,41 @@ function TaskCard({ task }: { task: Task }) {
 export default function TeamPage() {
     const { userData } = useUser();
     const firestore = useFirestore();
+    const firebaseApp = useFirebaseApp();
     const { toast } = useToast();
     
+    const [teamSize, setTeamSize] = useState(0);
+    const [teamLoading, setTeamLoading] = useState(true);
+
     const typedUserData = userData as User | null;
     const referralCode = typedUserData?.referralCode;
 
-    const teamQuery = useMemo(() => {
-        if (!firestore || !referralCode) return null;
-        return query(collection(firestore, 'users'), where('referredBy', '==', referralCode));
-    }, [firestore, referralCode]);
+    useEffect(() => {
+        if (referralCode && firebaseApp) {
+            const functions = getFunctions(firebaseApp);
+            const getTeamSize = httpsCallable(functions, 'getTeamSize');
+            
+            setTeamLoading(true);
+            getTeamSize({ referralCode })
+                .then((result: any) => {
+                    setTeamSize(result.data.size);
+                })
+                .catch((error) => {
+                    console.error("Error calling getTeamSize function:", error);
+                    toast({
+                        variant: "destructive",
+                        title: "Error",
+                        description: "Could not fetch team size.",
+                    });
+                })
+                .finally(() => {
+                    setTeamLoading(false);
+                });
+        } else {
+             setTeamLoading(false);
+        }
+    }, [referralCode, firebaseApp, toast]);
 
-    const { data: teamMembers, loading: teamLoading } = useCollection<User>(teamQuery);
 
     const tasksQuery = useMemo(() => {
         if (!firestore) return null;
@@ -89,8 +115,6 @@ export default function TeamPage() {
     }, [firestore]);
 
     const { data: tasks, loading: tasksLoading } = useCollection<Task>(tasksQuery);
-    
-    const teamSize = teamMembers?.length ?? 0;
 
     const handleCopy = () => {
         if (!referralCode) return;

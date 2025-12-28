@@ -1,4 +1,4 @@
-/*
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
@@ -38,4 +38,3 @@ export const getTeamSize = functions.https.onCall(async (data, context) => {
     );
   }
 });
-*/
