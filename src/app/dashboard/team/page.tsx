@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Copy, Users, Share2, Award, Check, Loader2, DollarSign, ListTodo, CheckCircle, Inbox, Link as LinkIcon } from 'lucide-react';
 import type { User, Rank, Task, TaskSubmission } from '@/lib/types';
 import { useMemo, useState, useEffect } from 'react';
-import { collection, query, where, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, addDoc, serverTimestamp, updateDoc, doc, getDocs } from 'firebase/firestore';
 import { formatCurrency } from '@/lib/formatters';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -231,29 +231,23 @@ function TasksTab() {
     }, [firestore]);
     
     const { data: tasks, loading: tasksLoading } = useCollection<Task>(tasksQuery);
-
-     // Fetch tasks this user has already submitted
-    useEffect(() => {
-        if (!firestore || !user) return;
-        
-        const fetchSubmitted = async () => {
-            const submissionsQuery = query(
-                collection(firestore, 'taskSubmissions'),
-                where('userId', '==', user.uid)
-            );
-            try {
-                const snapshot = await useCollection(submissionsQuery);
-                if (snapshot.data) {
-                    const submittedIds = new Set(snapshot.data.map(doc => doc.taskId));
-                    setSubmittedTasks(submittedIds);
-                }
-            } catch(e) {
-                console.error("Failed to fetch user's task submissions:", e);
-                // Non-critical error, so we don't show a toast.
-            }
-        }
-        fetchSubmitted();
+    
+    const submissionsQuery = useMemo(() => {
+        if (!firestore || !user) return null;
+        return query(
+            collection(firestore, 'taskSubmissions'),
+            where('userId', '==', user.uid)
+        );
     }, [firestore, user]);
+
+    const { data: userSubmissions, loading: submissionsLoading } = useCollection<TaskSubmission>(submissionsQuery);
+
+    useEffect(() => {
+        if (userSubmissions) {
+            const submittedIds = new Set(userSubmissions.map(doc => doc.taskId));
+            setSubmittedTasks(submittedIds);
+        }
+    }, [userSubmissions]);
 
 
     const handleSubmit = async () => {
@@ -297,7 +291,7 @@ function TasksTab() {
             });
     }
 
-    const isLoading = tasksLoading || userLoading;
+    const isLoading = tasksLoading || userLoading || submissionsLoading;
 
     if (isLoading) {
          return (
