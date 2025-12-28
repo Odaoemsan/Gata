@@ -7,7 +7,7 @@ import { collection, query, addDoc, updateDoc, deleteDoc, doc, runTransaction, w
 import { useFirestore } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Edit, Trash2, Loader2, ListTodo, Check, X, User as UserIcon, LinkIcon, Inbox } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, ListTodo, Check, X, User as UserIcon, LinkIcon, Inbox, Fingerprint, AtSign } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -281,11 +281,14 @@ function ReviewSubmissions() {
                     <Card key={sub.id}>
                         <CardHeader>
                             <CardTitle className="text-lg">{sub.taskTitle}</CardTitle>
-                            <CardDescription>Submitted by {sub.userDisplayName} ({sub.userEmail}) on {formatDate(sub.submittedAt)}</CardDescription>
+                            <CardDescription>Submitted on {formatDate(sub.submittedAt)}</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                             <a href={sub.submissionLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-primary underline">
-                                <LinkIcon size={16}/> <span>{sub.submissionLink}</span>
+                        <CardContent className="space-y-3 text-sm">
+                            <div className="flex items-center gap-2 text-muted-foreground"><UserIcon size={16}/> <span>{sub.userDisplayName}</span></div>
+                            <div className="flex items-center gap-2 text-muted-foreground"><Fingerprint size={16}/> <span>{sub.username}</span></div>
+                            <div className="flex items-center gap-2 text-muted-foreground"><AtSign size={16}/> <span>{sub.userEmail}</span></div>
+                             <a href={sub.submissionLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary underline">
+                                <LinkIcon size={16}/> <span>View Submission Link</span>
                              </a>
                         </CardContent>
                          <CardFooter className="gap-2 justify-end">
@@ -346,7 +349,5 @@ export default function ManageTasksPage() {
     </div>
   );
 }
-
-    
 
     
