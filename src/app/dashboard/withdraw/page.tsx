@@ -67,7 +67,7 @@ export default function WithdrawPage() {
 
         setIsLoading(true);
 
-        const newRequest: Omit<PendingTransaction, 'id'> = {
+        const newRequest: Omit<PendingTransaction, 'id' | 'status'> = {
             type: 'withdrawal',
             amount: values.amount,
             walletAddress: values.walletAddress,
@@ -86,9 +86,8 @@ export default function WithdrawPage() {
         batch.update(userRef, { balance: newBalance });
 
         // Create the pending withdrawal request for the admin
-        const pendingWithdrawalsRef = collection(firestore, 'pendingWithdrawals');
-        const newRequestRef = doc(pendingWithdrawalsRef);
-        batch.set(newRequestRef, newRequest);
+        const pendingWithdrawalsRef = doc(collection(firestore, 'pendingWithdrawals'));
+        batch.set(pendingWithdrawalsRef, newRequest);
         
         batch.commit()
             .then(() => {
@@ -101,13 +100,17 @@ export default function WithdrawPage() {
             .catch(async (serverError) => {
                  // Re-credit user balance if commit fails
                 const userRef = doc(firestore, 'users', user.uid);
+                const revertBatch = writeBatch(firestore);
+                revertBatch.update(userRef, { balance: typedUserData.balance });
+                await revertBatch.commit();
+                
+                // Add a failed transaction record for tracking
                 await addDoc(collection(firestore, `users/${user.uid}/transactions`), {
                     ...newRequest,
                     status: 'failed',
                     type: 'withdrawal',
                     date: serverTimestamp()
                 });
-                await writeBatch(firestore).update(userRef, { balance: typedUserData.balance }).commit();
 
                 const permissionError = new FirestorePermissionError({
                     path: pendingWithdrawalsRef.path,
@@ -115,6 +118,11 @@ export default function WithdrawPage() {
                     requestResourceData: newRequest,
                 });
                 errorEmitter.emit('permission-error', permissionError);
+                 toast({
+                    variant: 'destructive',
+                    title: 'Withdrawal Failed',
+                    description: 'Could not submit your request. Your balance has been restored.',
+                });
             })
             .finally(() => {
                 setIsLoading(false);

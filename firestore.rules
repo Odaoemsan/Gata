@@ -15,21 +15,17 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      allow create: if request.auth.uid == userId
+      allow create: if isOwner(userId)
                     && request.resource.data.displayName is string
                     && request.resource.data.username is string
                     && request.resource.data.email == request.auth.token.email
-                    && request.resource.data.balance == 0
-                    && request.resource.data.totalDeposits == 0
-                    && request.resource.data.totalWithdrawals == 0
-                    && request.resource.data.referralCommissions == 0
                     && request.resource.data.referralCode is string && request.resource.data.referralCode.size() == 6
                     && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
       allow get: if isOwner(userId) || isAdmin();
       allow list: if false; 
       
-      allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'balance'])) || 
+      allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'balance', 'totalDeposits', 'totalWithdrawals'])) || 
                      (isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username']));
 
       allow delete: if false;
