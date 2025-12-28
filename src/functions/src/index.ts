@@ -1,3 +1,4 @@
+'use server';
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
@@ -32,7 +33,7 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
   try {
     const db = admin.firestore();
     const usersRef = db.collection("users");
-    // The query uses 'referredBy' which should contain the referral code of the referrer.
+    // The query now uses 'referredBy' which should contain the referral code of the referrer.
     const snapshot = await usersRef.where("referredBy", "==", referralCode).get();
 
     if (snapshot.empty) {
