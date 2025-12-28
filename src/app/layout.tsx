@@ -38,6 +38,9 @@ function RootLayoutContent({
 
   return (
     <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
         <FirebaseProvider>
           {showHeaderFooter ? (
