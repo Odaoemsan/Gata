@@ -4,7 +4,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check for admin role via custom claims
+    // Helper function to check for admin role via email
     function isAdmin() {
       return request.auth.token.email == 'odae.oth@gmail.com';
     }
@@ -30,9 +30,10 @@ service cloud.firestore {
       // Only the owner or an admin can read the profile.
       allow get: if isOwner(userId) || isAdmin();
       
-      // Admins can update any field. 
+      // Admins can update displayName, username, and balance. 
       // Users can only update their own displayName and username.
-      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.keys().hasOnly(['displayName', 'username']));
+      allow update: if (isAdmin() && request.resource.data.keys().hasOnly(['displayName', 'username', 'balance'])) || 
+                     (isOwner(userId) && request.resource.data.keys().hasOnly(['displayName', 'username']));
 
       // No one can delete a user profile for now.
       allow delete: if false;
@@ -61,6 +62,7 @@ service cloud.firestore {
                           && request.resource.data.walletAddress is string
                           && request.resource.data.status == 'pending'
                           && request.resource.data.date == request.time
+                          && request.resource.data.userId == userId
                           && request.resource.data.username is string
                           && request.resource.data.userDisplayName is string
                           && request.resource.data.userEmail is string) ||
