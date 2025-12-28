@@ -89,7 +89,7 @@ export default function SignupPage() {
       const newUser = {
         displayName: values.displayName,
         username: values.username,
-        email: values.email, // This was the missing field
+        email: values.email,
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
@@ -110,8 +110,8 @@ export default function SignupPage() {
        let description = "An unexpected error occurred. Please try again.";
         if (error.code === 'auth/email-already-in-use') {
             description = 'This email address is already in use. Please try logging in.';
-        } else if (error.name === 'FirebaseError' && error.message.includes('permission-denied')) {
-            description = 'Failed to create user profile due to security rules. Please contact support.';
+        } else if (error.name === 'FirebaseError' && (error.message.includes('permission-denied') || error.message.includes('insufficient permissions'))) {
+            description = 'Failed to create user profile due to security rules. Please check the data and try again.';
         }
       toast({
         variant: 'destructive',
