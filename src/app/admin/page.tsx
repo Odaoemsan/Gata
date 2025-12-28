@@ -18,8 +18,8 @@ export default function AdminDashboardPage() {
             </div>
             
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Card asChild className="hover:bg-muted/50 transition-colors cursor-pointer">
-                    <Link href="/admin/plans">
+                <Link href="/admin/plans" className="hover:bg-muted/50 transition-colors rounded-lg border bg-card text-card-foreground shadow-sm block">
+                    <Card className="border-none shadow-none">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">
                                 Manage Investment Plans
@@ -32,8 +32,8 @@ export default function AdminDashboardPage() {
                                 Create, edit, and delete investment plans.
                             </p>
                         </CardContent>
-                    </Link>
-                </Card>
+                    </Card>
+                </Link>
                 {/* Add more admin sections here */}
             </div>
         </div>
