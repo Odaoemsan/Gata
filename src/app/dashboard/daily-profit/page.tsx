@@ -79,7 +79,7 @@ export default function DailyProfitPage() {
     const { data: activeInvestments, loading: investmentsLoading } = useCollection<ActiveInvestment>(activeInvestmentsQuery);
 
     useEffect(() => {
-        if (userLoading || investmentsLoading) return;
+        if (userLoading || investmentsLoading || !typedUserData) return;
 
         const lastTrade = typedUserData?.lastTradeTime?.toDate();
         if (lastTrade) {
@@ -118,7 +118,6 @@ export default function DailyProfitPage() {
         setTimeout(async () => {
             clearInterval(interval);
             
-            const totalInvestment = activeInvestments.reduce((sum, inv) => sum + inv.amount, 0);
             const totalDailyProfit = activeInvestments.reduce((sum, inv) => sum + (inv.dailyProfit / 100) * inv.amount, 0);
 
             const userRef = doc(firestore, 'users', user.uid);
@@ -156,6 +155,10 @@ export default function DailyProfitPage() {
             } finally {
                 setIsTrading(false);
                 setSimulationDialogOpen(false);
+                 // Force re-fetch user data
+                const nextTime = new Date(Date.now() + COOLDOWN_HOURS * 60 * 60 * 1000);
+                setNextTradeTime(nextTime);
+                setIsReady(false);
             }
 
         }, 30 * 1000);
@@ -239,4 +242,5 @@ export default function DailyProfitPage() {
 
         </div>
     )
-}
+
+    
