@@ -64,7 +64,7 @@ export default function TeamPage() {
                         <Medal className="h-6 w-6 text-yellow-500" />
                         <CardTitle>الرتب</CardTitle>
                     </div>
-                    <CardDescription>يتم تحديد نسبة الربح ورصيد الفريق المطلوب لكل رتبة من قبل المسؤول.</CardDescription>
+                    <CardDescription>شارك الكود مع اصدقائك واحصل على الرتبة واربح معنا</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
