@@ -82,9 +82,9 @@ export default function InvestPage() {
     const [isLoading, setIsLoading] = useState(false);
 
     const plansQuery = useMemo(() => {
-        if (!user || !firestore) return null;
+        if (!firestore) return null;
         return query(collection(firestore, 'investmentPlans'));
-    }, [user, firestore]);
+    }, [firestore]);
     
     const { data: plans, loading } = useCollection<InvestmentPlan>(plansQuery);
 
