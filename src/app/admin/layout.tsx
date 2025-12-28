@@ -21,11 +21,9 @@ import { getAuth, signOut } from 'firebase/auth';
 import { useFirebaseApp } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-const ADMIN_EMAIL = 'odae.oth@gmail.com';
 
 function AdminBottomNavBar() {
   const pathname = usePathname();
@@ -70,9 +68,26 @@ export default function AdminLayout({
   const { user, userData, loading } = useUser();
   const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!loading && (!user || user.email !== ADMIN_EMAIL)) {
+    if (user) {
+      user.getIdTokenResult()
+        .then((idTokenResult) => {
+          const claims = idTokenResult.claims;
+          setIsAdmin(!!claims.admin);
+        })
+        .catch(() => {
+          setIsAdmin(false);
+        });
+    } else {
+        setIsAdmin(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    // Wait until both auth loading and admin check are complete
+    if (!loading && isAdmin === false) {
       toast({
         variant: 'destructive',
         title: 'Access Denied',
@@ -80,7 +95,7 @@ export default function AdminLayout({
       });
       router.push('/dashboard');
     }
-  }, [user, loading, router, toast]);
+  }, [isAdmin, loading, router, toast]);
 
 
   const handleSignOut = async () => {
@@ -103,7 +118,7 @@ export default function AdminLayout({
     }
   };
   
-  if (loading || !user || user.email !== ADMIN_EMAIL) {
+  if (loading || isAdmin === null) {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
