@@ -63,26 +63,32 @@ export default function LoginPage() {
       });
       router.push('/dashboard');
     } catch (error: any) {
-      console.error('Login error:', error);
       let errorMessage = 'An unknown error occurred.';
+      let showErrorToast = true;
+
       switch (error.code) {
-        case 'auth/user-not-found':
-        case 'auth/invalid-email':
         case 'auth/invalid-credential':
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-          break;
+        case 'auth/user-not-found':
         case 'auth/wrong-password':
-          errorMessage = 'Incorrect password. Please try again.';
+        case 'auth/invalid-email':
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+          // This is an expected user error, so we don't need to log it to the console.
+          showErrorToast = true;
           break;
         default:
+          // Log unexpected errors for debugging.
+          console.error('Login error:', error);
           errorMessage = 'Failed to log in. Please try again later.';
           break;
       }
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: errorMessage,
-      });
+      
+      if (showErrorToast) {
+         toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: errorMessage,
+        });
+      }
     } finally {
       setIsLoading(false);
     }
