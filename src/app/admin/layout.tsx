@@ -114,6 +114,7 @@ export default function AdminLayout({
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/plans', icon: Package, label: 'Manage Plans' },
     { href: '/admin/transactions', icon: Wallet, label: 'Transactions' },
+    { href: '/admin/users', icon: Users, label: 'Manage Users' },
     // Add other admin links here
   ];
 
