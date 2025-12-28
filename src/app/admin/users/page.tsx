@@ -85,27 +85,24 @@ export default function ManageUsersPage() {
         if (!firestore || !selectedUser) return;
         setIsLoading(true);
 
-        try {
-            const userRef = doc(firestore, 'users', selectedUser.id);
-            await updateDoc(userRef, values)
-              .catch((error) => {
-                  const permissionError = new FirestorePermissionError({
-                      path: userRef.path,
-                      operation: 'update',
-                      requestResourceData: values,
-                  });
-                  errorEmitter.emit('permission-error', permissionError);
-                  throw error; // Re-throw to be caught by the outer try-catch
-              });
-
-            toast({ title: "Success", description: "User profile updated successfully." });
-            setDialogOpen(false);
-        } catch (error) {
-            console.error("Error updating user: ", error);
-            toast({ variant: "destructive", title: "Error", description: "Failed to update user profile." });
-        } finally {
-            setIsLoading(false);
-        }
+        const userRef = doc(firestore, 'users', selectedUser.id);
+        updateDoc(userRef, values)
+            .then(() => {
+                toast({ title: "Success", description: "User profile updated successfully." });
+                setDialogOpen(false);
+            })
+            .catch((error) => {
+                const permissionError = new FirestorePermissionError({
+                    path: userRef.path,
+                    operation: 'update',
+                    requestResourceData: values,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                toast({ variant: "destructive", title: "Error", description: "Failed to update user profile." });
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
     }
 
     return (
