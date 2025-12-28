@@ -29,37 +29,26 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // This is a workaround to get the segment path from the children
+  // This is a workaround to get the segment path from the children props.
+  // The segment for the root page is `__DEFAULT__`. For other pages it will be the route name (e.g., 'login', 'dashboard').
   const segmentPath = (React.Children.toArray(children)[0] as any)?.props?.childProp?.segment;
 
-  // Show header/footer only on the landing page ('__DEFAULT__').
-  // They will be hidden on /login, /signup, /dashboard, /admin, etc.
+  // Show header/footer ONLY on the landing page.
   const showHeaderFooter = segmentPath === '__DEFAULT__';
-
-  if (!showHeaderFooter) {
-     return (
-        <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
-          <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
-            <FirebaseProvider>
-              {children}
-              <Toaster />
-            </FirebaseProvider>
-          </body>
-        </html>
-      );
-  }
-
+  
   return (
     <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
       <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
         <FirebaseProvider>
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-grow">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          {showHeaderFooter ? (
+            <div className="flex flex-col min-h-screen">
+              <Header />
+              <main className="flex-grow">{children}</main>
+              <Footer />
+            </div>
+          ) : (
+            children
+          )}
           <Toaster />
         </FirebaseProvider>
       </body>
