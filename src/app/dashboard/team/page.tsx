@@ -10,7 +10,7 @@ import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { useMemo, useState, useEffect } from 'react';
 import { addDoc, collection, query, serverTimestamp, where } from 'firebase/firestore';
-import { getFunctions, httpsCallable, HttpsCallableResult } from 'firebase/functions';
+import { getFunctions, httpsCallable, HttpsCallable, type HttpsCallableResult } from 'firebase/functions';
 import { useFirebaseApp } from '@/firebase/provider';
 
 
@@ -84,19 +84,20 @@ export default function TeamPage() {
     useEffect(() => {
         if (referralCode && firebaseApp) {
             const functions = getFunctions(firebaseApp);
-            const getTeamSize = httpsCallable(functions, 'getTeamSize');
+            const getTeamSize: HttpsCallable<{ referralCode: string; }, { size: number; }> = httpsCallable(functions, 'getTeamSize');
             
             setTeamLoading(true);
             getTeamSize({ referralCode })
-                .then((result: HttpsCallableResult) => {
-                    const data = result.data as { size: number };
+                .then((result: HttpsCallableResult<{ size: number; }>) => {
+                    const data = result.data;
                     setTeamSize(data.size);
                 })
-                .catch((error) => {
+                .catch((error: any) => {
                     console.error("Error calling getTeamSize function:", error);
                     let description = "Could not fetch team size. Please try again later.";
                     // Check for the specific error code from the Cloud Function
-                    if (error.code === 'failed-precondition') {
+                    // The actual HttpsError object is available in the 'details' property
+                    if (error.details && error.details.code === 'failed-precondition') {
                         description = "A database configuration error occurred. Please check server logs for an index creation link.";
                     }
                     toast({
