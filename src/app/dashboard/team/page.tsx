@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Copy, Medal, Users, Share2, Award, ListTodo, Send, Loader2 } from 'lucide-react';
 import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { addDoc, collection, query, serverTimestamp } from 'firebase/firestore';
 
 function TaskCard({ task }: { task: Task }) {
@@ -84,10 +84,11 @@ export default function TeamPage() {
 
     const handleCopy = () => {
         if (!referralCode) return;
-        navigator.clipboard.writeText(referralCode);
+        const referralLink = `${window.location.origin}/signup?ref=${referralCode}`;
+        navigator.clipboard.writeText(referralLink);
         toast({
             title: 'Copied!',
-            description: 'Referral code copied to clipboard.',
+            description: 'Referral link copied to clipboard.',
         });
     };
 
@@ -101,16 +102,16 @@ export default function TeamPage() {
                 <CardHeader>
                     <div className="flex items-center gap-3">
                         <Share2 className="h-6 w-6 text-primary" />
-                        <CardTitle>Your Referral Code</CardTitle>
+                        <CardTitle>Your Referral Link</CardTitle>
                     </div>
-                    <CardDescription>Share your code to invite new members.</CardDescription>
+                    <CardDescription>Share your link to invite new members and earn commissions.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="relative">
                         <Input
                             readOnly
-                            value={referralCode}
-                            className="pr-12 text-lg font-mono tracking-widest text-center"
+                            value={`${process.env.NEXT_PUBLIC_BASE_URL || window.location.origin}/signup?ref=${referralCode}`}
+                            className="pr-12 text-sm md:text-base font-mono tracking-wide text-center"
                         />
                         <Button
                             variant="ghost"
@@ -201,3 +202,5 @@ export default function TeamPage() {
         </div>
     );
 }
+
+    

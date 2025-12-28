@@ -41,8 +41,8 @@ const formSchema = z.object({
   username: z
     .string()
     .min(3, { message: 'Username must be at least 3 characters.' })
-    .regex(/^[a-zA-Z0-9]+$/, {
-      message: 'Username must contain only English letters and numbers.',
+    .regex(/^[a-zA-Z0-9_]+$/, {
+      message: 'Username must contain only English letters, numbers, and underscores.',
     }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   password: z
@@ -298,3 +298,5 @@ export default function SignUpPage() {
     </div>
   )
 }
+
+    
