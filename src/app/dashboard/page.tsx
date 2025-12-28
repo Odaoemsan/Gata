@@ -129,7 +129,6 @@ export default function DashboardPage() {
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                 Welcome back, {typedUserData?.displayName?.split(' ')[0] ?? 'User'}!
             </h1>
-            <p className="text-muted-foreground">Here's a summary of your account.</p>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
