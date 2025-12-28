@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useCollection } from '@/firebase';
@@ -5,68 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Medal, Users, Share2, ListTodo, Send, Loader2, DollarSign } from 'lucide-react';
-import type { User, Task } from '@/lib/types';
-import { Label } from '@/components/ui/label';
-import { useMemo, useState, useEffect } from 'react';
-import { addDoc, collection, query, serverTimestamp, where } from 'firebase/firestore';
+import { Copy, Medal, Users, Share2, Award, Check, Loader2, DollarSign } from 'lucide-react';
+import type { User, Rank } from '@/lib/types';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { formatCurrency } from '@/lib/formatters';
 import { Skeleton } from '@/components/ui/skeleton';
-
-function TaskCard({ task }: { task: Task }) {
-    const { toast } = useToast();
-    const { user, userData } = useUser();
-    const firestore = useFirestore();
-    const [submissionLink, setSubmissionLink] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const typedUserData = userData as User;
-
-    const handleSubmit = async () => {
-        if (!submissionLink || !user || !typedUserData || !firestore) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please provide a valid submission link.' });
-            return;
-        }
-        setIsLoading(true);
-
-        const newSubmission = {
-            taskId: task.id,
-            taskTitle: task.title,
-            userId: user.uid,
-            username: typedUserData.username,
-            userDisplayName: typedUserData.displayName,
-            userEmail: typedUserData.email,
-            submissionLink,
-            status: 'pending' as const,
-            submittedAt: serverTimestamp()
-        };
-
-        try {
-            await addDoc(collection(firestore, 'taskSubmissions'), newSubmission);
-            toast({ title: 'Submission Sent!', description: 'Your task submission has been sent for review.' });
-            setSubmissionLink('');
-        } catch (error) {
-            console.error(error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit your task. Please try again.' });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <div className="p-4 border rounded-lg space-y-3">
-            <h4 className="font-semibold">{task.title} - <span className="text-primary">${task.reward.toFixed(2)}</span></h4>
-            <p className="text-sm text-muted-foreground">{task.description}</p>
-            <div className="space-y-2">
-                <Label htmlFor={`task-link-${task.id}`}>Submission Link</Label>
-                <Input id={`task-link-${task.id}`} placeholder="https://example.com/proof" value={submissionLink} onChange={(e) => setSubmissionLink(e.target.value)} />
-            </div>
-            <Button size="sm" className="w-full" onClick={handleSubmit} disabled={isLoading || !submissionLink}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                Submit for Review
-            </Button>
-        </div>
-    );
-}
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function TeamPage() {
     const { userData, user, loading: userLoading } = useUser();
@@ -75,58 +22,95 @@ export default function TeamPage() {
     
     const typedUserData = userData as User | null;
 
-    // Direct client-side query for referred users
-    const teamQuery = useMemo(() => {
-        if (!firestore || !typedUserData?.referralCode) return null;
-        return query(collection(firestore, 'users'), where('referredBy', '==', typedUserData.referralCode));
-    }, [firestore, typedUserData?.referralCode]);
+    const [teamStats, setTeamStats] = useState({ teamTotalDeposits: 0 });
+    const [teamLoading, setTeamLoading] = useState(true);
 
-    const { data: teamMembers, loading: teamLoading } = useCollection<User>(teamQuery);
-
-    const teamTotalDeposits = useMemo(() => {
-        if (!teamMembers) return 0;
-        return teamMembers.reduce((sum, member) => sum + (member.totalDeposits || 0), 0);
-    }, [teamMembers]);
-
-    const tasksQuery = useMemo(() => {
+    const ranksQuery = useMemo(() => {
         if (!firestore) return null;
-        return query(collection(firestore, 'tasks'));
+        return query(collection(firestore, 'ranks'), orderBy('requiredInvestment', 'asc'));
     }, [firestore]);
+    const { data: ranks, loading: ranksLoading } = useCollection<Rank>(ranksQuery);
 
-    const { data: tasks, loading: tasksLoading } = useCollection<Task>(tasksQuery);
+    const fetchTeamStats = useCallback(async () => {
+        if (!user || !typedUserData) return;
+
+        setTeamLoading(true);
+        try {
+            const functions = getFunctions(user.app);
+            const getTeamStats = httpsCallable(functions, 'getTeamStats');
+            const result = await getTeamStats() as { data: { teamTotalDeposits: number }};
+
+            if (typeof result.data.teamTotalDeposits === 'number') {
+                setTeamStats({ teamTotalDeposits: result.data.teamTotalDeposits });
+            }
+
+        } catch (error: any) {
+            console.error("Error calling getTeamStats function:", error);
+            let description = "Could not fetch team stats. Please try again later.";
+             if (error.code === 'functions/failed-precondition' || (error.details && error.details.code === 'failed-precondition')) {
+                 description = "Database setup required for team stats. Please check server logs for an index creation link.";
+             }
+            toast({ variant: "destructive", title: "Error", description });
+        } finally {
+            setTeamLoading(false);
+        }
+    }, [user, typedUserData, toast]);
+
+    useEffect(() => {
+        if (!userLoading && user && typedUserData) {
+            fetchTeamStats();
+        }
+    }, [userLoading, user, typedUserData, fetchTeamStats]);
 
     const handleCopy = () => {
         if (!typedUserData?.referralCode) return;
-        const fullLink = `${window.location.origin}/signup?ref=${typedUserData.referralCode}`;
-        navigator.clipboard.writeText(fullLink);
+        navigator.clipboard.writeText(typedUserData.referralCode);
         toast({
             title: 'Copied!',
-            description: 'Referral link copied to clipboard.',
+            description: 'Referral code copied to clipboard.',
         });
     };
 
-    const isLoading = userLoading || teamLoading;
+    const handleRankCheck = () => {
+        if (!ranks || ranksLoading || teamLoading) return;
+        
+        const currentRank = ranks.slice().reverse().find(rank => teamStats.teamTotalDeposits >= rank.requiredInvestment);
+
+        if (currentRank) {
+             toast({
+                title: 'Rank Status',
+                description: `You currently qualify for the ${currentRank.name} rank!`,
+            });
+        } else {
+             toast({
+                title: 'Rank Status',
+                description: "You haven't qualified for a rank yet. Keep growing your team!",
+            });
+        }
+    };
+
+    const isLoading = userLoading || teamLoading || ranksLoading;
 
     return (
         <div className="flex-1 space-y-6 p-4">
              <div className="text-center">
-                <h2 className="text-3xl font-bold tracking-tight">My Team</h2>
-                <p className="text-muted-foreground mt-1">Invite friends and earn commissions from their investments.</p>
+                <h2 className="text-3xl font-bold tracking-tight">My Team & Ranks</h2>
+                <p className="text-muted-foreground mt-1">Invite members, track team progress, and climb the ranks.</p>
             </div>
             <Card>
                 <CardHeader>
                     <div className="flex items-center gap-3">
                         <Share2 className="h-6 w-6 text-primary" />
-                        <CardTitle>Your Referral Link</CardTitle>
+                        <CardTitle>Your Referral Code</CardTitle>
                     </div>
-                    <CardDescription>Share this link with new members to add them to your team.</CardDescription>
+                    <CardDescription>Share this 7-character code with new members to add them to your team.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="relative">
                         <Input
                             readOnly
-                            value={isLoading ? "Loading..." : `${window.location.origin}/signup?ref=${typedUserData?.referralCode || ''}`}
-                            className="pr-12 text-sm md:text-base font-mono tracking-wide text-center"
+                            value={isLoading ? "Loading..." : typedUserData?.referralCode || ''}
+                            className="pr-12 text-lg md:text-xl font-mono tracking-widest text-center"
                         />
                         <Button
                             variant="ghost"
@@ -145,47 +129,66 @@ export default function TeamPage() {
                 <Card>
                      <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium">Team Deposits</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                       {isLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold">{formatCurrency(teamTotalDeposits)}</div>}
+                       {isLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold">{formatCurrency(teamStats.teamTotalDeposits)}</div>}
+                       <p className="text-xs text-muted-foreground">Total invested by your referred members.</p>
                     </CardContent>
                 </Card>
                  <Card>
                      <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium">My Commissions</CardTitle>
-                        <Medal className="h-4 w-4 text-muted-foreground" />
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                        {userLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold text-green-500">{formatCurrency(typedUserData?.referralCommissions)}</div>}
+                        <p className="text-xs text-muted-foreground">Total commissions earned from your team.</p>
                     </CardContent>
                 </Card>
             </div>
 
-             <Card>
+            <Card>
                 <CardHeader>
                      <div className="flex items-center gap-3">
-                        <ListTodo className="h-6 w-6" />
-                        <CardTitle>Bonus Tasks</CardTitle>
+                        <Award className="h-6 w-6" />
+                        <CardTitle>Referral Ranks</CardTitle>
                     </div>
-                    <CardDescription>Complete the following tasks to get extra rewards.</CardDescription>
+                    <CardDescription>Achieve new ranks by increasing your team's total investment to earn higher commissions.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {tasksLoading && (
-                         <div className="flex flex-col items-center justify-center h-48">
-                            <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
-                        </div>
-                    )}
-                    {!tasksLoading && tasks && tasks.length > 0 && tasks.map(task => (
-                        <TaskCard key={task.id} task={task} />
-                    ))}
-                    {!tasksLoading && (!tasks || tasks.length === 0) && (
-                        <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg">
-                            <ListTodo className="h-12 w-12 text-muted-foreground" />
-                            <p className="mt-4 text-muted-foreground">No other tasks are available at the moment.</p>
-                            <p className="text-sm text-muted-foreground">Please check back later.</p>
-                        </div>
-                    )}
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Rank</TableHead>
+                                <TableHead>Required Team Investment</TableHead>
+                                <TableHead className="text-right">Commission</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {ranksLoading && [...Array(3)].map((_, i) => (
+                                <TableRow key={i}>
+                                    <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                                    <TableCell className="text-right"><Skeleton className="h-5 w-16" /></TableCell>
+                                </TableRow>
+                            ))}
+                            {!ranksLoading && ranks?.map(rank => (
+                                <TableRow key={rank.id} className={!isLoading && teamStats.teamTotalDeposits >= rank.requiredInvestment ? 'bg-primary/10' : ''}>
+                                    <TableCell className="font-medium flex items-center gap-2">
+                                        {!isLoading && teamStats.teamTotalDeposits >= rank.requiredInvestment && <Check className="h-4 w-4 text-green-500" />}
+                                        {rank.name}
+                                    </TableCell>
+                                    <TableCell>{formatCurrency(rank.requiredInvestment)}</TableCell>
+                                    <TableCell className="text-right font-semibold">{rank.commissionRate}%</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    <Button onClick={handleRankCheck} disabled={isLoading} className="w-full">
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                        Check My Rank Status
+                    </Button>
                 </CardContent>
             </Card>
         </div>

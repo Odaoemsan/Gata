@@ -1,3 +1,4 @@
+
 'use server';
 
 import * as functions from "firebase-functions";
@@ -5,15 +6,14 @@ import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
-
 /**
- * Calculates team size and total deposits for the calling user.
+ * Calculates the total deposits for a user's referred team.
  * The function identifies the user via their auth context, finds their referral code,
- * queries for users referred by that code, and calculates the stats.
+ * queries for users referred by that code, and calculates the total deposits.
  *
  * @param {object} data - The data passed to the function (not used).
  * @param {functions.https.CallableContext} context - The context of the function call, contains auth info.
- * @returns {Promise<{teamTotalDeposits: number}>}
+ * @returns {Promise<{teamTotalDeposits: number}>} An object containing the team's total deposits.
  */
 export const getTeamStats = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -40,6 +40,8 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
     }
 
     // This query requires a single-field index on 'referredBy'.
+    // If the index is missing, Firestore will throw a FAILED_PRECONDITION error
+    // with a link in the server logs to create it.
     const snapshot = await db.collection("users").where("referredBy", "==", referralCode).get();
 
     if (snapshot.empty) {
@@ -58,8 +60,9 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
       teamTotalDeposits: teamTotalDeposits,
     };
   } catch (error: any) {
-    console.error("Error fetching team stats for user:", userId, error);
+    console.error(`Error fetching team stats for user ${userId}:`, error);
     
+    // Check if the error is due to a missing index
     if (error.code === "FAILED_PRECONDITION" && error.message.includes("index")) {
         const errorMessage = `Query failed due to a missing index on the 'referredBy' field. Please create the required index in your Firebase console. Original Message: ${error.message}`;
         console.error(errorMessage);
@@ -70,6 +73,7 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
         );
     }
 
+    // For any other errors, throw a generic internal error
     throw new functions.https.HttpsError(
       "internal",
       "An unexpected error occurred while fetching team stats.",
