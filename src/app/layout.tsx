@@ -29,20 +29,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const isAuthPage = React.Children.toArray(children).some(
-    (child: any) =>
-      child.props.childProp?.segment === 'login' ||
-      child.props.childProp?.segment === 'signup'
-  );
-  
-   const isDashboard = React.Children.toArray(children).some(
-    (child: any) =>
-      child.props.childProp?.segment === 'dashboard' ||
-       child.props.childProp?.segment === 'admin'
-  );
+  // This is a workaround to get the segment path from the children
+  const segmentPath = (React.Children.toArray(children)[0] as any)?.props?.childProp?.segment;
 
+  // Show header/footer only on the landing page ('__DEFAULT__').
+  // They will be hidden on /login, /signup, /dashboard, /admin, etc.
+  const showHeaderFooter = segmentPath === '__DEFAULT__';
 
-  if (isAuthPage || isDashboard) {
+  if (!showHeaderFooter) {
      return (
         <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
           <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
