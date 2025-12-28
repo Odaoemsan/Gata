@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LayoutDashboard, Rocket, Users, Wallet, CircleDollarSign, Shield, ListTodo } from 'lucide-react';
+import { LayoutDashboard, Rocket, Users, Wallet, CircleDollarSign, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
@@ -25,26 +25,16 @@ function BottomNavBar() {
   const pathname = usePathname();
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-    { href: '/dashboard/my-investments', icon: Rocket, label: 'Invest' },
+    { href: '/dashboard/invest', icon: Rocket, label: 'Invest' },
     { href: '/dashboard/earnings', icon: CircleDollarSign, label: 'Earnings', isCentral: true },
     { href: '/dashboard/team', icon: Users, label: 'Team' },
     { href: '/dashboard/wallet', icon: Wallet, label: 'Wallet' },
   ];
 
-  const extendedNavItems = [
-     { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-    { href: '/dashboard/my-investments', icon: Rocket, label: 'Invest' },
-    { href: '/dashboard/team', icon: Users, label: 'Team' },
-    { href: '/dashboard/tasks', icon: ListTodo, label: 'Tasks' },
-    { href: '/dashboard/wallet', icon: Wallet, label: 'Wallet' },
-  ]
-
-  const items = navItems.length === 5 ? navItems : extendedNavItems;
-
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-sm md:hidden">
-      <div className={`grid h-16 grid-cols-${items.length} items-center justify-around`}>
-        {items.map((item) => {
+      <div className={`grid h-16 grid-cols-5 items-center justify-around`}>
+        {navItems.map((item) => {
           const isActive = pathname === item.href;
           if (item.isCentral) {
             return (
@@ -88,8 +78,7 @@ export default function DashboardLayout({
       { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
       { href: '/dashboard/my-investments', icon: Rocket, label: 'My Investments' },
       { href: '/dashboard/wallet', icon: Wallet, label: 'My Wallet' },
-      { href: '/dashboard/team', icon: Users, label: 'My Team' },
-      { href: '/dashboard/tasks', icon: ListTodo, label: 'Tasks' },
+      { href: '/dashboard/team', icon: Users, label: 'Team & Tasks' },
       { href: '/dashboard/earnings', icon: CircleDollarSign, label: 'Earnings' },
   ];
 
