@@ -45,7 +45,7 @@
             "description": "Total commissions earned from referrals."
         }
       },
-      "required": ["displayName", "username", "email", "balance", "totalDeposits", "totalWithdrawals", "createdAt"]
+      "required": ["displayName", "username", "email", "balance", "totalDeposits", "totalWithdrawals", "referralCommissions"]
     },
     "InvestmentPlan": {
       "title": "Investment Plan",

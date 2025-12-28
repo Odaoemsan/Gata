@@ -17,7 +17,7 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       // Any authenticated user can create their own profile upon signup.
-      // Allow an optional 'referredBy' field.
+      // The `createdAt` field is set via serverTimestamp, so it's not present in the initial write.
       allow create: if request.auth.uid == userId
                     && request.resource.data.displayName is string
                     && request.resource.data.username is string
@@ -26,6 +26,7 @@ service cloud.firestore {
                     && request.resource.data.totalDeposits == 0
                     && request.resource.data.totalWithdrawals == 0
                     && request.resource.data.referralCommissions == 0
+                    && request.resource.data.keys().hasAll(['displayName', 'username', 'email', 'balance', 'totalDeposits', 'totalWithdrawals', 'referralCommissions', 'createdAt'])
                     && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
       // Only the owner or an admin can read the profile.
