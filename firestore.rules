@@ -13,6 +13,11 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
+    
+    // Rule to allow admins to query the 'transactions' collection group
+    match /{path=**}/transactions/{transactionId} {
+      allow list: if isAdmin();
+    }
 
     // Users collection
     match /users/{userId} {
@@ -32,7 +37,7 @@ service cloud.firestore {
       
       // Admins can update displayName, username, and balance. 
       // Users can only update their own displayName and username.
-      allow update: if (isAdmin() && request.resource.data.keys().hasOnly(['displayName', 'username', 'balance'])) || 
+      allow update: if (isAdmin() && request.resource.data.keys().hasAll(['displayName', 'username', 'balance'])) || 
                      (isOwner(userId) && request.resource.data.keys().hasOnly(['displayName', 'username']));
 
       // No one can delete a user profile for now.
@@ -40,8 +45,8 @@ service cloud.firestore {
 
       // Transactions subcollection
       match /transactions/{transactionId} {
-        // The owner can list and read their own transactions. Admins can read any.
-        allow list, get: if isOwner(userId) || isAdmin();
+        // The owner can read their own transactions. Admins can read any.
+        allow get: if isOwner(userId) || isAdmin();
 
         // The owner can create transactions with valid data.
         allow create: if isOwner(userId)
@@ -134,7 +139,8 @@ service cloud.firestore {
                       && request.resource.data.submittedAt == request.time
                       && request.resource.data.username is string
                       && request.resource.data.userDisplayName is string
-                      && request.resource.data.userEmail is string;
+                      && request.resource.data.userEmail is string
+                      && request.resource.data.submissionLink is string;
         
         // Admins can read all submissions
         allow get, list: if isAdmin();
