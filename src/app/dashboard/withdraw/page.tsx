@@ -106,7 +106,7 @@ export default function WithdrawPage() {
             <Card>
                  <CardHeader>
                     <CardTitle className="text-lg">Request Withdrawal</CardTitle>
-                    <CardDescription>Enter the amount and your USDT wallet address. Current balance: <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong></CardDescription>
+                    <CardDescription>Enter the amount and your USDT (TRC20) wallet address. Current balance: <strong>${typedUserData?.balance.toFixed(2) ?? '0.00'}</strong></CardDescription>
                 </CardHeader>
                 <CardContent>
                      <Form {...form}>
@@ -136,12 +136,12 @@ export default function WithdrawPage() {
                                 name="walletAddress"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <Label htmlFor="walletAddress">Your Crypto Wallet Address (USDT)</Label>
+                                        <Label htmlFor="walletAddress">Your Crypto Wallet Address (USDT TRC20)</Label>
                                         <div className="relative">
                                             <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                                             <Input
                                                 id="walletAddress"
-                                                placeholder="Enter your USDT wallet address"
+                                                placeholder="Enter your USDT TRC20 wallet address"
                                                 className="pl-10"
                                                 {...field}
                                             />

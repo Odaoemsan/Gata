@@ -84,7 +84,7 @@ export default function DepositPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg">1. Send USDT (TRC20)</CardTitle>
-                    <CardDescription>Send the amount you wish to invest to the provided TRC20 wallet address.</CardDescription>
+                    <CardDescription>Send the amount you wish to invest to the provided USDT TRC20 wallet address.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
