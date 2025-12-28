@@ -99,6 +99,7 @@ export default function SignupPage() {
           totalWithdrawals: 0,
           referralCommissions: 0,
           createdAt: serverTimestamp(),
+          dailyTradeCounter: 0,
       };
 
       // Add referredBy only if a valid code was provided

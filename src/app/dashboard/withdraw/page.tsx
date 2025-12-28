@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, Wallet, Loader2 } from 'lucide-react';
+import { DollarSign, Wallet, Loader2, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +20,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 const MIN_WITHDRAWAL = 50;
+const REQUIRED_TRADES = 5;
 
 // Function to create the schema with the user's balance
 const createWithdrawSchema = (balance: number) => z.object({
@@ -39,6 +41,7 @@ export default function WithdrawPage() {
 
     const typedUserData = userData as User | null;
     const userBalance = typedUserData?.balance ?? 0;
+    const dailyTradeCount = typedUserData?.dailyTradeCounter ?? 0;
 
     // Create the schema dynamically with the user's balance
     const withdrawSchema = createWithdrawSchema(userBalance);
@@ -53,9 +56,10 @@ export default function WithdrawPage() {
     });
 
     const watchAmount = form.watch('amount');
+    const canWithdraw = dailyTradeCount >= REQUIRED_TRADES;
 
     async function onSubmit(values: z.infer<typeof withdrawSchema>) {
-        if(!user || !typedUserData || !firestore) return;
+        if(!user || !typedUserData || !firestore || !canWithdraw) return;
 
         setIsLoading(true);
 
@@ -75,7 +79,10 @@ export default function WithdrawPage() {
         const pendingWithdrawalsRef = doc(collection(firestore, 'pendingWithdrawals'));
 
         // 1. Debit the user's balance
-        batch.update(userRef, { balance: increment(-values.amount) });
+        batch.update(userRef, { 
+            balance: increment(-values.amount),
+            dailyTradeCounter: 0 // Reset the counter
+        });
         // 2. Create the pending withdrawal request
         batch.set(pendingWithdrawalsRef, newRequest);
         
@@ -89,7 +96,6 @@ export default function WithdrawPage() {
             })
             .catch(async (serverError) => {
                 // Since this is a batch, we'll emit a general permission error.
-                // The most likely failure point is creating the pendingWithdrawal doc.
                 const permissionError = new FirestorePermissionError({
                     path: pendingWithdrawalsRef.path,
                     operation: 'create',
@@ -102,7 +108,6 @@ export default function WithdrawPage() {
                     title: 'Withdrawal Failed',
                     description: 'Could not submit your request. Your balance has not been changed.',
                 });
-                // NO NEED to revert balance client-side, as the batch fails atomically.
             })
             .finally(() => {
                 setIsLoading(false);
@@ -122,6 +127,18 @@ export default function WithdrawPage() {
                     <p>• Withdrawals are available every 5 daily trading days.</p>
                 </CardContent>
             </Card>
+
+            {!canWithdraw && !loading && (
+                 <Card className="border-destructive/50 bg-destructive/10 text-destructive">
+                     <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+                         <AlertCircle className="h-5 w-5"/>
+                         <CardTitle className="text-lg">Withdrawal Locked</CardTitle>
+                     </CardHeader>
+                    <CardContent>
+                        <p>You need to claim daily profits for <strong>{REQUIRED_TRADES - dailyTradeCount}</strong> more day(s) to be able to withdraw.</p>
+                    </CardContent>
+                 </Card>
+            )}
 
             <Card>
                  <CardHeader>
@@ -170,7 +187,7 @@ export default function WithdrawPage() {
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit" disabled={isLoading || !form.formState.isValid || loading || (watchAmount > userBalance)} className="w-full">
+                            <Button type="submit" disabled={isLoading || !form.formState.isValid || loading || !canWithdraw} className="w-full">
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Submit Withdrawal Request
                             </Button>

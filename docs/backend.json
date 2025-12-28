@@ -57,6 +57,10 @@
             "type": "string",
             "format": "date-time",
             "description": "The timestamp of the user's last daily profit trade."
+        },
+        "dailyTradeCounter": {
+            "type": "number",
+            "description": "Counts the number of daily profit trades made since the last withdrawal."
         }
       },
       "required": ["displayName", "username", "email", "balance", "totalDeposits", "totalWithdrawals", "referralCommissions", "referralCode"]

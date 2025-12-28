@@ -22,9 +22,6 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      // SIMPLIFIED RULE:
-      // Allow creation if the user is the owner, provides required fields, and initializes financial data as numbers.
-      // The referral code is now handled in the application logic, not strictly enforced here.
       allow create: if isOwner(userId)
                     && request.resource.data.email == request.auth.token.email
                     && request.resource.data.displayName is string
@@ -33,17 +30,17 @@ service cloud.firestore {
                     && request.resource.data.balance == 0
                     && request.resource.data.totalDeposits == 0
                     && request.resource.data.totalWithdrawals == 0
-                    && request.resource.data.referralCommissions == 0;
+                    && request.resource.data.referralCommissions == 0
+                    && request.resource.data.dailyTradeCounter == 0;
       
       allow get: if isOwner(userId) || isAdmin();
 
-      // Allow a user to list other users ONLY if they are querying by their own referral code
       allow list: if (request.auth != null &&
                    request.query.where[0][0] == 'referredBy' &&
                    request.query.where[0][2] == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.referralCode) || isAdmin();
       
       allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'balance', 'totalDeposits', 'totalWithdrawals', 'referralCommissions'])) || 
-                     (isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'rankName']));
+                     (isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'rankName', 'balance', 'lastTradeTime', 'dailyTradeCounter']));
 
       allow delete: if false;
 

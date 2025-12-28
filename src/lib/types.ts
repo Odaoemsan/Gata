@@ -14,6 +14,7 @@ export interface User {
     referralCommissions: number;
     rankName?: string;
     lastTradeTime?: any;
+    dailyTradeCounter?: number;
 }
 
 // Represents a historical transaction record.

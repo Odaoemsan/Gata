@@ -139,7 +139,8 @@ export default function DailyProfitPage() {
             const batch = writeBatch(firestore);
             batch.update(userRef, { 
                 balance: increment(totalDailyProfit),
-                lastTradeTime: serverTimestamp() 
+                lastTradeTime: serverTimestamp(),
+                dailyTradeCounter: increment(1) 
             });
             batch.set(transactionRef, newTransactionData);
 
@@ -157,7 +158,7 @@ export default function DailyProfitPage() {
                      const permissionError = new FirestorePermissionError({
                         path: userRef.path,
                         operation: 'update',
-                        requestResourceData: { balance: increment(totalDailyProfit), lastTradeTime: serverTimestamp() }
+                        requestResourceData: { balance: increment(totalDailyProfit), lastTradeTime: serverTimestamp(), dailyTradeCounter: increment(1) }
                     });
                     errorEmitter.emit('permission-error', permissionError);
                     toast({
