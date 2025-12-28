@@ -12,9 +12,10 @@ import { useFirestore } from '@/firebase/provider';
 import type { User, Transaction, ActiveInvestment } from '@/lib/types';
 import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowRight, Briefcase, Landmark, Rocket, TrendingDown, TrendingUp, Users, Wallet } from 'lucide-react';
+import { ArrowRight, Briefcase, Landmark, Rocket, TrendingDown, TrendingUp, Users, Wallet, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { cn } from '@/lib/utils';
 
 
 function DashboardSkeleton() {
@@ -87,6 +88,42 @@ export default function DashboardPage() {
   }, [activeInvestments]);
 
   const typedUserData = userData as User | null;
+
+    const getTxIcon = (type: Transaction['type']) => {
+        switch (type) {
+            case 'deposit':
+            case 'task_reward':
+            case 'daily_profit':
+            case 'commission':
+                 return <TrendingUp className="h-5 w-5 text-green-500" />;
+            case 'investment_refund':
+                 return <RotateCcw className="h-5 w-5 text-blue-500" />;
+            case 'withdrawal':
+                 return <TrendingDown className="h-5 w-5 text-red-500" />;
+            default:
+                return <TrendingUp className="h-5 w-5 text-green-500" />;
+        }
+    }
+    
+    const getTxSign = (type: Transaction['type']) => {
+        switch (type) {
+            case 'withdrawal':
+                return '-';
+            default:
+                return '+';
+        }
+    }
+    
+    const getTxColor = (type: Transaction['type']) => {
+         switch (type) {
+            case 'withdrawal':
+                return 'text-red-500';
+            case 'investment_refund':
+                return 'text-blue-500';
+            default:
+                return 'text-green-500';
+        }
+    }
 
   if (userLoading || investmentsLoading) {
     return <DashboardSkeleton />;
@@ -209,18 +246,16 @@ export default function DashboardPage() {
                   <TableCell className="p-2">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-muted rounded-full">
-                        {tx.type === 'deposit' ? 
-                          <TrendingUp className="h-5 w-5 text-green-500" /> : 
-                          <TrendingDown className="h-5 w-5 text-red-500" />}
+                        {getTxIcon(tx.type)}
                       </div>
                       <div>
-                        <div className="capitalize font-medium">{tx.type}</div>
+                        <div className="capitalize font-medium">{tx.type.replace('_', ' ')}</div>
                         <div className="text-xs text-muted-foreground">{formatDate(tx.date, false)}</div>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right font-mono p-2">
-                      {tx.type === 'deposit' ? '+' : '-'}
+                  <TableCell className={cn("text-right font-mono p-2", getTxColor(tx.type))}>
+                      {getTxSign(tx.type)}
                       {formatCurrency(tx.amount)}
                   </TableCell>
                 </TableRow>

@@ -16,7 +16,7 @@ import { collection, orderBy, query } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import type { Transaction, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Clock, CheckCircle, XCircle, ArrowRight, Copy } from "lucide-react";
+import { TrendingUp, TrendingDown, Clock, CheckCircle, XCircle, ArrowRight, Copy, RotateCcw } from "lucide-react";
 import React from "react";
 import {
   Dialog,
@@ -74,6 +74,42 @@ function AllTransactions() {
     }, [firestore, user]);
 
     const { data: transactions, loading } = useCollection<Transaction>(transactionsQuery);
+    
+    const getTxIcon = (type: Transaction['type']) => {
+        switch (type) {
+            case 'deposit':
+            case 'task_reward':
+            case 'daily_profit':
+            case 'commission':
+                 return <TrendingUp className="h-5 w-5 text-green-500" />;
+            case 'investment_refund':
+                 return <RotateCcw className="h-5 w-5 text-blue-500" />;
+            case 'withdrawal':
+                 return <TrendingDown className="h-5 w-5 text-red-500" />;
+            default:
+                return <TrendingUp className="h-5 w-5 text-green-500" />;
+        }
+    }
+    
+    const getTxSign = (type: Transaction['type']) => {
+        switch (type) {
+            case 'withdrawal':
+                return '-';
+            default:
+                return '+';
+        }
+    }
+    
+    const getTxColor = (type: Transaction['type']) => {
+         switch (type) {
+            case 'withdrawal':
+                return 'text-red-500';
+            case 'investment_refund':
+                return 'text-blue-500';
+            default:
+                return 'text-green-500';
+        }
+    }
 
     const handleCopy = (text: string | undefined) => {
         if (!text) return;
@@ -86,7 +122,7 @@ function AllTransactions() {
             <Card>
                 <CardHeader>
                     <CardTitle>Transaction History</CardTitle>
-                    <CardDescription>A complete record of all your deposits and withdrawals.</CardDescription>
+                    <CardDescription>A complete record of all your financial activities.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -122,12 +158,10 @@ function AllTransactions() {
                             <TableCell className="py-3">
                                 <div className="flex items-center gap-3">
                                 <div className="p-2 bg-muted rounded-full">
-                                    {tx.type === 'deposit' ? 
-                                    <TrendingUp className="h-5 w-5 text-green-500" /> : 
-                                    <TrendingDown className="h-5 w-5 text-red-500" />}
+                                    {getTxIcon(tx.type)}
                                 </div>
                                 <div>
-                                    <div className="capitalize font-medium">{tx.type}</div>
+                                    <div className="capitalize font-medium">{tx.type.replace('_', ' ')}</div>
                                     <div className="text-xs text-muted-foreground">{formatDate(tx.date, true)}</div>
                                     <div className="sm:hidden mt-1"><StatusBadge status={tx.status} /></div>
                                 </div>
@@ -135,9 +169,9 @@ function AllTransactions() {
                             </TableCell>
                             <TableCell className={cn(
                                 "text-right font-mono font-semibold",
-                                tx.type === 'deposit' ? 'text-green-500' : 'text-red-500'
+                                getTxColor(tx.type)
                             )}>
-                                {tx.type === 'deposit' ? '+' : '-'}
+                                {getTxSign(tx.type)}
                                 {formatCurrency(tx.amount)}
                             </TableCell>
                             <TableCell className="hidden sm:table-cell text-right pr-4"><StatusBadge status={tx.status} /></TableCell>
@@ -160,15 +194,15 @@ function AllTransactions() {
                  <Dialog open={!!selectedTx} onOpenChange={(open) => !open && setSelectedTx(null)}>
                     <DialogContent className="sm:max-w-md">
                         <DialogHeader>
-                            <DialogTitle className="text-center text-xl capitalize">{selectedTx.type} Details</DialogTitle>
+                            <DialogTitle className="text-center text-xl capitalize">{selectedTx.type.replace('_', ' ')} Details</DialogTitle>
                         </DialogHeader>
                         <Card className="border-none shadow-none">
                             <CardContent className="p-0 text-center space-y-2">
                                 <p className={cn(
                                     "text-4xl font-bold tracking-tight",
-                                    selectedTx.type === 'deposit' ? 'text-green-500' : 'text-red-500'
+                                    getTxColor(selectedTx.type)
                                 )}>
-                                    {selectedTx.type === 'deposit' ? '+' : '-'}{formatCurrency(selectedTx.amount)}
+                                    {getTxSign(selectedTx.type)}{formatCurrency(selectedTx.amount)}
                                 </p>
                                 <p className="text-sm font-medium text-muted-foreground">USDT</p>
                                 <div className="flex justify-center">

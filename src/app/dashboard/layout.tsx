@@ -25,7 +25,7 @@ function BottomNavBar() {
   const pathname = usePathname();
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-    { href: '/dashboard/invest', icon: Rocket, label: 'Invest' },
+    { href: '/dashboard/my-investments', icon: Rocket, label: 'My Invest' },
     { href: '/dashboard/daily-profit', icon: CircleDollarSign, label: 'Daily Profit', isCentral: true },
     { href: '/dashboard/team', icon: Users, label: 'Team' },
     { href: '/dashboard/wallet', icon: Wallet, label: 'Wallet' },

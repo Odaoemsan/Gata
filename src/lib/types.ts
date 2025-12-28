@@ -19,7 +19,7 @@ export interface User {
 // Represents a historical transaction record.
 export interface Transaction {
     id: string;
-    type: 'deposit' | 'withdrawal' | 'commission' | 'task_reward' | 'daily_profit';
+    type: 'deposit' | 'withdrawal' | 'commission' | 'task_reward' | 'daily_profit' | 'investment_refund';
     amount: number;
     date: any; 
     status: 'completed' | 'failed' | 'pending';

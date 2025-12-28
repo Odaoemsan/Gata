@@ -1,17 +1,30 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useUser, useFirestore, useCollection } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
-import type { ActiveInvestment } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { collection, query, orderBy, doc, writeBatch, increment, serverTimestamp } from 'firebase/firestore';
+import type { ActiveInvestment, User } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Rocket, History, CheckCircle, Hourglass } from 'lucide-react';
+import { Rocket, History, CheckCircle, Hourglass, XCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 function StatusBadge({ status }: { status: ActiveInvestment['status'] }) {
@@ -57,8 +70,12 @@ function InvestmentSkeleton() {
 }
 
 export default function MyInvestmentsPage() {
-    const { user } = useUser();
+    const { user, userData } = useUser();
     const firestore = useFirestore();
+    const { toast } = useToast();
+    const [isCanceling, setIsCanceling] = useState<string | null>(null);
+    const [investmentToCancel, setInvestmentToCancel] = useState<ActiveInvestment | null>(null);
+    const typedUserData = userData as User | null;
 
     const investmentsQuery = useMemo(() => {
         if (!user || !firestore) return null;
@@ -72,6 +89,60 @@ export default function MyInvestmentsPage() {
 
     const activeInvestments = useMemo(() => investments?.filter(inv => inv.status === 'active') ?? [], [investments]);
     const completedInvestments = useMemo(() => investments?.filter(inv => inv.status === 'completed') ?? [], [investments]);
+
+    const handleCancelInvestment = async () => {
+        if (!user || !investmentToCancel || !firestore || !typedUserData) return;
+
+        setIsCanceling(investmentToCancel.id);
+
+        const batch = writeBatch(firestore);
+
+        const investmentRef = doc(firestore, `users/${user.uid}/activeInvestments/${investmentToCancel.id}`);
+        const userRef = doc(firestore, 'users', user.uid);
+        const transactionRef = doc(collection(firestore, `users/${user.uid}/transactions`));
+
+        // 1. Refund the user's balance
+        batch.update(userRef, {
+            balance: increment(investmentToCancel.amount)
+        });
+
+        // 2. Create a transaction log for the refund
+        batch.set(transactionRef, {
+            type: 'investment_refund',
+            amount: investmentToCancel.amount,
+            date: serverTimestamp(),
+            status: 'completed',
+            userId: user.uid,
+            username: typedUserData.username,
+            userDisplayName: typedUserData.displayName,
+            userEmail: typedUserData.email,
+        });
+
+        // 3. Delete the active investment
+        batch.delete(investmentRef);
+
+        try {
+            await batch.commit();
+            toast({
+                title: 'Investment Canceled',
+                description: `${formatCurrency(investmentToCancel.amount)} has been refunded to your balance.`,
+            });
+        } catch (error) {
+            const permissionError = new FirestorePermissionError({
+                path: investmentRef.path,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: 'destructive',
+                title: 'Cancellation Failed',
+                description: 'Could not cancel the investment. Please try again.',
+            });
+        } finally {
+            setIsCanceling(null);
+            setInvestmentToCancel(null);
+        }
+    };
 
     if (loading) {
         return (
@@ -130,6 +201,21 @@ export default function MyInvestmentsPage() {
                                     <span className="font-medium">{formatDate(inv.endDate)}</span>
                                </div>
                             </CardContent>
+                             <CardFooter>
+                                <Button 
+                                    variant="destructive" 
+                                    size="sm" 
+                                    onClick={() => setInvestmentToCancel(inv)}
+                                    disabled={isCanceling === inv.id}
+                                >
+                                    {isCanceling === inv.id ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <XCircle className="mr-2 h-4 w-4" />
+                                    )}
+                                    Cancel Plan
+                                </Button>
+                            </CardFooter>
                         </Card>
                     ))}
                 </div>
@@ -164,6 +250,21 @@ export default function MyInvestmentsPage() {
                     ))}
                 </div>
             )}
+             <AlertDialog open={!!investmentToCancel} onOpenChange={(open) => !open && setInvestmentToCancel(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to cancel this investment?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. The investment amount of{' '}
+                        <strong>{formatCurrency(investmentToCancel?.amount)}</strong> will be refunded to your main balance. You will forfeit any future daily profits from this plan.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Go Back</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCancelInvestment}>Confirm Cancellation</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
