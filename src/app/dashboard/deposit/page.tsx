@@ -13,7 +13,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import type { User } from '@/lib/types';
+import type { User, PendingTransaction } from '@/lib/types';
 
 const usdtWallet = {
     name: 'Tether (USDT TRC20)',
@@ -49,21 +49,20 @@ export default function DepositPage() {
 
         setIsLoading(true);
 
-        const newTransaction = {
-            type: 'deposit' as const,
+        const newRequest: Omit<PendingTransaction, 'id'> = {
+            type: 'deposit',
             amount: parseFloat(amount),
-            status: 'pending' as const,
             date: serverTimestamp(),
             transactionId: transactionId,
             userId: user.uid,
             username: typedUserData.username,
             userDisplayName: typedUserData.displayName,
-            userEmail: typedUserData.email
+            userEmail: typedUserData.email,
         };
 
-        const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
+        const pendingDepositsRef = collection(firestore, `pendingDeposits`);
         
-        addDoc(transactionsRef, newTransaction)
+        addDoc(pendingDepositsRef, newRequest)
             .then(() => {
                 toast({
                     title: 'Deposit Request Submitted',
@@ -74,9 +73,9 @@ export default function DepositPage() {
             })
             .catch(async (serverError) => {
                 const permissionError = new FirestorePermissionError({
-                    path: transactionsRef.path,
+                    path: pendingDepositsRef.path,
                     operation: 'create',
-                    requestResourceData: newTransaction,
+                    requestResourceData: newRequest,
                 });
                 errorEmitter.emit('permission-error', permissionError);
             })

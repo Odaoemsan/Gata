@@ -122,6 +122,52 @@
       },
       "required": ["type", "amount", "date", "status", "userId"]
     },
+    "PendingTransaction": {
+      "title": "Pending Transaction",
+      "description": "Represents a pending deposit or withdrawal request awaiting admin approval.",
+      "type": "object",
+      "properties": {
+         "type": {
+          "type": "string",
+          "enum": ["deposit", "withdrawal"],
+          "description": "The type of transaction."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the transaction."
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time of the transaction."
+        },
+        "walletAddress": {
+          "type": "string",
+          "description": "The crypto wallet address for withdrawals."
+        },
+        "transactionId": {
+          "type": "string",
+          "description": "The blockchain transaction ID for deposit verification."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who initiated the transaction."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user for admin convenience."
+        },
+        "userDisplayName": {
+          "type": "string",
+          "description": "The display name of the user for admin convenience."
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "The email of the user for admin convenience."
+        }
+      },
+      "required": ["type", "amount", "date", "userId", "username", "userDisplayName", "userEmail"]
+    },
     "ActiveInvestment": {
       "title": "Active Investment",
       "description": "Represents an active investment by a user.",
@@ -263,7 +309,15 @@
     },
     "/users/{userId}/transactions/{transactionId}": {
       "schema": { "$ref": "#/entities/Transaction" },
-      "description": "Stores user financial transactions."
+      "description": "Stores user financial transactions (permanent record)."
+    },
+    "/pendingDeposits/{depositId}": {
+      "schema": { "$ref": "#/entities/PendingTransaction"},
+      "description": "Stores pending deposit requests awaiting admin approval."
+    },
+     "/pendingWithdrawals/{withdrawalId}": {
+      "schema": { "$ref": "#/entities/PendingTransaction"},
+      "description": "Stores pending withdrawal requests awaiting admin approval."
     },
     "/users/{userId}/activeInvestments/{investmentId}": {
       "schema": { "$ref": "#/entities/ActiveInvestment" },

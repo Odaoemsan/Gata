@@ -15,7 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
-import type { User } from '@/lib/types';
+import type { User, PendingTransaction } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -32,7 +32,7 @@ const withdrawSchema = z.object({
 
 export default function WithdrawPage() {
     const { toast } = useToast();
-    const { user, userData } = useUser();
+    const { user, userData, loading } = useUser();
     const firestore = useFirestore();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -59,11 +59,10 @@ export default function WithdrawPage() {
 
         setIsLoading(true);
 
-        const newTransaction = {
-            type: 'withdrawal' as const,
+        const newRequest: Omit<PendingTransaction, 'id'> = {
+            type: 'withdrawal',
             amount: values.amount,
             walletAddress: values.walletAddress,
-            status: 'pending' as const,
             date: serverTimestamp(),
             userId: user.uid,
             username: typedUserData.username,
@@ -73,13 +72,15 @@ export default function WithdrawPage() {
 
         const batch = writeBatch(firestore);
         
+        // Debit the user's balance immediately
         const userRef = doc(firestore, 'users', user.uid);
         const newBalance = typedUserData.balance - values.amount;
         batch.update(userRef, { balance: newBalance });
 
-        const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
-        const newTransactionRef = doc(transactionsRef);
-        batch.set(newTransactionRef, newTransaction);
+        // Create the pending withdrawal request for the admin
+        const pendingWithdrawalsRef = collection(firestore, 'pendingWithdrawals');
+        const newRequestRef = doc(pendingWithdrawalsRef);
+        batch.set(newRequestRef, newRequest);
         
         batch.commit()
             .then(() => {
@@ -90,10 +91,20 @@ export default function WithdrawPage() {
                 form.reset();
             })
             .catch(async (serverError) => {
+                 // Re-credit user balance if commit fails
+                const userRef = doc(firestore, 'users', user.uid);
+                await addDoc(collection(firestore, `users/${user.uid}/transactions`), {
+                    ...newRequest,
+                    status: 'failed',
+                    type: 'withdrawal',
+                    date: serverTimestamp()
+                });
+                await writeBatch(firestore).update(userRef, { balance: typedUserData.balance }).commit();
+
                 const permissionError = new FirestorePermissionError({
-                    path: transactionsRef.path,
+                    path: pendingWithdrawalsRef.path,
                     operation: 'create',
-                    requestResourceData: newTransaction,
+                    requestResourceData: newRequest,
                 });
                 errorEmitter.emit('permission-error', permissionError);
             })
@@ -162,7 +173,7 @@ export default function WithdrawPage() {
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit" disabled={isLoading || !form.formState.isValid} className="w-full">
+                            <Button type="submit" disabled={isLoading || !form.formState.isValid || loading} className="w-full">
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Submit Withdrawal Request
                             </Button>

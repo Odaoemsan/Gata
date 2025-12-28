@@ -1,5 +1,6 @@
 
 
+
 export interface User {
     id: string;
     displayName: string;
@@ -13,19 +14,35 @@ export interface User {
     referralCommissions: number;
 }
 
+// Represents a historical transaction record.
 export interface Transaction {
     id: string;
     type: 'deposit' | 'withdrawal' | 'commission' | 'task_reward';
     amount: number;
-    date: any; // Using `any` for Firebase Timestamp for simplicity
-    status: 'pending' | 'completed' | 'failed';
+    date: any; 
+    status: 'completed' | 'failed'; // Pending status is not for historical records
     walletAddress?: string;
-    transactionId?: string; // For deposit verification
-    userId?: string; // Added to identify the user for admin queries
-    username?: string; // Added for display in admin panel
-    userDisplayName?: string; // Added for display in admin panel
-    userEmail?: string; // Added for display in admin panel
+    transactionId?: string; 
+    userId: string; 
+    username: string; 
+    userDisplayName: string;
+    userEmail: string; 
 }
+
+// Represents a pending request that appears in the admin panel.
+export interface PendingTransaction {
+    id: string;
+    type: 'deposit' | 'withdrawal';
+    amount: number;
+    date: any; 
+    walletAddress?: string;
+    transactionId?: string; 
+    userId: string;
+    username: string; 
+    userDisplayName: string; 
+    userEmail: string; 
+}
+
 
 export interface InvestmentPlan {
     id: string;

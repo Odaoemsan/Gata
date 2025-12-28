@@ -4,18 +4,18 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useFirestore } from '@/firebase';
 import {
-  collectionGroup,
+  collection,
   query,
-  where,
   getDocs,
   doc,
   writeBatch,
-  runTransaction,
-  getDoc,
   increment,
   Timestamp,
+  deleteDoc,
+  addDoc,
+  serverTimestamp
 } from 'firebase/firestore';
-import type { Transaction, User } from '@/lib/types';
+import type { PendingTransaction } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   Card,
@@ -92,8 +92,8 @@ export default function TransactionsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const [deposits, setDeposits] = useState<Transaction[]>([]);
-  const [withdrawals, setWithdrawals] = useState<Transaction[]>([]);
+  const [deposits, setDeposits] = useState<PendingTransaction[]>([]);
+  const [withdrawals, setWithdrawals] = useState<PendingTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
@@ -102,39 +102,22 @@ export default function TransactionsPage() {
     setLoading(true);
 
     try {
-        const transactionsCollectionGroup = collectionGroup(firestore, 'transactions');
-        
-        const depositsQuery = query(
-            transactionsCollectionGroup,
-            where('type', '==', 'deposit'),
-            where('status', '==', 'pending')
-        );
-        const withdrawalsQuery = query(
-            transactionsCollectionGroup,
-            where('type', '==', 'withdrawal'),
-            where('status', '==', 'pending')
-        );
+        const depositsQuery = query(collection(firestore, 'pendingDeposits'));
+        const withdrawalsQuery = query(collection(firestore, 'pendingWithdrawals'));
 
         const [depositsSnapshot, withdrawalsSnapshot] = await Promise.all([
-            getDocs(depositsQuery).catch(error => {
-                 const permissionError = new FirestorePermissionError({ path: 'transactions', operation: 'list' });
-                 errorEmitter.emit('permission-error', permissionError);
-                 throw permissionError;
-            }),
-            getDocs(withdrawalsQuery).catch(error => {
-                 const permissionError = new FirestorePermissionError({ path: 'transactions', operation: 'list' });
-                 errorEmitter.emit('permission-error', permissionError);
-                 throw permissionError;
-            })
+            getDocs(depositsQuery),
+            getDocs(withdrawalsQuery)
         ]);
 
-        const pendingDeposits = depositsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), path: doc.ref.path } as Transaction & {path: string}));
-        const pendingWithdrawals = withdrawalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), path: doc.ref.path } as Transaction & {path: string}));
-
+        const pendingDeposits = depositsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PendingTransaction));
+        const pendingWithdrawals = withdrawalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PendingTransaction));
 
         setDeposits(pendingDeposits);
         setWithdrawals(pendingWithdrawals);
     } catch (error: any) {
+        const permissionError = new FirestorePermissionError({ path: 'pendingDeposits/pendingWithdrawals', operation: 'list' });
+        errorEmitter.emit('permission-error', permissionError);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch pending transactions. Check permissions.' });
     } finally {
         setLoading(false);
@@ -152,30 +135,39 @@ export default function TransactionsPage() {
     toast({ title: 'Copied to clipboard!' });
   };
   
-  const handleDeposit = async (tx: Transaction, approved: boolean) => {
+  const handleDeposit = async (tx: PendingTransaction, approved: boolean) => {
       if (!firestore || !tx.userId) return;
       setProcessingId(tx.id);
 
       try {
-        await runTransaction(firestore, async (transaction) => {
-            const userRef = doc(firestore, 'users', tx.userId!);
-            const txRef = doc(firestore, `users/${tx.userId}/transactions`, tx.id);
-            
-            const userDoc = await transaction.get(userRef);
-            if (!userDoc.exists()) {
-                throw new Error("User not found");
-            }
+        const batch = writeBatch(firestore);
+        
+        // 1. Reference to the pending request to be deleted
+        const pendingRef = doc(firestore, 'pendingDeposits', tx.id);
 
-            if (approved) {
-                transaction.update(userRef, {
-                    balance: increment(tx.amount),
-                    totalDeposits: increment(tx.amount)
-                });
-                transaction.update(txRef, { status: 'completed' });
-            } else {
-                 transaction.update(txRef, { status: 'failed' });
-            }
-        });
+        // 2. Reference to the user's permanent transaction log
+        const permanentTxRef = doc(collection(firestore, `users/${tx.userId}/transactions`));
+
+        if (approved) {
+            // 3. If approved, reference the user document to update balance
+            const userRef = doc(firestore, 'users', tx.userId);
+            batch.update(userRef, {
+                balance: increment(tx.amount),
+                totalDeposits: increment(tx.amount)
+            });
+            // 4. Create a permanent 'completed' transaction record
+            batch.set(permanentTxRef, { ...tx, status: 'completed', date: serverTimestamp() });
+        } else {
+             // 4. If rejected, create a permanent 'failed' transaction record
+             batch.set(permanentTxRef, { ...tx, status: 'failed', date: serverTimestamp() });
+        }
+
+        // 5. Delete the pending request
+        batch.delete(pendingRef);
+
+        // 6. Commit all operations
+        await batch.commit();
+        
         toast({ title: 'Success', description: `Deposit request has been ${approved ? 'approved' : 'rejected'}.` });
         fetchPendingTransactions();
       } catch (error) {
@@ -186,44 +178,47 @@ export default function TransactionsPage() {
       }
   }
 
-  const handleWithdrawal = async (tx: Transaction, approved: boolean) => {
+  const handleWithdrawal = async (tx: PendingTransaction, approved: boolean) => {
       if (!firestore || !tx.userId) return;
       setProcessingId(tx.id);
       
       try {
-          const userRef = doc(firestore, 'users', tx.userId);
-          const txRef = doc(firestore, `users/${tx.userId}/transactions`, tx.id);
-          
-          if (approved) {
-             await runTransaction(firestore, async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists()) {
-                    throw new Error("User not found");
-                }
-                // On approval, we only update the totalWithdrawals and the transaction status.
-                // The balance was already debited when the user made the request.
-                transaction.update(userRef, {
-                    totalWithdrawals: increment(tx.amount)
-                });
-                transaction.update(txRef, { status: 'completed' });
-            });
-             toast({ title: 'Success', description: `Withdrawal request has been completed.` });
-          } else {
-              // If rejected, return the funds to the user's balance and fail the transaction.
-              await runTransaction(firestore, async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists()) {
-                    throw new Error("User not found");
-                }
-                 transaction.update(userRef, {
-                    balance: increment(tx.amount)
-                });
-                transaction.update(txRef, { status: 'failed' });
-              });
-              toast({ title: 'Success', description: `Withdrawal request has been rejected.` });
-          }
+        const batch = writeBatch(firestore);
+        
+        // 1. Reference to the pending request to be deleted
+        const pendingRef = doc(firestore, 'pendingWithdrawals', tx.id);
+        
+        // 2. Reference to the user's permanent transaction log
+        const permanentTxRef = doc(collection(firestore, `users/${tx.userId}/transactions`));
+        
+        // 3. Reference to the user document
+        const userRef = doc(firestore, 'users', tx.userId);
 
-          fetchPendingTransactions();
+        if (approved) {
+            // On approval, update totalWithdrawals and create permanent record.
+            // Balance was already debited when user made the request.
+            batch.update(userRef, {
+                totalWithdrawals: increment(tx.amount)
+            });
+            batch.set(permanentTxRef, { ...tx, status: 'completed', date: serverTimestamp() });
+             toast({ title: 'Success', description: `Withdrawal request has been completed.` });
+
+        } else {
+            // If rejected, return the funds to the user's balance and create failed record.
+            batch.update(userRef, {
+                balance: increment(tx.amount)
+            });
+            batch.set(permanentTxRef, { ...tx, status: 'failed', date: serverTimestamp() });
+            toast({ title: 'Success', description: `Withdrawal request has been rejected.` });
+        }
+
+        // 4. Delete the pending request
+        batch.delete(pendingRef);
+        
+        // 5. Commit all operations
+        await batch.commit();
+
+        fetchPendingTransactions();
       } catch (error) {
         console.error("Error processing withdrawal: ", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to process withdrawal.' });
@@ -244,11 +239,11 @@ export default function TransactionsPage() {
         <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="deposits">
                 Deposit Requests 
-                <Badge className="ml-2">{deposits.length}</Badge>
+                <Badge className="ml-2">{loading ? '...' : deposits.length}</Badge>
             </TabsTrigger>
             <TabsTrigger value="withdrawals">
                 Withdrawal Requests
-                <Badge className="ml-2">{withdrawals.length}</Badge>
+                <Badge className="ml-2">{loading ? '...' : withdrawals.length}</Badge>
             </TabsTrigger>
         </TabsList>
         <TabsContent value="deposits" className="mt-4">
