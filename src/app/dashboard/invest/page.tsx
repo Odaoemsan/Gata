@@ -117,17 +117,15 @@ export default function InvestPage() {
         const userRef = doc(firestore, "users", user.uid);
         const newInvestmentRef = doc(collection(firestore, `users/${user.uid}/activeInvestments`));
         
-        const newBalance = typedUserData.balance - investmentAmount;
-        
-        const investmentStartDate = serverTimestamp();
+        const investmentStartDate = new Date();
         const investmentEndDate = new Date();
         investmentEndDate.setDate(investmentEndDate.getDate() + selectedPlan.duration);
 
-        const newInvestment: Omit<ActiveInvestment, 'id'> = {
+        const newInvestment: Omit<ActiveInvestment, 'id' | 'startDate'> & { startDate: any } = {
             planId: selectedPlan.id,
             planName: selectedPlan.name,
             amount: investmentAmount,
-            startDate: investmentStartDate,
+            startDate: serverTimestamp(),
             endDate: investmentEndDate,
             status: 'active',
             dailyProfit: selectedPlan.dailyProfit,
@@ -149,9 +147,9 @@ export default function InvestPage() {
             })
             .catch(async (error) => {
                  const permissionError = new FirestorePermissionError({
-                    path: userRef.path,
-                    operation: 'update',
-                    requestResourceData: { balance: newBalance },
+                    path: newInvestmentRef.path,
+                    operation: 'create',
+                    requestResourceData: newInvestment,
                 });
                 errorEmitter.emit('permission-error', permissionError);
                 toast({ variant: "destructive", title: "Error", description: "Failed to process investment."});
@@ -246,4 +244,5 @@ export default function InvestPage() {
     
 
     
+
 

@@ -24,6 +24,8 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 // Schema for form validation
 const signupSchema = z.object({
@@ -78,9 +80,6 @@ export default function SignupPage() {
     }
     const auth = getAuth(firebaseApp);
 
-    // Pre-emptive checks are removed to avoid permission issues before auth.
-    // Username uniqueness will be handled by backend triggers/rules if needed.
-
     try {
       // --- Auth First ---
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
@@ -99,6 +98,7 @@ export default function SignupPage() {
           totalDeposits: 0,
           totalWithdrawals: 0,
           referralCommissions: 0,
+          createdAt: serverTimestamp(),
       };
 
       // Add referredBy only if a valid code was provided
@@ -107,8 +107,7 @@ export default function SignupPage() {
          const referralQuery = query(collection(firestore, 'users'), where('referralCode', '==', providedRefCode));
          const referralSnapshot = await getDocs(referralQuery);
          if (referralSnapshot.empty) {
-             // We can choose to silently ignore invalid referral codes or inform the user.
-             // For a better user experience, we can inform them, but for simplicity now, we just won't add the `referredBy` field.
+            // Silently ignore invalid referral codes
          } else {
             newUserDoc.referredBy = providedRefCode;
          }
@@ -116,7 +115,20 @@ export default function SignupPage() {
 
       // --- Create Firestore Document ---
       const userDocRef = doc(firestore, 'users', user.uid);
-      await setDoc(userDocRef, newUserDoc);
+      
+      await setDoc(userDocRef, newUserDoc)
+        .catch((error) => {
+            // This re-throws the error to be caught by the outer catch block
+            // after wrapping it in our custom error for better debugging.
+            const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'create',
+                requestResourceData: newUserDoc,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw permissionError; // Throw it to the outer catch
+        });
+
 
       toast({
         title: 'Account Created',
@@ -128,6 +140,10 @@ export default function SignupPage() {
         let errorMessage = 'An unexpected error occurred. Please try again.';
         if (error.code === 'auth/email-already-in-use') {
             errorMessage = 'This email address is already in use by another account.';
+        } else if (error instanceof FirestorePermissionError) {
+            // The custom error was thrown and caught here.
+            // The FirebaseErrorListener will already handle displaying it in dev mode.
+            errorMessage = "A permission error occurred while creating your profile.";
         } else if (error.message) {
             errorMessage = error.message;
         }

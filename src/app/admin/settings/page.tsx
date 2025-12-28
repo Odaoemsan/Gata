@@ -15,6 +15,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const settingsSchema = z.object({
   supportLink: z.string().url("Please enter a valid URL."),
@@ -51,18 +53,25 @@ export default function ManageSettingsPage() {
     }, [settings, form]);
     
     async function onSubmit(values: z.infer<typeof settingsSchema>) {
-        if (!firestore) return;
+        if (!firestore || !settingsDocRef) return;
         setIsLoading(true);
 
-        try {
-            await setDoc(doc(firestore, 'settings', 'global'), values, { merge: true });
-            toast({ title: "Success", description: "Settings have been updated successfully." });
-        } catch (error) {
-            console.error("Error updating settings: ", error);
-            toast({ variant: "destructive", title: "Error", description: "Failed to update settings." });
-        } finally {
-            setIsLoading(false);
-        }
+        setDoc(settingsDocRef, values, { merge: true })
+            .then(() => {
+                toast({ title: "Success", description: "Settings have been updated successfully." });
+            })
+            .catch(async (error) => {
+                const permissionError = new FirestorePermissionError({
+                    path: settingsDocRef.path,
+                    operation: 'update',
+                    requestResourceData: values,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                toast({ variant: "destructive", title: "Error", description: "Failed to update settings." });
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
     }
 
     if (settingsLoading) {

@@ -26,6 +26,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const rankSchema = z.object({
   name: z.string().min(3, "Rank name must be at least 3 characters."),
@@ -72,37 +74,63 @@ export default function ManageRanksPage() {
         if (!firestore || !confirm('Are you sure you want to delete this rank? This action cannot be undone.')) return;
         
         setIsLoading(true);
-        try {
-            const rankRef = doc(firestore, 'ranks', rankId);
-            await deleteDoc(rankRef);
-            toast({ title: "Success", description: "Rank deleted successfully." });
-        } catch (error) {
-            console.error("Error deleting rank: ", error);
-            toast({ variant: "destructive", title: "Error", description: "Failed to delete rank." });
-        } finally {
-            setIsLoading(false);
-        }
+        const rankRef = doc(firestore, 'ranks', rankId);
+
+        deleteDoc(rankRef)
+            .then(() => {
+                toast({ title: "Success", description: "Rank deleted successfully." });
+            })
+            .catch(async (error) => {
+                 const permissionError = new FirestorePermissionError({
+                    path: rankRef.path,
+                    operation: 'delete',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                toast({ variant: "destructive", title: "Error", description: "Failed to delete rank." });
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
     };
     
     async function onSubmit(values: z.infer<typeof rankSchema>) {
         if (!firestore) return;
         setIsLoading(true);
 
-        try {
-            if (selectedRank) {
-                const rankRef = doc(firestore, 'ranks', selectedRank.id);
-                await updateDoc(rankRef, values);
-                toast({ title: "Success", description: "Rank updated successfully." });
-            } else {
-                await addDoc(collection(firestore, 'ranks'), values);
-                toast({ title: "Success", description: "New rank created." });
-            }
-            setDialogOpen(false);
-        } catch (error) {
-            console.error("Error saving rank: ", error);
-            toast({ variant: "destructive", title: "Error", description: "Failed to save rank." });
-        } finally {
-            setIsLoading(false);
+        if (selectedRank) {
+            const rankRef = doc(firestore, 'ranks', selectedRank.id);
+            updateDoc(rankRef, values)
+                .then(() => {
+                    toast({ title: "Success", description: "Rank updated successfully." });
+                    setDialogOpen(false);
+                })
+                .catch(async (error) => {
+                    const permissionError = new FirestorePermissionError({
+                        path: rankRef.path,
+                        operation: 'update',
+                        requestResourceData: values,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    toast({ variant: "destructive", title: "Error", description: "Failed to save rank." });
+                })
+                .finally(() => setIsLoading(false));
+        } else {
+            const ranksCollectionRef = collection(firestore, 'ranks');
+            addDoc(ranksCollectionRef, values)
+                .then(() => {
+                    toast({ title: "Success", description: "New rank created." });
+                    setDialogOpen(false);
+                })
+                .catch(async (error) => {
+                    const permissionError = new FirestorePermissionError({
+                        path: ranksCollectionRef.path,
+                        operation: 'create',
+                        requestResourceData: values,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    toast({ variant: "destructive", title: "Error", description: "Failed to save rank." });
+                })
+                .finally(() => setIsLoading(false));
         }
     }
 
