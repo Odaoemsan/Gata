@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -50,18 +51,23 @@ export default function ManagePlansPage() {
 
     const form = useForm<z.infer<typeof planSchema>>({
         resolver: zodResolver(planSchema),
-        defaultValues: { name: '', dailyProfit: '' as any, duration: '' as any, minMax: '' }
+        defaultValues: { name: '', dailyProfit: 0, duration: 0, minMax: '' }
     });
 
     const openDialogForEdit = (plan: InvestmentPlan) => {
         setSelectedPlan(plan);
-        form.reset(plan);
+        form.reset({
+            name: plan.name,
+            dailyProfit: plan.dailyProfit,
+            duration: plan.duration,
+            minMax: plan.minMax,
+        });
         setDialogOpen(true);
     };
 
     const openDialogForNew = () => {
         setSelectedPlan(null);
-        form.reset({ name: '', dailyProfit: '' as any, duration: '' as any, minMax: '' });
+        form.reset({ name: '', dailyProfit: 0, duration: 0, minMax: '' });
         setDialogOpen(true);
     };
 
