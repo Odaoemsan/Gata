@@ -83,6 +83,17 @@ export default function SignupPage() {
         return;
       }
       
+      // Check if referral code exists, if provided
+      if (values.referralCode) {
+        const referralQuery = query(collection(firestore, 'users'), where('referralCode', '==', values.referralCode));
+        const referralSnapshot = await getDocs(referralQuery);
+        if (referralSnapshot.empty) {
+          form.setError('referralCode', { type: 'manual', message: 'This referral code does not exist.' });
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
