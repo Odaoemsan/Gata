@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -127,105 +128,104 @@ export default function TransactionsPage() {
       if (!firestore || !tx.userId) return;
       setProcessingId(tx.id);
 
-      try {
-        const batch = writeBatch(firestore);
-        
-        // 1. Reference to the pending request to be deleted
-        const pendingRef = doc(firestore, 'pendingDeposits', tx.id);
+      const batch = writeBatch(firestore);
+      const pendingRef = doc(firestore, 'pendingDeposits', tx.id);
+      const permanentTxRef = doc(collection(firestore, `users/${tx.userId}/transactions`));
+      
+      const permanentTxData = {
+        type: tx.type,
+        amount: tx.amount,
+        date: serverTimestamp(),
+        status: approved ? 'completed' : 'failed',
+        transactionId: tx.transactionId,
+        userId: tx.userId,
+        username: tx.username,
+        userDisplayName: tx.userDisplayName,
+        userEmail: tx.userEmail,
+      };
 
-        // 2. Reference to the user's permanent transaction log
-        const permanentTxRef = doc(collection(firestore, `users/${tx.userId}/transactions`));
-        
-        const permanentTxData = {
-          type: tx.type,
-          amount: tx.amount,
-          date: serverTimestamp(),
-          status: approved ? 'completed' : 'failed',
-          transactionId: tx.transactionId,
-          userId: tx.userId,
-          username: tx.username,
-          userDisplayName: tx.userDisplayName,
-          userEmail: tx.userEmail,
-        };
-
-        if (approved) {
-            // 3. If approved, reference the user document to update balance
-            const userRef = doc(firestore, 'users', tx.userId);
-            batch.update(userRef, {
-                balance: increment(tx.amount),
-                totalDeposits: increment(tx.amount)
-            });
-             batch.set(permanentTxRef, permanentTxData);
-        } else {
-             batch.set(permanentTxRef, permanentTxData);
-        }
-
-        // 5. Delete the pending request
-        batch.delete(pendingRef);
-
-        // 6. Commit all operations
-        await batch.commit();
-        
-        toast({ title: 'Success', description: `Deposit request has been ${approved ? 'approved' : 'rejected'}.` });
-        fetchPendingTransactions();
-      } catch (error) {
-         console.error("Error processing deposit: ", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to process deposit.' });
-      } finally {
-        setProcessingId(null);
+      if (approved) {
+          const userRef = doc(firestore, 'users', tx.userId);
+          batch.update(userRef, {
+              balance: increment(tx.amount),
+              totalDeposits: increment(tx.amount)
+          });
       }
+      
+      batch.set(permanentTxRef, permanentTxData);
+      batch.delete(pendingRef);
+
+      batch.commit()
+        .then(() => {
+            toast({ title: 'Success', description: `Deposit request has been ${approved ? 'approved' : 'rejected'}.` });
+            fetchPendingTransactions();
+        })
+        .catch(async (error) => {
+            const permissionError = new FirestorePermissionError({
+                path: pendingRef.path,
+                operation: 'delete',
+                requestResourceData: { tx, approved }
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to process deposit.' });
+        })
+        .finally(() => {
+            setProcessingId(null);
+        });
   }
 
   const handleWithdrawal = async (tx: PendingTransaction, approved: boolean) => {
       if (!firestore || !tx.userId) return;
       setProcessingId(tx.id);
       
-      try {
-        const batch = writeBatch(firestore);
-        
-        const pendingRef = doc(firestore, 'pendingWithdrawals', tx.id);
-        const permanentTxRef = doc(collection(firestore, `users/${tx.userId}/transactions`));
-        const userRef = doc(firestore, 'users', tx.userId);
+      const batch = writeBatch(firestore);
+      const pendingRef = doc(firestore, 'pendingWithdrawals', tx.id);
+      const permanentTxRef = doc(collection(firestore, `users/${tx.userId}/transactions`));
+      const userRef = doc(firestore, 'users', tx.userId);
 
-         const permanentTxData = {
-          type: tx.type,
-          amount: tx.amount,
-          date: serverTimestamp(),
-          status: approved ? 'completed' : 'failed',
-          walletAddress: tx.walletAddress,
-          userId: tx.userId,
-          username: tx.username,
-          userDisplayName: tx.userDisplayName,
-          userEmail: tx.userEmail,
-        };
+       const permanentTxData = {
+        type: tx.type,
+        amount: tx.amount,
+        date: serverTimestamp(),
+        status: approved ? 'completed' : 'failed',
+        walletAddress: tx.walletAddress,
+        userId: tx.userId,
+        username: tx.username,
+        userDisplayName: tx.userDisplayName,
+        userEmail: tx.userEmail,
+      };
 
-
-        if (approved) {
-            batch.update(userRef, {
-                totalWithdrawals: increment(tx.amount)
-            });
-            batch.set(permanentTxRef, permanentTxData);
-            toast({ title: 'Success', description: `Withdrawal request has been completed.` });
-
-        } else {
-            batch.update(userRef, {
-                balance: increment(tx.amount)
-            });
-            batch.set(permanentTxRef, permanentTxData);
-            toast({ title: 'Success', description: `Withdrawal request has been rejected.` });
-        }
-
-        batch.delete(pendingRef);
-        
-        await batch.commit();
-
-        fetchPendingTransactions();
-      } catch (error) {
-        console.error("Error processing withdrawal: ", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to process withdrawal.' });
-      } finally {
-          setProcessingId(null);
+      if (approved) {
+          batch.update(userRef, {
+              totalWithdrawals: increment(tx.amount)
+          });
+      } else {
+          // If rejected, return the funds to the user's balance
+          batch.update(userRef, {
+              balance: increment(tx.amount)
+          });
       }
+
+      batch.set(permanentTxRef, permanentTxData);
+      batch.delete(pendingRef);
+      
+      batch.commit()
+        .then(() => {
+            toast({ title: 'Success', description: `Withdrawal request has been ${approved ? 'completed' : 'rejected'}.` });
+            fetchPendingTransactions();
+        })
+        .catch(async (error) => {
+             const permissionError = new FirestorePermissionError({
+                path: pendingRef.path,
+                operation: 'delete',
+                requestResourceData: { tx, approved }
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to process withdrawal.' });
+        })
+        .finally(() => {
+            setProcessingId(null);
+        });
   }
 
   return (

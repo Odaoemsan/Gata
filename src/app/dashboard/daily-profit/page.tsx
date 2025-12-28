@@ -13,6 +13,8 @@ import type { ActiveInvestment, User, Transaction } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/formatters';
 import Link from 'next/link';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 const COOLDOWN_HOURS = 24;
 
@@ -123,43 +125,51 @@ export default function DailyProfitPage() {
             const userRef = doc(firestore, 'users', user.uid);
             const transactionRef = doc(collection(firestore, `users/${user.uid}/transactions`));
             
-            const newTransaction: Omit<Transaction, 'id' | 'date' | 'status'> = {
+            const newTransactionData = {
                 type: 'daily_profit',
                 amount: totalDailyProfit,
+                date: serverTimestamp(),
+                status: 'completed',
                 userId: user.uid,
                 username: typedUserData.username,
                 userDisplayName: typedUserData.displayName,
                 userEmail: typedUserData.email,
             };
 
-            try {
-                const batch = writeBatch(firestore);
-                batch.update(userRef, { 
-                    balance: increment(totalDailyProfit),
-                    lastTradeTime: serverTimestamp() 
-                });
-                batch.set(transactionRef, { ...newTransaction, date: serverTimestamp(), status: 'completed' });
-                await batch.commit();
+            const batch = writeBatch(firestore);
+            batch.update(userRef, { 
+                balance: increment(totalDailyProfit),
+                lastTradeTime: serverTimestamp() 
+            });
+            batch.set(transactionRef, newTransactionData);
 
-                toast({
-                    title: "Profit Claimed!",
-                    description: `${formatCurrency(totalDailyProfit)} has been added to your balance.`,
+            batch.commit()
+                .then(() => {
+                    toast({
+                        title: "Profit Claimed!",
+                        description: `${formatCurrency(totalDailyProfit)} has been added to your balance.`,
+                    });
+                     const nextTime = new Date(Date.now() + COOLDOWN_HOURS * 60 * 60 * 1000);
+                    setNextTradeTime(nextTime);
+                    setIsReady(false);
+                })
+                .catch((error) => {
+                     const permissionError = new FirestorePermissionError({
+                        path: userRef.path,
+                        operation: 'update',
+                        requestResourceData: { balance: increment(totalDailyProfit), lastTradeTime: serverTimestamp() }
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Error Claiming Profit',
+                        description: 'There was an issue processing your profit. Please try again.',
+                    });
+                })
+                .finally(() => {
+                    setIsTrading(false);
+                    setSimulationDialogOpen(false);
                 });
-            } catch (error) {
-                console.error("Error claiming profit:", error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Error Claiming Profit',
-                    description: 'There was an issue processing your profit. Please try again.',
-                });
-            } finally {
-                setIsTrading(false);
-                setSimulationDialogOpen(false);
-                 // Force re-fetch user data
-                const nextTime = new Date(Date.now() + COOLDOWN_HOURS * 60 * 60 * 1000);
-                setNextTradeTime(nextTime);
-                setIsReady(false);
-            }
 
         }, 30 * 1000);
     }
