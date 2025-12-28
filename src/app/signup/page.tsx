@@ -11,6 +11,7 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   updateProfile,
+  signOut,
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc, serverTimestamp, runTransaction, query, collection, where, getDocs } from 'firebase/firestore';
 import { useFirebaseApp } from '@/firebase/provider';
@@ -60,6 +61,12 @@ function generateReferralCode(): string {
     return result;
 }
 
+async function isUsernameUnique(firestore: any, username: string): Promise<boolean> {
+    const q = query(collection(firestore, 'users'), where('username', '==', username));
+    const snapshot = await getDocs(q);
+    return snapshot.empty;
+}
+
 async function isReferralCodeUnique(firestore: any, code: string): Promise<boolean> {
     const q = query(collection(firestore, 'users'), where('referralCode', '==', code));
     const snapshot = await getDocs(q);
@@ -101,15 +108,24 @@ function SignUpForm() {
     const auth = getAuth(firebaseApp);
     const firestore = getFirestore(firebaseApp);
 
+    // Check for username uniqueness before creating auth user
+    const usernameIsUnique = await isUsernameUnique(firestore, values.username.toLowerCase());
+    if (!usernameIsUnique) {
+      form.setError('username', { type: 'manual', message: 'This username is already taken.' });
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // Step 0: Check if username is unique
-      const usernameQuery = query(collection(firestore, 'users'), where('username', '==', values.username.toLowerCase()));
-      const usernameSnapshot = await getDocs(usernameQuery);
-      if (!usernameSnapshot.empty) {
-        form.setError('username', { type: 'manual', message: 'This username is already taken.' });
-        setIsLoading(false);
-        return;
-      }
+      // Step 1: Create user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        values.email,
+        values.password
+      );
+      const user = userCredential.user;
+
+      // At this point, the user is authenticated. Now we can perform other checks and writes.
       
       // Generate a unique referral code
       let referralCode = '';
@@ -118,15 +134,6 @@ function SignUpForm() {
           referralCode = generateReferralCode();
           isUnique = await isReferralCodeUnique(firestore, referralCode);
       }
-
-
-      // Step 1: Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        values.email,
-        values.password
-      );
-      const user = userCredential.user;
 
       // Step 2: Update user profile in Auth
       await updateProfile(user, {
@@ -151,20 +158,7 @@ function SignUpForm() {
         newUserDoc.referredBy = values.referredBy;
       }
       
-      await setDoc(userDocRef, newUserDoc)
-        .catch(async (error) => {
-            if (error.code === 'permission-denied') {
-                 const permissionError = new FirestorePermissionError({
-                    path: userDocRef.path,
-                    operation: 'create',
-                    requestResourceData: newUserDoc,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-                 throw new Error("Failed to create user profile in database.");
-            } else {
-                 throw new Error("Failed to create user profile in database.");
-            }
-        });
+      await setDoc(userDocRef, newUserDoc);
       
       toast({
         title: 'Account Created',
@@ -175,9 +169,11 @@ function SignUpForm() {
     } catch (error: any) {
       console.error(error);
       let errorMessage = 'An unknown error occurred.';
-      if (error.code === 'auth/email-already-in-use') {
+       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'This email address is already in use.';
         form.setError('email', { type: 'manual', message: errorMessage });
+      } else if (error.code === 'permission-denied') {
+        errorMessage = 'Missing or insufficient permissions. Check Firestore rules.';
       }
       else {
         errorMessage = error.message || 'Failed to create account. Please try again later.';
@@ -323,5 +319,3 @@ export default function SignUpPage() {
     </div>
   )
 }
-
-    

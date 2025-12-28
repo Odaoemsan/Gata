@@ -29,8 +29,9 @@ service cloud.firestore {
                     && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
       allow get: if isOwner(userId) || isAdmin();
-      // Allow authenticated users to query the collection, needed for team count.
-      allow list: if request.auth != null; 
+      
+      // Allow authenticated users to query the collection for username/referral code uniqueness checks.
+      allow list: if request.auth != null;
       
       allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'balance', 'totalDeposits', 'totalWithdrawals'])) || 
                      (isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username']));
