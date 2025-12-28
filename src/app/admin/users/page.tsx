@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -64,6 +65,11 @@ export default function ManageUsersPage() {
 
     const form = useForm<z.infer<typeof userSchema>>({
         resolver: zodResolver(userSchema),
+        defaultValues: {
+            displayName: '',
+            username: '',
+            balance: 0,
+        }
     });
 
     const openDialogForEdit = (user: User) => {
