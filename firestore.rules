@@ -89,7 +89,7 @@ service cloud.firestore {
 
     // Investment Plans collection
     match /investmentPlans/{planId} {
-      // Any authenticated user can read the investment plans.
+      // Allow public read access to investment plans.
       allow get, list: if true;
 
       // Only admins can create, update, or delete investment plans.
