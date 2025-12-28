@@ -24,6 +24,8 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const generateReferralCode = (length: number) => {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -73,9 +75,10 @@ export default function SignupPage() {
         return;
     }
     const auth = getAuth(firebaseApp);
+    const referredByCode = values.referralCode?.trim();
 
     try {
-      // 1. Pre-emptive checks
+      // 1. Pre-emptive checks for username and referral code
       const usernameQuery = query(collection(firestore, 'users'), where('username', '==', values.username));
       const usernameSnapshot = await getDocs(usernameQuery);
       if (!usernameSnapshot.empty) {
@@ -84,7 +87,6 @@ export default function SignupPage() {
         return;
       }
       
-      const referredByCode = values.referralCode?.trim();
       if (referredByCode) {
         const referralQuery = query(collection(firestore, 'users'), where('referralCode', '==', referredByCode));
         const referralSnapshot = await getDocs(referralQuery);
@@ -109,31 +111,53 @@ export default function SignupPage() {
         totalDeposits: 0,
         totalWithdrawals: 0,
         referralCommissions: 0,
+        createdAt: serverTimestamp(),
       };
       
+      // Only add referredBy if a valid code was provided
       if (referredByCode) {
           newUserDoc.referredBy = referredByCode;
       }
 
       // 4. Create Firestore Document
-      await setDoc(doc(firestore, 'users', user.uid), newUserDoc);
+      const userDocRef = doc(firestore, 'users', user.uid);
       
-      toast({
-        title: 'Account Created',
-        description: 'Welcome! Your account has been created successfully.',
-      });
-      router.push('/dashboard');
+      // Use a .catch block to implement contextual error handling
+      setDoc(userDocRef, newUserDoc)
+        .then(() => {
+            toast({
+              title: 'Account Created',
+              description: 'Welcome! Your account has been created successfully.',
+            });
+            router.push('/dashboard');
+        })
+        .catch(async (error) => {
+            const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'create',
+                requestResourceData: newUserDoc,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+             // Also show a toast to the user
+            toast({
+                variant: 'destructive',
+                title: 'Signup Failed',
+                description: "Could not save user data due to a permissions issue.",
+            });
+        });
 
     } catch (error: any) {
-      // Display the exact error from Firebase for debugging
+      // This catches errors from createUserWithEmailAndPassword and pre-emptive checks
       toast({
         variant: 'destructive',
         title: 'Signup Failed',
-        description: error.message || "An unexpected error occurred. Please check the console.",
+        description: error.message || "An unexpected error occurred. Please check the details and try again.",
       });
-      console.error("Signup Error:", error);
     } finally {
-      setIsLoading(false);
+        // Only set loading to false if not waiting for setDoc
+        if (auth.currentUser === null) {
+            setIsLoading(false);
+        }
     }
   };
 
