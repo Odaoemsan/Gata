@@ -25,8 +25,8 @@ function BottomNavBar() {
   const pathname = usePathname();
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-    { href: '/dashboard/my-investments', icon: Rocket, label: 'My Investments' },
-    { href: '/dashboard/earnings', icon: CircleDollarSign, label: 'Earnings', isCentral: true },
+    { href: '/dashboard/invest', icon: Rocket, label: 'Invest' },
+    { href: '/dashboard/daily-profit', icon: CircleDollarSign, label: 'Daily Profit', isCentral: true },
     { href: '/dashboard/team', icon: Users, label: 'Team' },
     { href: '/dashboard/wallet', icon: Wallet, label: 'Wallet' },
   ];
@@ -72,6 +72,15 @@ export default function DashboardLayout({
 }) {
   const { user, userData } = useUser();
   const ADMIN_EMAIL = 'odae.oth@gmail.com';
+  const pathname = usePathname();
+  
+  const menuItems = [
+      { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { href: '/dashboard/my-investments', icon: Rocket, label: 'My Investments' },
+      { href: '/dashboard/wallet', icon: Wallet, label: 'My Wallet' },
+      { href: '/dashboard/team', icon: Users, label: 'Team & Tasks' },
+      { href: '/dashboard/daily-profit', icon: CircleDollarSign, label: 'Daily Profit' },
+  ];
 
   return (
     <SidebarProvider>
@@ -88,7 +97,18 @@ export default function DashboardLayout({
             </div>
         </SidebarHeader>
         <SidebarContent>
-           {/* Navigation links for desktop can be added here */}
+            <SidebarMenu>
+                {menuItems.map(item => (
+                    <SidebarMenuItem key={item.href}>
+                        <Link href={item.href} legacyBehavior passHref>
+                            <SidebarMenuButton tooltip={item.label} isActive={pathname === item.href}>
+                                <item.icon />
+                                <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                            </SidebarMenuButton>
+                        </Link>
+                    </SidebarMenuItem>
+                ))}
+           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
            <CommonSidebarFooter settingsPath="/dashboard/settings">

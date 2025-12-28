@@ -56,10 +56,11 @@ export function useUser() {
   const { data: userData, loading: userLoading } = useDoc(userDocRef);
 
   useEffect(() => {
-    // Let auth pages be accessible without a user
-    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
+    // Publicly accessible pages
+    const publicPages = ['/login', '/signup', '/landing'];
+    const isPublicPage = publicPages.some(page => pathname.startsWith(page)) || pathname === '/';
     
-    if (!authLoading && !user && !isAuthPage) {
+    if (!authLoading && !user && !isPublicPage) {
       router.push('/login');
     }
   }, [authLoading, user, router, pathname]);
