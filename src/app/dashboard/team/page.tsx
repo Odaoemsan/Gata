@@ -14,6 +14,7 @@ import { addDoc, collection, query, serverTimestamp } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useFirebaseApp } from '@/firebase/provider';
 import { formatCurrency } from '@/lib/formatters';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 function TaskCard({ task }: { task: Task }) {
@@ -101,7 +102,7 @@ export default function TeamPage() {
                     }
                     toast({
                         variant: "destructive",
-                        title: "Error",
+                        title: "Function Error",
                         description: description,
                     });
                 })
@@ -109,8 +110,8 @@ export default function TeamPage() {
                     setTeamLoading(false);
                 });
         } else if (typedUserData) {
+            // If there's user data but no referral code (or no app), stop loading.
             setTeamLoading(false);
-            setTeamStats({ teamSize: 0, teamTotalDeposits: 0 });
         }
     }, [referralCode, firebaseApp, toast, typedUserData]);
 
@@ -174,9 +175,7 @@ export default function TeamPage() {
                     </CardHeader>
                     <CardContent>
                         {teamLoading ? (
-                            <div className="flex items-center justify-center h-10">
-                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                            </div>
+                            <Skeleton className="h-8 w-1/4" />
                         ) : (
                             <div className="text-2xl font-bold">{teamStats?.teamSize ?? 0}</div>
                         )}
@@ -189,9 +188,7 @@ export default function TeamPage() {
                     </CardHeader>
                     <CardContent>
                        {teamLoading ? (
-                            <div className="flex items-center justify-center h-10">
-                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                            </div>
+                            <Skeleton className="h-8 w-1/3" />
                         ) : (
                              <div className="text-2xl font-bold">{formatCurrency(teamStats?.teamTotalDeposits)}</div>
                         )}
