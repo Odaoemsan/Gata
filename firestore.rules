@@ -79,8 +79,7 @@ service cloud.firestore {
                       && request.resource.data.date == request.time
                       && request.resource.data.username is string
                       && request.resource.data.userDisplayName is string
-                      && request.resource.data.userEmail is string
-                      && request.resource.data.keys().hasAll(['type', 'amount', 'date', 'transactionId', 'userId', 'username', 'userDisplayName', 'userEmail']);
+                      && request.resource.data.userEmail is string;
                       
         // Admins can read and delete (process) requests
         allow get, list, delete: if isAdmin();
@@ -122,7 +121,7 @@ service cloud.firestore {
     }
 
     // Tasks collection
-    match /tasks/{taskId} {
+    match /tasks/{document=**} {
         // Authenticated users can read tasks
         allow get, list: if request.auth != null;
         // Only admins can create, update, or delete tasks
