@@ -1,3 +1,6 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
 import type { Metadata } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
@@ -10,32 +13,29 @@ import { Footer } from '@/components/layout/footer';
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
-})
+});
 
 const lexend = Lexend({
   subsets: ['latin'],
   weight: ['600', '700', '800'],
   variable: '--font-lexend',
-})
+});
 
-export const metadata: Metadata = {
-  title: 'GORA HYIP - High-Yield Investment Program',
-  description:
-    'Invest with GORA and watch your capital grow. Secure, profitable, and user-friendly investment platform.',
-};
+// Metadata is defined in a wrapper component to allow usePathname in the layout
+// export const metadata: Metadata = {
+//   title: 'GORA HYIP - High-Yield Investment Program',
+//   description:
+//     'Invest with GORA and watch your capital grow. Secure, profitable, and user-friendly investment platform.',
+// };
 
-export default function RootLayout({
+function RootLayoutContent({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // This is a workaround to get the segment path from the children props.
-  // The segment for the root page is `__DEFAULT__`. For other pages it will be the route name (e.g., 'login', 'dashboard').
-  const segmentPath = (React.Children.toArray(children)[0] as any)?.props?.childProp?.segment;
+  const pathname = usePathname();
+  const showHeaderFooter = pathname === '/';
 
-  // Show header/footer ONLY on the landing page.
-  const showHeaderFooter = segmentPath === '__DEFAULT__';
-  
   return (
     <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
       <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
@@ -54,4 +54,13 @@ export default function RootLayout({
       </body>
     </html>
   );
+}
+
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return <RootLayoutContent>{children}</RootLayoutContent>;
 }
