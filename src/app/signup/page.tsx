@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -24,8 +24,6 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import type { User } from '@/lib/types';
-
 
 const generateReferralCode = (length: number) => {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -77,7 +75,7 @@ export default function SignupPage() {
     const auth = getAuth(firebaseApp);
 
     try {
-      // 1. Pre-emptive checks before creating auth user
+      // 1. Pre-emptive checks for username and referral code uniqueness/existence
       const usernameQuery = query(collection(firestore, 'users'), where('username', '==', values.username));
       const usernameSnapshot = await getDocs(usernameQuery);
       if (!usernameSnapshot.empty) {
@@ -86,7 +84,7 @@ export default function SignupPage() {
         return;
       }
       
-      const referredByCode = values.referralCode?.trim();
+      const referredByCode = values.referralCode?.trim() || null;
       if (referredByCode) {
         const referralQuery = query(collection(firestore, 'users'), where('referralCode', '==', referredByCode));
         const referralSnapshot = await getDocs(referralQuery);
@@ -101,23 +99,21 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
-      // 3. Prepare the complete user data for Firestore
-      const newUserDoc: Omit<User, 'id' | 'lastTradeTime' | 'rankName' | 'createdAt'> = {
+      // 3. Prepare the complete user data object for Firestore
+      const newUserDoc: any = {
         displayName: values.displayName,
         username: values.username,
         email: values.email,
         referralCode: generateReferralCode(7),
+        // All financial fields initialized as Numbers
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
         referralCommissions: 0,
+        referredBy: referredByCode,
       };
 
-      if (referredByCode) {
-          (newUserDoc as Partial<User>).referredBy = referredByCode;
-      }
-
-      // 4. Document ID & Creation: Use the UID from auth as the document ID
+      // 4. Firestore Document Creation: Use UID from auth as doc ID
       await setDoc(doc(firestore, 'users', user.uid), newUserDoc);
       
       toast({
@@ -127,12 +123,11 @@ export default function SignupPage() {
       router.push('/dashboard');
 
     } catch (error: any) {
-       // 5. Error Handling
        let description = "An unexpected error occurred. Please try again.";
         if (error.code === 'auth/email-already-in-use') {
             description = 'This email address is already in use. Please try logging in.';
-        } else if (error.name === 'FirebaseError' && (error.message.includes('permission-denied') || error.message.includes('insufficient permissions'))) {
-            description = 'Failed to create user profile. Please check the data and try again.';
+        } else if (error.name === 'FirebaseError') {
+             description = 'Failed to create user profile. Please check your data and try again.';
         }
       toast({
         variant: 'destructive',
@@ -238,3 +233,4 @@ export default function SignupPage() {
     </div>
   );
 }
+
