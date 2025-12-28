@@ -26,8 +26,10 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 
 function formatCurrency(amount: number) {
+    if (typeof amount !== 'number') return '$0.00';
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 }
 
@@ -123,7 +125,6 @@ export default function ManageUsersPage() {
                             <TableRow>
                                 <TableHead>User</TableHead>
                                 <TableHead className="hidden md:table-cell">Username</TableHead>
-                                <TableHead className="hidden sm:table-cell">Balance</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -141,7 +142,6 @@ export default function ManageUsersPage() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
-                                        <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
                                         <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                                     </TableRow>
                                 ))
@@ -156,11 +156,11 @@ export default function ManageUsersPage() {
                                             <div>
                                                 <div className="font-medium">{user.displayName}</div>
                                                 <div className="text-xs text-muted-foreground">{user.email}</div>
+                                                <Badge variant="outline" className="mt-1">{formatCurrency(user.balance)}</Badge>
                                             </div>
                                         </div>
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell font-mono text-xs">{user.username}</TableCell>
-                                    <TableCell className="hidden sm:table-cell font-medium">{formatCurrency(user.balance)}</TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="icon" onClick={() => openDialogForEdit(user)}>
                                             <Edit className="h-4 w-4" />
@@ -170,7 +170,7 @@ export default function ManageUsersPage() {
                             ))}
                              {!loading && filteredUsers.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center">
+                                    <TableCell colSpan={4} className="h-24 text-center">
                                         No users found.
                                     </TableCell>
                                 </TableRow>
@@ -224,5 +224,3 @@ export default function ManageUsersPage() {
         </div>
     );
 }
-
-    
