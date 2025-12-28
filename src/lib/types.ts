@@ -43,3 +43,10 @@ export interface ActiveInvestment {
     endDate: any;
     status: 'active' | 'completed';
 }
+
+export interface Rank {
+    id: string;
+    name: string;
+    requiredInvestment: number;
+    commissionRate: number;
+}

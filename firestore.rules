@@ -17,7 +17,6 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       // Any authenticated user can create their own profile upon signup.
-      // The `createdAt` field is set via serverTimestamp, so it's not present in the initial write.
       allow create: if request.auth.uid == userId
                     && request.resource.data.displayName is string
                     && request.resource.data.username is string
@@ -96,6 +95,14 @@ service cloud.firestore {
       allow get, list: if request.auth != null;
 
       // Only admins can create, update, or delete investment plans.
+      allow write: if isAdmin();
+    }
+
+    // Ranks collection
+    match /ranks/{rankId} {
+      // Allow public read access to ranks for all authenticated users.
+      allow get, list: if request.auth != null;
+      // Only admins can create, update, or delete ranks.
       allow write: if isAdmin();
     }
   }

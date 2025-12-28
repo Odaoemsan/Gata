@@ -152,6 +152,26 @@
         }
       },
       "required": ["planId", "planName", "amount", "startDate", "endDate", "status"]
+    },
+    "Rank": {
+      "title": "Rank",
+      "description": "Represents a user's referral rank.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the rank (e.g., Bronze, Silver, Gold)."
+        },
+        "requiredInvestment": {
+          "type": "number",
+          "description": "The total team investment required to achieve this rank."
+        },
+        "commissionRate": {
+          "type": "number",
+          "description": "The commission rate percentage for this rank."
+        }
+      },
+      "required": ["name", "requiredInvestment", "commissionRate"]
     }
   },
   "auth": {
@@ -173,6 +193,10 @@
     "/users/{userId}/activeInvestments/{investmentId}": {
       "schema": { "$ref": "#/entities/ActiveInvestment" },
       "description": "Stores a user's active investments."
+    },
+    "/ranks/{rankId}": {
+        "schema": { "$ref": "#/entities/Rank" },
+        "description": "Stores the referral ranks and their requirements."
     }
   }
 }
