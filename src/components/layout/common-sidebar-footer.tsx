@@ -2,11 +2,11 @@
 
 import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { getAuth, signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { Settings, LogOut, LifeBuoy } from 'lucide-react';
-import { useFirebaseApp, useFirestore } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useToast } from '@/hooks/use-toast';
 import type { AppSettings } from '@/lib/types';
@@ -23,7 +23,7 @@ interface CommonSidebarFooterProps {
 
 export function CommonSidebarFooter({ settingsPath, children }: CommonSidebarFooterProps) {
   const router = useRouter();
-  const firebaseApp = useFirebaseApp();
+  const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -35,8 +35,6 @@ export function CommonSidebarFooter({ settingsPath, children }: CommonSidebarFoo
   const { data: settings } = useDoc<AppSettings>(settingsDocRef);
 
   const handleSignOut = async () => {
-    if (!firebaseApp) return;
-    const auth = getAuth(firebaseApp);
     try {
       await signOut(auth);
       toast({
