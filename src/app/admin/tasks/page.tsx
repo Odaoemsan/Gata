@@ -227,7 +227,7 @@ function ReviewSubmissions() {
                 const taskRef = doc(firestore, 'tasks', submission.taskId);
                 const taskDoc = await transaction.get(taskRef);
                 
-                if (!taskDoc.exists() && approved) {
+                if (!taskDoc.exists()) { // Check for task existence for both approve/reject
                     throw new Error("Task not found!");
                 }
                 const task = taskDoc.data() as Task;
@@ -237,18 +237,30 @@ function ReviewSubmissions() {
                 }
                 const user = userDoc.data() as User;
 
+                const newTransactionRef = doc(collection(firestore, `users/${submission.userId}/transactions`));
 
                 if (approved) {
                     // 1. Add reward to user's balance
                     transaction.update(userRef, { balance: increment(task.reward) });
                     
                     // 2. Create a transaction record for the reward
-                    const newTransactionRef = doc(collection(firestore, `users/${submission.userId}/transactions`));
                     transaction.set(newTransactionRef, {
                         type: 'task_reward',
                         amount: task.reward,
                         date: serverTimestamp(),
                         status: 'completed',
+                        userId: submission.userId,
+                        username: user.username,
+                        userDisplayName: user.displayName,
+                        userEmail: user.email,
+                    });
+                } else {
+                    // Create a failed transaction record on rejection
+                     transaction.set(newTransactionRef, {
+                        type: 'task_reward',
+                        amount: task.reward, // Still log the potential amount for tracking
+                        date: serverTimestamp(),
+                        status: 'failed',
                         userId: submission.userId,
                         username: user.username,
                         userDisplayName: user.displayName,
