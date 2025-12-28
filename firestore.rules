@@ -71,10 +71,20 @@ service cloud.firestore {
     
     // Pending Deposits collection
     match /pendingDeposits/{depositId} {
-      // Users can create their own deposit requests
-      allow create: if isOwner(request.resource.data.userId);
-      // Admins can read and delete (process) requests
-      allow get, list, delete: if isAdmin();
+        // Users can create their own deposit requests with valid data.
+        allow create: if isOwner(request.resource.data.userId)
+                      && request.resource.data.type == 'deposit'
+                      && request.resource.data.amount is number && request.resource.data.amount > 0
+                      && request.resource.data.transactionId is string && request.resource.data.transactionId != ''
+                      && request.resource.data.date == request.time
+                      && request.resource.data.username is string
+                      && request.resource.data.userDisplayName is string
+                      && request.resource.data.userEmail is string
+                      && request.resource.data.keys().hasAll(['type', 'amount', 'date', 'transactionId', 'userId', 'username', 'userDisplayName', 'userEmail']);
+                      
+        // Admins can read and delete (process) requests
+        allow get, list, delete: if isAdmin();
+        allow update: if false; // No updates allowed to pending requests
     }
     
     // Pending Withdrawals collection
