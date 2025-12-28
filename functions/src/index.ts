@@ -5,6 +5,9 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 
 // Callable function to get the size of a user's referral team.
+// This function is currently not used in favor of a direct client-side query,
+// but is kept here for reference or future use if security rules become more restrictive.
+/*
 export const getTeamSize = functions.https.onCall(async (data, context) => {
   // Check if the user is authenticated.
   if (!context.auth) {
@@ -48,3 +51,4 @@ export const getTeamSize = functions.https.onCall(async (data, context) => {
     );
   }
 });
+*/

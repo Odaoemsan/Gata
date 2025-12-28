@@ -8,10 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Copy, Medal, Users, Share2, ListTodo, Send, Loader2 } from 'lucide-react';
 import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { addDoc, collection, query, serverTimestamp, where } from 'firebase/firestore';
-import { getFunctions, httpsCallable, HttpsCallable, type HttpsCallableResult } from 'firebase/functions';
-import { useFirebaseApp } from '@/firebase/provider';
 
 
 function TaskCard({ task }: { task: Task }) {
@@ -72,48 +70,19 @@ function TaskCard({ task }: { task: Task }) {
 export default function TeamPage() {
     const { userData } = useUser();
     const firestore = useFirestore();
-    const firebaseApp = useFirebaseApp();
     const { toast } = useToast();
     
-    const [teamSize, setTeamSize] = useState(0);
-    const [teamLoading, setTeamLoading] = useState(true);
-
     const typedUserData = userData as User | null;
     const referralCode = typedUserData?.referralCode;
 
-    useEffect(() => {
-        if (referralCode && firebaseApp) {
-            const functions = getFunctions(firebaseApp);
-            const getTeamSize: HttpsCallable<{ referralCode: string; }, { size: number; }> = httpsCallable(functions, 'getTeamSize');
-            
-            setTeamLoading(true);
-            getTeamSize({ referralCode })
-                .then((result: HttpsCallableResult<{ size: number; }>) => {
-                    const data = result.data;
-                    setTeamSize(data.size);
-                })
-                .catch((error: any) => {
-                    console.error("Error calling getTeamSize function:", error);
-                    let description = "Could not fetch team size. Please try again later.";
-                    // Check for the specific error code from the Cloud Function
-                    // The actual HttpsError object is available in the 'details' property
-                    if (error.details && error.details.code === 'failed-precondition') {
-                        description = "A database configuration error occurred. Please check server logs for an index creation link.";
-                    }
-                    toast({
-                        variant: "destructive",
-                        title: "Error",
-                        description: description,
-                    });
-                })
-                .finally(() => {
-                    setTeamLoading(false);
-                });
-        } else {
-             setTeamLoading(false);
-        }
-    }, [referralCode, firebaseApp, toast]);
+    const teamQuery = useMemo(() => {
+        if (!firestore || !referralCode) return null;
+        // Query to count users referred by the current user's referral code.
+        return query(collection(firestore, 'users'), where('referredBy', '==', referralCode));
+    }, [firestore, referralCode]);
 
+    const { data: teamMembers, loading: teamLoading } = useCollection(teamQuery);
+    const teamSize = teamMembers?.length ?? 0;
 
     const tasksQuery = useMemo(() => {
         if (!firestore) return null;
