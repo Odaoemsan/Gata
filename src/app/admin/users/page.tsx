@@ -7,7 +7,7 @@ import { collection, query, updateDoc, doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Loader2, Search } from 'lucide-react';
+import { Edit, Loader2, Search, Award } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -135,7 +135,7 @@ export default function ManageUsersPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>User</TableHead>
-                                <TableHead className="hidden md:table-cell">Username</TableHead>
+                                <TableHead className="hidden md:table-cell">Details</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -167,11 +167,19 @@ export default function ManageUsersPage() {
                                             <div>
                                                 <div className="font-medium">{user.displayName}</div>
                                                 <div className="text-xs text-muted-foreground">{user.email}</div>
-                                                <Badge variant="outline" className="mt-1">{formatCurrency(user.balance)}</Badge>
+                                                <div className="font-mono text-xs text-muted-foreground">{user.username}</div>
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="hidden md:table-cell font-mono text-xs">{user.username}</TableCell>
+                                    <TableCell className="hidden md:table-cell text-xs space-y-1">
+                                        <div><Badge variant="outline">{formatCurrency(user.balance)}</Badge></div>
+                                        <div>
+                                            {user.rankName ? 
+                                                <Badge variant="secondary"><Award className="mr-1 h-3 w-3"/>{user.rankName}</Badge> :
+                                                <Badge variant="outline">No Rank</Badge>
+                                            }
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="icon" onClick={() => openDialogForEdit(user)}>
                                             <Edit className="h-4 w-4" />

@@ -47,6 +47,10 @@
         "referralCommissions": {
             "type": "number",
             "description": "Total commissions earned from referrals."
+        },
+        "rankName": {
+            "type": "string",
+            "description": "The name of the user's current rank."
         }
       },
       "required": ["displayName", "username", "email", "balance", "totalDeposits", "totalWithdrawals", "referralCommissions", "referralCode"]

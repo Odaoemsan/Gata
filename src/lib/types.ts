@@ -1,9 +1,4 @@
 
-
-
-
-
-
 export interface User {
     id: string;
     displayName: string;
@@ -16,6 +11,7 @@ export interface User {
     referredBy?: string;
     referralCode: string;
     referralCommissions: number;
+    rankName?: string;
 }
 
 // Represents a historical transaction record.
@@ -98,4 +94,3 @@ export interface AppSettings {
     supportLink: string;
     depositWalletAddress: string;
 }
-    

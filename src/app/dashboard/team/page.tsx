@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useCollection } from '@/firebase';
@@ -8,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Copy, Users, Share2, Award, Check, Loader2, DollarSign, ListTodo, CheckCircle, Inbox, Link as LinkIcon } from 'lucide-react';
 import type { User, Rank, Task, TaskSubmission } from '@/lib/types';
 import { useMemo, useState, useEffect } from 'react';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { formatCurrency } from '@/lib/formatters';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,6 +30,7 @@ function TeamAndRanks() {
     const { userData, user, loading: userLoading } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const [isRankCheckLoading, setIsRankCheckLoading] = useState(false);
     
     const typedUserData = userData as User | null;
 
@@ -41,7 +43,6 @@ function TeamAndRanks() {
 
     const ranksQuery = useMemo(() => {
         if (!firestore) return null;
-        // The rules are set to public read, so this query is safe.
         return query(collection(firestore, 'ranks'));
     }, [firestore]);
 
@@ -61,21 +62,35 @@ function TeamAndRanks() {
         });
     };
 
-    const handleRankCheck = () => {
-        if (!ranks || ranksLoading || teamLoading) return;
+    const handleRankCheck = async () => {
+        if (!ranks || !user || !typedUserData || ranksLoading || teamLoading) return;
         
-        const currentRank = ranks.slice().reverse().find(rank => teamTotalDeposits >= rank.requiredInvestment);
+        setIsRankCheckLoading(true);
 
-        if (currentRank) {
-             toast({
-                title: 'Rank Status',
-                description: `You currently qualify for the ${currentRank.name} rank!`,
-            });
-        } else {
-             toast({
-                title: 'Rank Status',
-                description: "You haven't qualified for a rank yet. Keep growing your team!",
-            });
+        try {
+            const sortedRanks = ranks.sort((a, b) => b.requiredInvestment - a.requiredInvestment);
+            const currentRank = sortedRanks.find(rank => teamTotalDeposits >= rank.requiredInvestment);
+            const currentRankName = currentRank?.name || null;
+
+            if (typedUserData.rankName !== currentRankName) {
+                const userRef = doc(firestore, 'users', user.uid);
+                await updateDoc(userRef, { rankName: currentRankName });
+                toast({
+                    title: 'Rank Updated!',
+                    description: currentRankName ? `Congratulations! You are now rank: ${currentRankName}` : 'Your rank has been updated.',
+                });
+            } else {
+                 toast({
+                    title: 'Rank Status',
+                    description: currentRankName ? `You are currently rank: ${currentRankName}. Keep it up!` : "You haven't qualified for a rank yet.",
+                });
+            }
+
+        } catch (error) {
+            console.error("Error updating rank:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not update your rank.' });
+        } finally {
+            setIsRankCheckLoading(false);
         }
     };
 
@@ -111,7 +126,17 @@ function TeamAndRanks() {
                 </CardContent>
             </Card>
 
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <Card>
+                     <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">My Rank</CardTitle>
+                        <Award className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                       {isLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold">{typedUserData?.rankName || 'No Rank'}</div>}
+                       <p className="text-xs text-muted-foreground">Based on your team's investment.</p>
+                    </CardContent>
+                </Card>
                 <Card>
                      <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium">Team Deposits</CardTitle>
@@ -178,8 +203,8 @@ function TeamAndRanks() {
                             )}
                         </TableBody>
                     </Table>
-                    <Button onClick={handleRankCheck} disabled={isLoading} className="w-full">
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
+                    <Button onClick={handleRankCheck} disabled={isLoading || isRankCheckLoading} className="w-full">
+                        {(isLoading || isRankCheckLoading) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
                         Check My Rank Status
                     </Button>
                 </CardContent>
@@ -217,9 +242,11 @@ function TasksTab() {
                 where('userId', '==', user.uid)
             );
             try {
-                const snapshot = await getDocs(submissionsQuery);
-                const submittedIds = new Set(snapshot.docs.map(doc => doc.data().taskId));
-                setSubmittedTasks(submittedIds);
+                const snapshot = await useCollection(submissionsQuery);
+                if (snapshot.data) {
+                    const submittedIds = new Set(snapshot.data.map(doc => doc.taskId));
+                    setSubmittedTasks(submittedIds);
+                }
             } catch(e) {
                 console.error("Failed to fetch user's task submissions:", e);
                 // Non-critical error, so we don't show a toast.
