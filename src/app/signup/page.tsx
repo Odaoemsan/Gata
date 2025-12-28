@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -103,7 +104,7 @@ export default function SignupPage() {
       const user = userCredential.user;
 
       // 3. Prepare the complete user data for Firestore
-       const newUserDoc: Omit<User, 'id' | 'lastTradeTime' | 'rankName'> & { createdAt: any } = {
+       const newUserDoc: Omit<User, 'id' | 'lastTradeTime' | 'rankName'> = {
         displayName: values.displayName,
         username: values.username,
         email: values.email,
@@ -117,7 +118,7 @@ export default function SignupPage() {
 
       // Conditionally add the 'referredBy' field ONLY if a valid code was provided
       if (referredByCode) {
-          newUserDoc.referredBy = referredByCode;
+          (newUserDoc as User).referredBy = referredByCode;
       }
 
       // 4. Document ID & Creation: Use the UID from auth as the document ID
@@ -165,7 +166,9 @@ export default function SignupPage() {
                 render={({ field }) => (
                   <FormItem>
                     <Label htmlFor="displayName">Full Name</Label>
-                    <Input id="displayName" placeholder="John Doe" {...field} />
+                    <FormControl>
+                        <Input id="displayName" placeholder="John Doe" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -176,7 +179,9 @@ export default function SignupPage() {
                 render={({ field }) => (
                   <FormItem>
                     <Label htmlFor="username">Username</Label>
-                    <Input id="username" placeholder="johndoe" {...field} />
+                     <FormControl>
+                        <Input id="username" placeholder="johndoe" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -187,7 +192,9 @@ export default function SignupPage() {
                 render={({ field }) => (
                   <FormItem>
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="m@example.com" {...field} />
+                     <FormControl>
+                        <Input id="email" type="email" placeholder="m@example.com" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -198,7 +205,9 @@ export default function SignupPage() {
                 render={({ field }) => (
                   <FormItem>
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" {...field} />
+                    <FormControl>
+                        <Input id="password" type="password" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -209,7 +218,9 @@ export default function SignupPage() {
                 render={({ field }) => (
                   <FormItem>
                     <Label htmlFor="referralCode">Referral Code (Optional)</Label>
-                    <Input id="referralCode" placeholder="Enter referral code" {...field} />
+                    <FormControl>
+                        <Input id="referralCode" placeholder="Enter referral code" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -231,3 +242,5 @@ export default function SignupPage() {
     </div>
   );
 }
+
+    
