@@ -27,8 +27,10 @@ service cloud.firestore {
                     && request.resource.data.referralCommissions == 0
                     && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
-      // Only the owner or an admin can read the profile.
+      // The owner or an admin can get a specific user profile.
+      // Any authenticated user can list users (required for referral queries).
       allow get: if isOwner(userId) || isAdmin();
+      allow list: if request.auth != null;
       
       // Admins can update displayName, username, and balance. 
       // Users can only update their own displayName and username.
