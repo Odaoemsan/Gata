@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Settings, LogOut, LayoutDashboard, Rocket, Users, Wallet, CircleDollarSign } from 'lucide-react';
+import { Settings, LogOut, LayoutDashboard, Rocket, Users, Wallet, CircleDollarSign, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
@@ -78,6 +78,7 @@ export default function DashboardLayout({
   const { user, userData } = useUser();
   const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
+  const ADMIN_EMAIL = 'odae.oth@gmail.com';
 
   const handleSignOut = async () => {
     if (!firebaseApp) return;
@@ -118,6 +119,16 @@ export default function DashboardLayout({
         </SidebarContent>
         <SidebarFooter>
            <SidebarMenu>
+            {user?.email === ADMIN_EMAIL && (
+                <SidebarMenuItem>
+                    <Link href="/admin" legacyBehavior passHref>
+                        <SidebarMenuButton tooltip="Admin Panel">
+                            <Shield />
+                            <span className="group-data-[collapsible=icon]:hidden">Admin Panel</span>
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+            )}
              <SidebarMenuItem>
                 <Link href="/dashboard/settings" legacyBehavior passHref>
                     <SidebarMenuButton tooltip="Settings">
