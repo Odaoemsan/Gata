@@ -102,9 +102,21 @@
         "transactionId": {
           "type": "string",
           "description": "The blockchain transaction ID for deposit verification."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who initiated the transaction."
+        },
+        "userDisplayName": {
+          "type": "string",
+          "description": "The display name of the user for admin convenience."
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "The email of the user for admin convenience."
         }
       },
-      "required": ["type", "amount", "date", "status"]
+      "required": ["type", "amount", "date", "status", "userId"]
     },
     "ActiveInvestment": {
       "title": "Active Investment",

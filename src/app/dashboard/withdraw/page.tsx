@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { collection, addDoc, serverTimestamp, type DocumentReference } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -67,9 +67,17 @@ export default function WithdrawPage() {
             date: serverTimestamp(),
         };
 
-        const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
+        const batch = writeBatch(firestore);
         
-        addDoc(transactionsRef, newTransaction)
+        const userRef = doc(firestore, 'users', user.uid);
+        const newBalance = typedUserData.balance - values.amount;
+        batch.update(userRef, { balance: newBalance });
+
+        const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);
+        const newTransactionRef = doc(transactionsRef);
+        batch.set(newTransactionRef, newTransaction);
+        
+        batch.commit()
             .then(() => {
                 toast({
                     title: 'Withdrawal Request Submitted',

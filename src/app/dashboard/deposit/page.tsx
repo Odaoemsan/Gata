@@ -9,10 +9,11 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { DollarSign, Copy, Loader2, Hash } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
-import { collection, addDoc, serverTimestamp, type DocumentReference } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import type { User } from '@/lib/types';
 
 const usdtWallet = {
     name: 'Tether (USDT TRC20)',
@@ -21,11 +22,12 @@ const usdtWallet = {
 
 export default function DepositPage() {
     const { toast } = useToast();
-    const { user } = useUser();
+    const { user, userData } = useUser();
     const firestore = useFirestore();
     const [amount, setAmount] = useState('');
     const [transactionId, setTransactionId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const typedUserData = userData as User | null;
 
     const handleCopy = (address: string) => {
         navigator.clipboard.writeText(address);
@@ -36,7 +38,7 @@ export default function DepositPage() {
     };
 
     const handleDepositRequest = () => {
-        if (!user || !amount || !transactionId) {
+        if (!user || !typedUserData || !amount || !transactionId) {
             toast({ variant: 'destructive', title: 'Error', description: 'Please fill in all fields.' });
             return;
         }
@@ -53,6 +55,9 @@ export default function DepositPage() {
             status: 'pending' as const,
             date: serverTimestamp(),
             transactionId: transactionId,
+            userId: user.uid,
+            userDisplayName: typedUserData.displayName,
+            userEmail: typedUserData.email
         };
 
         const transactionsRef = collection(firestore, `users/${user.uid}/transactions`);

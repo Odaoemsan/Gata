@@ -1,4 +1,5 @@
 
+
 export interface User {
     id: string;
     displayName: string;
@@ -9,7 +10,7 @@ export interface User {
     totalWithdrawals: number;
     createdAt: any; // Using `any` for Firebase Timestamp for simplicity
     referredBy?: string;
-    referralCommissions?: number;
+    referralCommissions: number;
 }
 
 export interface Transaction {
@@ -20,6 +21,9 @@ export interface Transaction {
     status: 'pending' | 'completed' | 'failed';
     walletAddress?: string;
     transactionId?: string; // For deposit verification
+    userId?: string; // Added to identify the user for admin queries
+    userDisplayName?: string; // Added for display in admin panel
+    userEmail?: string; // Added for display in admin panel
 }
 
 export interface InvestmentPlan {

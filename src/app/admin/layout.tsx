@@ -32,15 +32,15 @@ function AdminBottomNavBar() {
   const navItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/plans', icon: Package, label: 'Plans' },
-    { href: '/admin/users', icon: Users, label: 'Users' },
     { href: '/admin/transactions', icon: Wallet, label: 'Transactions' },
+    { href: '/admin/users', icon: Users, label: 'Users' },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-sm md:hidden">
       <div className="grid h-16 grid-cols-4 items-center justify-around">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname.startsWith(item.href) && (item.href !== '/admin' || pathname === '/admin');
           return (
             <Link href={item.href} key={item.href} className="flex justify-center">
               <div className={cn(
@@ -113,6 +113,7 @@ export default function AdminLayout({
   const menuItems = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/plans', icon: Package, label: 'Manage Plans' },
+    { href: '/admin/transactions', icon: Wallet, label: 'Transactions' },
     // Add other admin links here
   ];
 

@@ -26,7 +26,6 @@ service cloud.firestore {
                     && request.resource.data.totalDeposits == 0
                     && request.resource.data.totalWithdrawals == 0
                     && request.resource.data.referralCommissions == 0
-                    && request.resource.data.keys().hasAll(['displayName', 'username', 'email', 'balance', 'totalDeposits', 'totalWithdrawals', 'referralCommissions', 'createdAt'])
                     && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
       // Only the owner or an admin can read the profile.
@@ -53,14 +52,16 @@ service cloud.firestore {
                           && request.resource.data.status == 'pending'
                           && request.resource.data.date == request.time
                           && request.resource.data.transactionId is string
-                          && request.resource.data.keys().hasAll(['type', 'amount', 'status', 'date', 'transactionId'])) ||
+                          && request.resource.data.userId == userId
+                          && request.resource.data.keys().hasAll(['type', 'amount', 'status', 'date', 'transactionId', 'userId', 'userDisplayName', 'userEmail'])) ||
                         // Withdrawal transaction validation
                         (request.resource.data.type == 'withdrawal'
                           && request.resource.data.amount is number
                           && request.resource.data.walletAddress is string
                           && request.resource.data.status == 'pending'
                           && request.resource.data.date == request.time
-                          && request.resource.data.keys().hasAll(['type', 'amount', 'walletAddress', 'status', 'date']))
+                          && request.resource.data.userId == userId
+                          && request.resource.data.keys().hasAll(['type', 'amount', 'walletAddress', 'status', 'date', 'userId', 'userDisplayName', 'userEmail']))
                       );
         
         // Admins can update status, but users cannot.
