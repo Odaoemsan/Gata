@@ -77,7 +77,7 @@ export default function TeamPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     
-    const [teamStats, setTeamStats] = useState<{ teamSize: number; teamTotalDeposits: number; totalCommissions: number } | null>(null);
+    const [teamStats, setTeamStats] = useState<{ teamTotalDeposits: number } | null>(null);
     const [teamLoading, setTeamLoading] = useState(true);
 
     const typedUserData = userData as User | null;
@@ -163,16 +163,7 @@ export default function TeamPage() {
                 </CardContent>
             </Card>
 
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">Team Members</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        {teamLoading ? <Skeleton className="h-8 w-1/4" /> : <div className="text-2xl font-bold">{teamStats?.teamSize ?? 0}</div>}
-                    </CardContent>
-                </Card>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
                      <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium">Team Deposits</CardTitle>
@@ -188,7 +179,7 @@ export default function TeamPage() {
                         <Medal className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                       {teamLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold text-green-500">{formatCurrency(teamStats?.totalCommissions)}</div>}
+                       {userLoading ? <Skeleton className="h-8 w-1/3" /> : <div className="text-2xl font-bold text-green-500">{formatCurrency(typedUserData?.referralCommissions)}</div>}
                     </CardContent>
                 </Card>
             </div>

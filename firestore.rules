@@ -31,7 +31,7 @@ service cloud.firestore {
       
       allow get: if isOwner(userId) || isAdmin();
       
-      allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'balance', 'totalDeposits', 'totalWithdrawals'])) || 
+      allow update: if (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username', 'balance', 'totalDeposits', 'totalWithdrawals', 'referralCommissions'])) || 
                      (isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'username']));
 
       allow delete: if false;
@@ -58,7 +58,7 @@ service cloud.firestore {
     }
 
     // This collection is a lookup table to enforce username uniqueness.
-    // It should be kept in sync with the users collection via a Cloud Function.
+    // It should be kept in sync with a Cloud Function.
     // Disabling client-side checks for now.
     match /users_by_username/{username} {
         allow read, write: if false; 

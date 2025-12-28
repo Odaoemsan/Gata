@@ -5,16 +5,15 @@ import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
-const COMMISSION_RATE = 0.07; // 7%
 
 /**
- * Calculates team size, total deposits, and commissions for the calling user.
+ * Calculates team size and total deposits for the calling user.
  * The function identifies the user via their auth context, finds their referral code,
  * queries for users referred by that code, and calculates the stats.
  *
  * @param {object} data - The data passed to the function (not used).
  * @param {functions.https.CallableContext} context - The context of the function call, contains auth info.
- * @returns {Promise<{teamSize: number, teamTotalDeposits: number, totalCommissions: number}>}
+ * @returns {Promise<{teamTotalDeposits: number}>}
  */
 export const getTeamStats = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -37,14 +36,14 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
     const referralCode = userData?.referralCode;
 
     if (!referralCode || typeof referralCode !== "string") {
-      return { teamSize: 0, teamTotalDeposits: 0, totalCommissions: 0 };
+      return { teamTotalDeposits: 0 };
     }
 
     // This query requires a single-field index on 'referredBy'.
     const snapshot = await db.collection("users").where("referredBy", "==", referralCode).get();
 
     if (snapshot.empty) {
-      return { teamSize: 0, teamTotalDeposits: 0, totalCommissions: 0 };
+      return { teamTotalDeposits: 0 };
     }
 
     let teamTotalDeposits = 0;
@@ -55,12 +54,8 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
       }
     });
 
-    const totalCommissions = teamTotalDeposits * COMMISSION_RATE;
-
     return {
-      teamSize: snapshot.size,
       teamTotalDeposits: teamTotalDeposits,
-      totalCommissions: totalCommissions
     };
   } catch (error: any) {
     console.error("Error fetching team stats for user:", userId, error);
