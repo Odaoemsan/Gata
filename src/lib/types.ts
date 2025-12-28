@@ -1,4 +1,5 @@
 
+
 export interface User {
     id: string;
     displayName: string;
@@ -12,12 +13,13 @@ export interface User {
     referralCode: string;
     referralCommissions: number;
     rankName?: string;
+    lastTradeTime?: any;
 }
 
 // Represents a historical transaction record.
 export interface Transaction {
     id: string;
-    type: 'deposit' | 'withdrawal' | 'commission' | 'task_reward';
+    type: 'deposit' | 'withdrawal' | 'commission' | 'task_reward' | 'daily_profit';
     amount: number;
     date: any; 
     status: 'completed' | 'failed' | 'pending';
@@ -60,6 +62,7 @@ export interface ActiveInvestment {
     startDate: any;
     endDate: any;
     status: 'active' | 'completed';
+    dailyProfit: number;
 }
 
 export interface Rank {

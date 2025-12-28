@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LayoutDashboard, Rocket, Users, Wallet, CircleDollarSign, Shield } from 'lucide-react';
+import { LayoutDashboard, Rocket, Users, Wallet, CircleDollarSign, Shield, ListTodo } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
@@ -26,7 +26,7 @@ function BottomNavBar() {
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
     { href: '/dashboard/invest', icon: Rocket, label: 'Invest' },
-    { href: '/dashboard/earnings', icon: CircleDollarSign, label: 'Earnings', isCentral: true },
+    { href: '/dashboard/daily-profit', icon: CircleDollarSign, label: 'Daily Profit', isCentral: true },
     { href: '/dashboard/team', icon: Users, label: 'Team' },
     { href: '/dashboard/wallet', icon: Wallet, label: 'Wallet' },
   ];
@@ -79,7 +79,7 @@ export default function DashboardLayout({
       { href: '/dashboard/my-investments', icon: Rocket, label: 'My Investments' },
       { href: '/dashboard/wallet', icon: Wallet, label: 'My Wallet' },
       { href: '/dashboard/team', icon: Users, label: 'Team & Tasks' },
-      { href: '/dashboard/earnings', icon: CircleDollarSign, label: 'Earnings' },
+      { href: '/dashboard/daily-profit', icon: CircleDollarSign, label: 'Daily Profit' },
   ];
 
   return (

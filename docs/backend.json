@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "User": {
@@ -51,6 +52,11 @@
         "rankName": {
             "type": "string",
             "description": "The name of the user's current rank."
+        },
+        "lastTradeTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp of the user's last daily profit trade."
         }
       },
       "required": ["displayName", "username", "email", "balance", "totalDeposits", "totalWithdrawals", "referralCommissions", "referralCode"]
@@ -103,7 +109,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["deposit", "withdrawal", "commission", "task_reward"],
+          "enum": ["deposit", "withdrawal", "commission", "task_reward", "daily_profit"],
           "description": "The type of transaction."
         },
         "amount": {
@@ -224,9 +230,13 @@
             "type": "string",
             "enum": ["active", "completed"],
             "description": "The status of the investment."
+        },
+        "dailyProfit": {
+          "type": "number",
+          "description": "The daily profit percentage for this specific investment."
         }
       },
-      "required": ["planId", "planName", "amount", "startDate", "endDate", "status"]
+      "required": ["planId", "planName", "amount", "startDate", "endDate", "status", "dailyProfit"]
     },
     "Rank": {
       "title": "Rank",
@@ -366,3 +376,4 @@
     }
   }
 }
+

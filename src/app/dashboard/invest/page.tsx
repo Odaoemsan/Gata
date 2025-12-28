@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { collection, query, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { collection, query, doc, writeBatch, serverTimestamp, increment } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -129,11 +130,12 @@ export default function InvestPage() {
             startDate: investmentStartDate,
             endDate: investmentEndDate,
             status: 'active',
+            dailyProfit: selectedPlan.dailyProfit,
         };
 
         const batch = writeBatch(firestore);
         
-        batch.update(userRef, { balance: newBalance });
+        batch.update(userRef, { balance: increment(-investmentAmount) });
         batch.set(newInvestmentRef, newInvestment);
 
         batch.commit()
@@ -149,9 +151,10 @@ export default function InvestPage() {
                  const permissionError = new FirestorePermissionError({
                     path: userRef.path,
                     operation: 'update',
-                    requestResourceData: { balance: newBalance, investmentAmount: investmentAmount },
+                    requestResourceData: { balance: newBalance },
                 });
                 errorEmitter.emit('permission-error', permissionError);
+                toast({ variant: "destructive", title: "Error", description: "Failed to process investment."});
             })
             .finally(() => {
                 setIsLoading(false);
@@ -174,7 +177,7 @@ export default function InvestPage() {
                                     <div className="flex items-center gap-4">
                                         {planIcons[plan.name.toLowerCase()] || planIcons.default}
                                         <div>
-                                            <CardTitle className="text-xl font-headline">{plan.name}</CardTitle>
+                                            <CardTitle className="font-headline text-xl">{plan.name}</CardTitle>
                                             <CardDescription>Min/Max: {plan.minMax}</CardDescription>
                                         </div>
                                     </div>
@@ -243,3 +246,4 @@ export default function InvestPage() {
     
 
     
+
