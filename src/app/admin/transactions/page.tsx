@@ -105,8 +105,16 @@ export default function TransactionsPage() {
         const withdrawalsQuery = query(collection(firestore, 'pendingWithdrawals'));
 
         const [depositsSnapshot, withdrawalsSnapshot] = await Promise.all([
-            getDocs(depositsQuery),
-            getDocs(withdrawalsQuery)
+            getDocs(depositsQuery).catch(error => {
+                 const permissionError = new FirestorePermissionError({ path: 'pendingDeposits', operation: 'list' });
+                 errorEmitter.emit('permission-error', permissionError);
+                 throw error;
+            }),
+            getDocs(withdrawalsQuery).catch(error => {
+                 const permissionError = new FirestorePermissionError({ path: 'pendingWithdrawals', operation: 'list' });
+                 errorEmitter.emit('permission-error', permissionError);
+                 throw error;
+            })
         ]);
 
         const pendingDeposits = depositsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PendingTransaction));
@@ -115,9 +123,8 @@ export default function TransactionsPage() {
         setDeposits(pendingDeposits);
         setWithdrawals(pendingWithdrawals);
     } catch (error: any) {
-        const permissionError = new FirestorePermissionError({ path: 'pendingDeposits/pendingWithdrawals', operation: 'list' });
-        errorEmitter.emit('permission-error', permissionError);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch pending transactions. Check permissions.' });
+        console.error("Failed to fetch pending transactions:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch pending transactions. Check console and security rules.' });
     } finally {
         setLoading(false);
     }
@@ -125,8 +132,10 @@ export default function TransactionsPage() {
 
   
   useEffect(() => {
-    fetchPendingTransactions();
-  }, [fetchPendingTransactions]);
+    if (firestore) {
+        fetchPendingTransactions();
+    }
+  }, [firestore, fetchPendingTransactions]);
 
 
   const handleCopy = (text: string) => {
@@ -251,11 +260,11 @@ export default function TransactionsPage() {
         <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="deposits">
                 Deposit Requests 
-                <Badge className="ml-2">{loading ? '...' : deposits.length}</Badge>
+                <Badge className="ml-2">{loading ? <Loader2 className="h-3 w-3 animate-spin"/> : deposits.length}</Badge>
             </TabsTrigger>
             <TabsTrigger value="withdrawals">
                 Withdrawal Requests
-                <Badge className="ml-2">{loading ? '...' : withdrawals.length}</Badge>
+                <Badge className="ml-2">{loading ? <Loader2 className="h-3 w-3 animate-spin"/> : withdrawals.length}</Badge>
             </TabsTrigger>
         </TabsList>
         <TabsContent value="deposits" className="mt-4">
