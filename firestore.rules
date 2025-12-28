@@ -31,7 +31,7 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       
       // Admins can update any field. 
-      // Users can update their balance (this might be too broad, consider restricting)
+      // Users can update their own profile.
       allow update: if isAdmin() || isOwner(userId);
 
       // No one can delete a user profile for now.
@@ -39,7 +39,7 @@ service cloud.firestore {
 
       // Transactions subcollection
       match /transactions/{transactionId} {
-        // The owner can list and read their own transactions.
+        // The owner can list and read their own transactions. Admins can read any.
         allow list, get: if isOwner(userId) || isAdmin();
 
         // The owner can create transactions with valid data.
@@ -59,7 +59,7 @@ service cloud.firestore {
                           && request.resource.data.walletAddress is string
                           && request.resource.data.status == 'pending'
                           && request.resource.data.date == request.time) ||
-                        // Task reward transaction validation
+                        // Task reward transaction validation (only by admin logic)
                         (request.resource.data.type == 'task_reward' && isAdmin())
                       );
         
@@ -72,7 +72,7 @@ service cloud.firestore {
 
       // Active Investments subcollection
       match /activeInvestments/{investmentId} {
-        // Owner can read their own investments
+        // Owner can read their own investments. Admins can read any.
         allow list, get: if isOwner(userId) || isAdmin();
 
         // Owner can create a new investment if the data is valid
@@ -132,3 +132,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
