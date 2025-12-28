@@ -12,17 +12,21 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Settings, LogOut, LayoutDashboard, Shield, Package, Users, Wallet, Award, ListTodo } from 'lucide-react';
+import { Settings, LogOut, LayoutDashboard, Shield, Package, Users, Wallet, Award, ListTodo, LifeBuoy } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
 import { getAuth, signOut } from 'firebase/auth';
-import { useFirebaseApp } from '@/firebase/provider';
+import { useFirebaseApp, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { doc } from 'firebase/firestore';
+import type { AppSettings } from '@/lib/types';
+
 
 function AdminBottomNavBar() {
   const pathname = usePathname();
@@ -64,11 +68,19 @@ export default function AdminLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, userData, loading } = useUser();
+  const { user, loading } = useUser();
   const firebaseApp = useFirebaseApp();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const ADMIN_EMAIL = 'odae.oth@gmail.com';
   const isAuthorized = user?.email === ADMIN_EMAIL;
+  
+  const settingsDocRef = useMemo(() => {
+    if (!firestore) return;
+    return doc(firestore, 'settings', 'global');
+  }, [firestore]);
+
+  const { data: settings } = useDoc<AppSettings>(settingsDocRef);
 
 
   useEffect(() => {
@@ -152,6 +164,16 @@ export default function AdminLayout({
         </SidebarContent>
         <SidebarFooter>
            <SidebarMenu>
+             {settings?.supportLink && (
+                 <SidebarMenuItem>
+                    <a href={settings.supportLink} target="_blank" rel="noopener noreferrer">
+                        <SidebarMenuButton tooltip="Support Team">
+                            <LifeBuoy />
+                            <span className="group-data-[collapsible=icon]:hidden">Support Team</span>
+                        </SidebarMenuButton>
+                    </a>
+                </SidebarMenuItem>
+            )}
              <SidebarMenuItem>
                 <Link href="/dashboard" legacyBehavior passHref>
                     <SidebarMenuButton tooltip="Back to App">

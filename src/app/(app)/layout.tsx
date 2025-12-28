@@ -139,16 +139,6 @@ export default function DashboardLayout({
                     </Link>
                 </SidebarMenuItem>
             )}
-            {settings?.supportLink && (
-                 <SidebarMenuItem>
-                    <a href={settings.supportLink} target="_blank" rel="noopener noreferrer">
-                        <SidebarMenuButton tooltip="Support Team">
-                            <LifeBuoy />
-                            <span className="group-data-[collapsible=icon]:hidden">Support Team</span>
-                        </SidebarMenuButton>
-                    </a>
-                </SidebarMenuItem>
-            )}
              <SidebarMenuItem>
                 <Link href="/dashboard/settings" legacyBehavior passHref>
                     <SidebarMenuButton tooltip="Settings">

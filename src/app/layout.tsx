@@ -3,8 +3,6 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseProvider } from '@/firebase';
 import { Inter, Poppins } from 'next/font/google'
-import DashboardLayout from './dashboard/layout';
-import { usePathname } from 'next/navigation';
 
 const inter = Inter({
   subsets: ['latin'],
