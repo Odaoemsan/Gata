@@ -63,33 +63,43 @@ function TeamAndRanks() {
     };
 
     const handleRankCheck = async () => {
-        if (!ranks || !user || !typedUserData || ranksLoading || teamLoading) return;
+        if (!ranks || !user || !typedUserData || !firestore || ranksLoading || teamLoading) return;
         
         setIsRankCheckLoading(true);
 
-        try {
-            const sortedRanks = ranks.sort((a, b) => b.requiredInvestment - a.requiredInvestment);
-            const currentRank = sortedRanks.find(rank => teamTotalDeposits >= rank.requiredInvestment);
-            const currentRankName = currentRank?.name || null;
+        const sortedRanks = ranks.sort((a, b) => b.requiredInvestment - a.requiredInvestment);
+        const currentRank = sortedRanks.find(rank => teamTotalDeposits >= rank.requiredInvestment);
+        const currentRankName = currentRank?.name || null;
 
-            if (typedUserData.rankName !== currentRankName) {
-                const userRef = doc(firestore, 'users', user.uid);
-                await updateDoc(userRef, { rankName: currentRankName });
+        if (typedUserData.rankName !== currentRankName) {
+            const userRef = doc(firestore, 'users', user.uid);
+            const rankData = { rankName: currentRankName };
+            
+            updateDoc(userRef, rankData)
+                .then(() => {
+                     toast({
+                        title: 'Rank Updated!',
+                        description: currentRankName ? `Congratulations! You are now rank: ${currentRankName}` : 'Your rank has been updated.',
+                    });
+                })
+                .catch((error) => {
+                    const permissionError = new FirestorePermissionError({
+                        path: userRef.path,
+                        operation: 'update',
+                        requestResourceData: rankData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    toast({ variant: 'destructive', title: 'Error', description: 'Could not update your rank.' });
+                })
+                .finally(() => {
+                    setIsRankCheckLoading(false);
+                });
+
+        } else {
                 toast({
-                    title: 'Rank Updated!',
-                    description: currentRankName ? `Congratulations! You are now rank: ${currentRankName}` : 'Your rank has been updated.',
-                });
-            } else {
-                 toast({
-                    title: 'Rank Status',
-                    description: currentRankName ? `You are currently rank: ${currentRankName}. Keep it up!` : "You haven't qualified for a rank yet.",
-                });
-            }
-
-        } catch (error) {
-            console.error("Error updating rank:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not update your rank.' });
-        } finally {
+                title: 'Rank Status',
+                description: currentRankName ? `You are currently rank: ${currentRankName}. Keep it up!` : "You haven't qualified for a rank yet.",
+            });
             setIsRankCheckLoading(false);
         }
     };
