@@ -32,8 +32,8 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
   try {
     const db = admin.firestore();
     const usersRef = db.collection("users");
-    // The query uses 'referredBy' which should contain the referral code of the referrer.
-    const snapshot = await usersRef.where("referredBy", "==", referralCode).get();
+    // The query now uses 'referrerId' to match the manually created index.
+    const snapshot = await usersRef.where("referrerId", "==", referralCode).get();
 
     if (snapshot.empty) {
       return { teamSize: 0, teamTotalDeposits: 0 };
