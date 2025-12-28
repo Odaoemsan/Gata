@@ -73,7 +73,7 @@ function TaskCard({ task }: { task: Task }) {
 }
 
 export default function TeamPage() {
-    const { userData, user } = useUser();
+    const { userData, user, loading: userLoading } = useUser();
     const firebaseApp = useFirebaseApp();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -82,14 +82,22 @@ export default function TeamPage() {
     const [teamLoading, setTeamLoading] = useState(true);
 
     const typedUserData = userData as User | null;
-    const referralCode = typedUserData?.referralCode;
 
     useEffect(() => {
+        // Wait for user and typedUserData to be loaded
+        if (userLoading || !user || !typedUserData) {
+            // Keep showing loading indicator while user data is being fetched
+            setTeamLoading(true);
+            return;
+        }
+
+        const referralCode = typedUserData.referralCode;
+
         if (referralCode && firebaseApp) {
             const functions = getFunctions(firebaseApp);
             const getTeamStats = httpsCallable(functions, 'getTeamStats');
             
-            setTeamLoading(true);
+            // We already set teamLoading to true, no need to set it again
             getTeamStats({ referralCode })
                 .then((result: any) => {
                     setTeamStats(result.data);
@@ -97,7 +105,7 @@ export default function TeamPage() {
                 .catch((error: any) => {
                     console.error("Error calling getTeamStats function:", error);
                     let description = "Could not fetch team stats. Please try again later.";
-                    if (error.details?.code === 'failed-precondition') {
+                     if (error.details?.code === 'failed-precondition') {
                          description = "Database setup required. Please check server logs for an index creation link.";
                     }
                     toast({
@@ -109,11 +117,11 @@ export default function TeamPage() {
                 .finally(() => {
                     setTeamLoading(false);
                 });
-        } else if (typedUserData) {
-            // If there's user data but no referral code (or no app), stop loading.
+        } else {
+            // If there's no referral code, stop loading.
             setTeamLoading(false);
         }
-    }, [referralCode, firebaseApp, toast, typedUserData]);
+    }, [user, typedUserData, userLoading, firebaseApp, toast]);
 
 
     const tasksQuery = useMemo(() => {
@@ -124,8 +132,8 @@ export default function TeamPage() {
     const { data: tasks, loading: tasksLoading } = useCollection<Task>(tasksQuery);
 
     const handleCopy = () => {
-        if (!referralCode) return;
-        const referralLink = `${window.location.origin}/signup?ref=${referralCode}`;
+        if (!typedUserData?.referralCode) return;
+        const referralLink = `${window.location.origin}/signup?ref=${typedUserData.referralCode}`;
         navigator.clipboard.writeText(referralLink);
         toast({
             title: 'Copied!',
@@ -151,7 +159,7 @@ export default function TeamPage() {
                     <div className="relative">
                         <Input
                             readOnly
-                            value={`${process.env.NEXT_PUBLIC_BASE_URL || window.location.origin}/signup?ref=${referralCode}`}
+                            value={userLoading ? "Loading..." : `${process.env.NEXT_PUBLIC_BASE_URL || window.location.origin}/signup?ref=${typedUserData?.referralCode}`}
                             className="pr-12 text-sm md:text-base font-mono tracking-wide text-center"
                         />
                         <Button
@@ -159,7 +167,7 @@ export default function TeamPage() {
                             size="icon"
                             className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                             onClick={handleCopy}
-                            disabled={!referralCode}
+                            disabled={userLoading || !typedUserData?.referralCode}
                         >
                             <Copy className="h-4 w-4" />
                         </Button>
