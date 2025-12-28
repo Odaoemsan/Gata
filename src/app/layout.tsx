@@ -3,6 +3,9 @@ import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseProvider } from '@/firebase';
 import { Inter, Poppins } from 'next/font/google';
+import React from 'react';
+import { Header } from '@/components/layout/header';
+import { Footer } from '@/components/layout/footer';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -26,11 +29,43 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const isAuthPage = React.Children.toArray(children).some(
+    (child: any) =>
+      child.props.childProp?.segment === 'login' ||
+      child.props.childProp?.segment === 'signup'
+  );
+  
+   const isDashboard = React.Children.toArray(children).some(
+    (child: any) =>
+      child.props.childProp?.segment === 'dashboard' ||
+       child.props.childProp?.segment === 'admin'
+  );
+
+
+  if (isAuthPage || isDashboard) {
+     return (
+        <html lang="en" suppressHydrationWarning>
+          <body className={`${inter.variable} ${poppins.variable} font-body antialiased`}>
+            <FirebaseProvider>
+              {children}
+              <Toaster />
+            </FirebaseProvider>
+          </body>
+        </html>
+      );
+  }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${poppins.variable} font-body antialiased`}>
         <FirebaseProvider>
-          {children}
+          <div className="flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow container mx-auto px-4 py-8">
+              {children}
+            </main>
+            <Footer />
+          </div>
           <Toaster />
         </FirebaseProvider>
       </body>
