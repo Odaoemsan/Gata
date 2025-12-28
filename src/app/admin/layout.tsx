@@ -12,20 +12,16 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Settings, LogOut, LayoutDashboard, Shield, Package, Users, Wallet, Award, ListTodo, LifeBuoy } from 'lucide-react';
+import { Settings, LayoutDashboard, Shield, Package, Users, Wallet, Award, ListTodo } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
-import { getAuth, signOut } from 'firebase/auth';
-import { useFirebaseApp, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useDoc } from '@/firebase/firestore/use-doc';
-import { doc } from 'firebase/firestore';
-import type { AppSettings } from '@/lib/types';
+import { CommonSidebarFooter } from '@/components/layout/common-sidebar-footer';
 
 
 function AdminBottomNavBar() {
@@ -44,13 +40,14 @@ function AdminBottomNavBar() {
       <div className="grid h-16 grid-cols-6 items-center justify-around">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href) && (item.href !== '/admin' || pathname === '/admin');
+          const Icon = item.icon;
           return (
             <Link href={item.href} key={item.href} className="flex justify-center">
               <div className={cn(
                 "flex flex-col items-center gap-1 p-2 rounded-md transition-colors",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}>
-                <item.icon className="h-5 w-5" />
+                <Icon className="h-5 w-5" />
                 <span className="text-[10px] font-medium">{item.label}</span>
               </div>
             </Link>
@@ -69,20 +66,10 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading } = useUser();
-  const firebaseApp = useFirebaseApp();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const ADMIN_EMAIL = 'odae.oth@gmail.com';
   const isAuthorized = user?.email === ADMIN_EMAIL;
   
-  const settingsDocRef = useMemo(() => {
-    if (!firestore) return;
-    return doc(firestore, 'settings', 'global');
-  }, [firestore]);
-
-  const { data: settings } = useDoc<AppSettings>(settingsDocRef);
-
-
   useEffect(() => {
     if (!loading && !isAuthorized) {
       toast({
@@ -94,26 +81,6 @@ export default function AdminLayout({
     }
   }, [isAuthorized, loading, router, toast]);
 
-
-  const handleSignOut = async () => {
-    if (!firebaseApp) return;
-    const auth = getAuth(firebaseApp);
-    try {
-      await signOut(auth);
-      toast({
-        title: 'Signed Out',
-        description: 'You have been successfully signed out.',
-      });
-      router.push('/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to sign out. Please try again.',
-      });
-    }
-  };
   
   if (loading || !isAuthorized) {
     return (
@@ -131,7 +98,6 @@ export default function AdminLayout({
     { href: '/admin/users', icon: Users, label: 'Manage Users' },
     { href: '/admin/ranks', icon: Award, label: 'Manage Ranks' },
     { href: '/admin/tasks', icon: ListTodo, label: 'Manage Tasks' },
-    { href: '/admin/settings', icon: Settings, label: 'Settings' },
   ];
 
   return (
@@ -153,7 +119,7 @@ export default function AdminLayout({
             {menuItems.map(item => (
                 <SidebarMenuItem key={item.href}>
                     <Link href={item.href} legacyBehavior passHref>
-                        <SidebarMenuButton tooltip={item.label} isActive={pathname === item.href}>
+                        <SidebarMenuButton tooltip={item.label} isActive={pathname.startsWith(item.href) && (item.href !== '/admin' || pathname === '/admin')}>
                             <item.icon />
                             <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                         </SidebarMenuButton>
@@ -163,17 +129,7 @@ export default function AdminLayout({
            </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-           <SidebarMenu>
-             {settings?.supportLink && (
-                 <SidebarMenuItem>
-                    <a href={settings.supportLink} target="_blank" rel="noopener noreferrer">
-                        <SidebarMenuButton tooltip="Support Team">
-                            <LifeBuoy />
-                            <span className="group-data-[collapsible=icon]:hidden">Support Team</span>
-                        </SidebarMenuButton>
-                    </a>
-                </SidebarMenuItem>
-            )}
+           <CommonSidebarFooter settingsPath="/admin/settings">
              <SidebarMenuItem>
                 <Link href="/dashboard" legacyBehavior passHref>
                     <SidebarMenuButton tooltip="Back to App">
@@ -182,13 +138,7 @@ export default function AdminLayout({
                     </SidebarMenuButton>
                 </Link>
              </SidebarMenuItem>
-             <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
-                    <LogOut />
-                    <span className="group-data-[collapsible=icon]:hidden">Sign Out</span>
-                </SidebarMenuButton>
-             </SidebarMenuItem>
-           </SidebarMenu>
+           </CommonSidebarFooter>
         </SidebarFooter>
       </Sidebar>
       <div className="flex flex-col min-h-screen">

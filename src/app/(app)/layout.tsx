@@ -12,18 +12,13 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Settings, LogOut, LayoutDashboard, Rocket, Users, Wallet, CircleDollarSign, Shield, LifeBuoy } from 'lucide-react';
+import { LayoutDashboard, Rocket, Users, Wallet, CircleDollarSign, Shield } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
-import { getAuth, signOut } from 'firebase/auth';
-import { useFirebaseApp, useFirestore } from '@/firebase';
-import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import React, { useMemo } from 'react';
-import type { AppSettings } from '@/lib/types';
-import { useDoc } from '@/firebase/firestore/use-doc';
-import { doc } from 'firebase/firestore';
+import React from 'react';
+import { CommonSidebarFooter } from '@/components/layout/common-sidebar-footer';
 
 
 function BottomNavBar() {
@@ -75,40 +70,8 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-
-  const router = useRouter();
   const { user, userData } = useUser();
-  const firebaseApp = useFirebaseApp();
-  const firestore = useFirestore();
-  const { toast } = useToast();
   const ADMIN_EMAIL = 'odae.oth@gmail.com';
-
-  const settingsDocRef = useMemo(() => {
-    if (!firestore) return;
-    return doc(firestore, 'settings', 'global');
-  }, [firestore]);
-
-  const { data: settings } = useDoc<AppSettings>(settingsDocRef);
-  
-  const handleSignOut = async () => {
-    if (!firebaseApp) return;
-    const auth = getAuth(firebaseApp);
-    try {
-      await signOut(auth);
-      toast({
-        title: 'Signed Out',
-        description: 'You have been successfully signed out.',
-      });
-      router.push('/login');
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to sign out. Please try again.',
-      });
-    }
-  };
 
   return (
     <SidebarProvider>
@@ -128,8 +91,8 @@ export default function DashboardLayout({
            {/* Navigation links for desktop can be added here */}
         </SidebarContent>
         <SidebarFooter>
-           <SidebarMenu>
-            {user?.email === ADMIN_EMAIL && (
+           <CommonSidebarFooter settingsPath="/dashboard/settings">
+              {user?.email === ADMIN_EMAIL && (
                 <SidebarMenuItem>
                     <Link href="/admin" legacyBehavior passHref>
                         <SidebarMenuButton tooltip="Admin Panel">
@@ -138,32 +101,8 @@ export default function DashboardLayout({
                         </SidebarMenuButton>
                     </Link>
                 </SidebarMenuItem>
-            )}
-             <SidebarMenuItem>
-                <Link href="/dashboard/settings" legacyBehavior passHref>
-                    <SidebarMenuButton tooltip="Settings">
-                        <Settings />
-                        <span className="group-data-[collapsible=icon]:hidden">Settings</span>
-                    </SidebarMenuButton>
-                </Link>
-             </SidebarMenuItem>
-             {settings?.supportLink && (
-                 <SidebarMenuItem>
-                    <a href={settings.supportLink} target="_blank" rel="noopener noreferrer">
-                        <SidebarMenuButton tooltip="Support Team">
-                            <LifeBuoy />
-                            <span className="group-data-[collapsible=icon]:hidden">Support Team</span>
-                        </SidebarMenuButton>
-                    </a>
-                </SidebarMenuItem>
-            )}
-             <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
-                    <LogOut />
-                    <span className="group-data-[collapsible=icon]:hidden">Sign Out</span>
-                </SidebarMenuButton>
-             </SidebarMenuItem>
-           </SidebarMenu>
+              )}
+           </CommonSidebarFooter>
         </SidebarFooter>
       </Sidebar>
       <div className="flex flex-col min-h-screen">
