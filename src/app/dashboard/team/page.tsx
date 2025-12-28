@@ -115,6 +115,8 @@ export default function TeamPage() {
 
       if(referralCode && app) {
         fetchTeamSize();
+      } else if (!referralCode && !teamLoading) {
+         setTeamLoading(false);
       }
     }, [referralCode, app, toast]);
 

@@ -29,7 +29,7 @@ export const getTeamSize = functions.https.onCall(async (data, context) => {
     const snapshot = await usersRef.where("referredBy", "==", referralCode)
       .get();
 
-    return snapshot.size;
+    return { size: snapshot.size };
   } catch (error) {
     console.error("Error fetching team size:", error);
     throw new functions.https.HttpsError(
@@ -38,5 +38,3 @@ export const getTeamSize = functions.https.onCall(async (data, context) => {
     );
   }
 });
-
-    
