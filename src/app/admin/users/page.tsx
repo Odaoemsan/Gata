@@ -28,6 +28,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/formatters';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
 
 
 const userSchema = z.object({
@@ -85,7 +87,17 @@ export default function ManageUsersPage() {
 
         try {
             const userRef = doc(firestore, 'users', selectedUser.id);
-            await updateDoc(userRef, values);
+            await updateDoc(userRef, values)
+              .catch((error) => {
+                  const permissionError = new FirestorePermissionError({
+                      path: userRef.path,
+                      operation: 'update',
+                      requestResourceData: values,
+                  });
+                  errorEmitter.emit('permission-error', permissionError);
+                  throw error; // Re-throw to be caught by the outer try-catch
+              });
+
             toast({ title: "Success", description: "User profile updated successfully." });
             setDialogOpen(false);
         } catch (error) {
