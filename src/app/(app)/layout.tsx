@@ -147,6 +147,16 @@ export default function DashboardLayout({
                     </SidebarMenuButton>
                 </Link>
              </SidebarMenuItem>
+             {settings?.supportLink && (
+                 <SidebarMenuItem>
+                    <a href={settings.supportLink} target="_blank" rel="noopener noreferrer">
+                        <SidebarMenuButton tooltip="Support Team">
+                            <LifeBuoy />
+                            <span className="group-data-[collapsible=icon]:hidden">Support Team</span>
+                        </SidebarMenuButton>
+                    </a>
+                </SidebarMenuItem>
+            )}
              <SidebarMenuItem>
                 <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
                     <LogOut />
