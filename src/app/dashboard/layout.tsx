@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -13,15 +12,18 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Settings, LogOut, LayoutDashboard, Rocket, Users, Wallet, CircleDollarSign, Shield } from 'lucide-react';
+import { Settings, LogOut, LayoutDashboard, Rocket, Users, Wallet, CircleDollarSign, Shield, LifeBuoy } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
 import { getAuth, signOut } from 'firebase/auth';
-import { useFirebaseApp } from '@/firebase/provider';
+import { useFirebaseApp, useFirestore } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import React from 'react';
+import React, { useMemo } from 'react';
+import type { AppSettings } from '@/lib/types';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { doc } from 'firebase/firestore';
 
 
 function BottomNavBar() {
@@ -77,9 +79,17 @@ export default function DashboardLayout({
   const router = useRouter();
   const { user, userData } = useUser();
   const firebaseApp = useFirebaseApp();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const ADMIN_EMAIL = 'odae.oth@gmail.com';
 
+  const settingsDocRef = useMemo(() => {
+    if (!firestore) return;
+    return doc(firestore, 'settings', 'global');
+  }, [firestore]);
+
+  const { data: settings } = useDoc<AppSettings>(settingsDocRef);
+  
   const handleSignOut = async () => {
     if (!firebaseApp) return;
     const auth = getAuth(firebaseApp);
@@ -127,6 +137,16 @@ export default function DashboardLayout({
                             <span className="group-data-[collapsible=icon]:hidden">Admin Panel</span>
                         </SidebarMenuButton>
                     </Link>
+                </SidebarMenuItem>
+            )}
+            {settings?.supportLink && (
+                 <SidebarMenuItem>
+                    <a href={settings.supportLink} target="_blank" rel="noopener noreferrer">
+                        <SidebarMenuButton tooltip="Support Team">
+                            <LifeBuoy />
+                            <span className="group-data-[collapsible=icon]:hidden">Support Team</span>
+                        </SidebarMenuButton>
+                    </a>
                 </SidebarMenuItem>
             )}
              <SidebarMenuItem>

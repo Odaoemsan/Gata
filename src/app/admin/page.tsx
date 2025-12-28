@@ -1,8 +1,7 @@
-
 'use client';
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Award, ListTodo, Package, Users, Wallet } from "lucide-react";
+import { Award, ListTodo, Package, Settings, Users, Wallet } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminDashboardPage() {
@@ -13,6 +12,7 @@ export default function AdminDashboardPage() {
         { href: "/admin/users", title: "Manage Users", description: "View user details and manage balances.", icon: Users },
         { href: "/admin/ranks", title: "Manage Ranks", description: "Define rank requirements and commissions.", icon: Award },
         { href: "/admin/tasks", title: "Manage Tasks", description: "Create and review user tasks for rewards.", icon: ListTodo },
+        { href: "/admin/settings", title: "General Settings", description: "Manage global application settings.", icon: Settings },
     ];
 
     return (

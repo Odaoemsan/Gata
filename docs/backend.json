@@ -51,6 +51,23 @@
       },
       "required": ["displayName", "username", "email", "balance", "totalDeposits", "totalWithdrawals", "referralCommissions", "referralCode"]
     },
+     "AppSettings": {
+      "title": "App Settings",
+      "description": "Stores global application settings.",
+      "type": "object",
+      "properties": {
+        "supportLink": {
+          "type": "string",
+          "format": "uri",
+          "description": "The URL for the support team link."
+        },
+        "depositWalletAddress": {
+          "type": "string",
+          "description": "The primary crypto wallet address for all user deposits."
+        }
+      },
+      "required": ["supportLink", "depositWalletAddress"]
+    },
     "InvestmentPlan": {
       "title": "Investment Plan",
       "description": "Represents an investment plan.",
@@ -303,6 +320,10 @@
     "providers": ["password"]
   },
   "firestore": {
+     "/settings/global": {
+      "schema": { "$ref": "#/entities/AppSettings" },
+      "description": "Stores global application settings like support link and deposit wallet address."
+    },
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/User" },
       "description": "Stores user profile information."
@@ -341,5 +362,3 @@
     }
   }
 }
-
-    

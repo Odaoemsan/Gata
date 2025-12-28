@@ -31,7 +31,7 @@ function AdminBottomNavBar() {
     { href: '/admin/plans', icon: Package, label: 'Plans' },
     { href: '/admin/transactions', icon: Wallet, label: 'Transactions' },
     { href: '/admin/users', icon: Users, label: 'Users' },
-    { href: '/admin/ranks', icon: Award, label: 'Ranks' },
+    { href: '/admin/settings', icon: Settings, label: 'Settings' },
     { href: '/admin/tasks', icon: ListTodo, label: 'Tasks' },
   ];
 
@@ -119,6 +119,7 @@ export default function AdminLayout({
     { href: '/admin/users', icon: Users, label: 'Manage Users' },
     { href: '/admin/ranks', icon: Award, label: 'Manage Ranks' },
     { href: '/admin/tasks', icon: ListTodo, label: 'Manage Tasks' },
+    { href: '/admin/settings', icon: Settings, label: 'Settings' },
   ];
 
   return (

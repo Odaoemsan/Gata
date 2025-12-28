@@ -1,24 +1,31 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, Copy, Loader2, Hash } from 'lucide-react';
+import { DollarSign, Copy, Loader2, Hash, AlertCircle } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import type { User, PendingTransaction } from '@/lib/types';
+import type { User, PendingTransaction, AppSettings } from '@/lib/types';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const usdtWallet = {
-    name: 'Tether (USDT TRC20)',
-    address: 'TXYZ12345AbcdeFGHiJkLmnOPqrstUVwxyZ12345',
-};
+function WalletInfoSkeleton() {
+    return (
+        <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
+            <Skeleton className="h-6 w-3/4 mx-auto" />
+            <div className="relative">
+                <Skeleton className="h-10 w-full" />
+            </div>
+        </div>
+    )
+}
 
 export default function DepositPage() {
     const { toast } = useToast();
@@ -28,6 +35,16 @@ export default function DepositPage() {
     const [transactionId, setTransactionId] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const typedUserData = userData as User | null;
+
+    const settingsDocRef = useMemo(() => {
+        if (!firestore) return;
+        return doc(firestore, 'settings', 'global');
+    }, [firestore]);
+
+    const { data: settings, loading: settingsLoading } = useDoc<AppSettings>(settingsDocRef);
+    
+    const depositWalletAddress = settings?.depositWalletAddress || '';
+    const walletName = 'Tether (USDT TRC20)';
 
     const handleCopy = (address: string) => {
         navigator.clipboard.writeText(address);
@@ -49,7 +66,7 @@ export default function DepositPage() {
 
         setIsLoading(true);
 
-        const newRequest: Omit<PendingTransaction, 'id'> = {
+        const newRequest: Omit<PendingTransaction, 'id' | 'status'> = {
             type: 'deposit',
             amount: parseFloat(amount),
             date: serverTimestamp(),
@@ -92,24 +109,36 @@ export default function DepositPage() {
                     <CardDescription>Send the amount you wish to invest to the provided USDT TRC20 wallet address.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
-                        <h3 className="font-semibold text-center">Send to this {usdtWallet.name} address:</h3>
-                        <div className="relative">
-                            <Input
-                                readOnly
-                                value={usdtWallet.address}
-                                className="pr-10 text-center font-mono text-sm break-all"
-                            />
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                                onClick={() => handleCopy(usdtWallet.address)}
-                            >
-                                <Copy className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
+                    {settingsLoading ? <WalletInfoSkeleton /> : (
+                        depositWalletAddress ? (
+                             <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
+                                <h3 className="font-semibold text-center">Send to this {walletName} address:</h3>
+                                <div className="relative">
+                                    <Input
+                                        readOnly
+                                        value={depositWalletAddress}
+                                        className="pr-10 text-center font-mono text-sm break-all"
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                                        onClick={() => handleCopy(depositWalletAddress)}
+                                    >
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                             <div className="p-4 border border-destructive/50 rounded-lg bg-destructive/10 text-destructive flex items-center gap-3">
+                                 <AlertCircle className="h-5 w-5"/>
+                                <div>
+                                    <h3 className="font-semibold">Deposit Address Not Set</h3>
+                                    <p className="text-xs">Please contact support as the deposit address is not configured.</p>
+                                </div>
+                            </div>
+                        )
+                    )}
                 </CardContent>
             </Card>
             
@@ -147,7 +176,7 @@ export default function DepositPage() {
                             />
                         </div>
                     </div>
-                    <Button onClick={handleDepositRequest} disabled={!amount || !transactionId || isLoading} className="w-full">
+                    <Button onClick={handleDepositRequest} disabled={!amount || !transactionId || isLoading || !depositWalletAddress} className="w-full">
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Submit Deposit Request
                     </Button>

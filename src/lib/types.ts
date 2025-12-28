@@ -2,6 +2,7 @@
 
 
 
+
 export interface User {
     id: string;
     displayName: string;
@@ -22,7 +23,7 @@ export interface Transaction {
     type: 'deposit' | 'withdrawal' | 'commission' | 'task_reward';
     amount: number;
     date: any; 
-    status: 'completed' | 'failed'; // Pending status is not for historical records
+    status: 'completed' | 'failed' | 'pending';
     walletAddress?: string;
     transactionId?: string; 
     userId: string; 
@@ -92,4 +93,9 @@ export interface TaskSubmission {
     submittedAt: any;
 }
 
+export interface AppSettings {
+    id: string;
+    supportLink: string;
+    depositWalletAddress: string;
+}
     
