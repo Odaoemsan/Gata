@@ -32,6 +32,7 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
   try {
     const db = admin.firestore();
     const usersRef = db.collection("users");
+    // The query uses 'referredBy' which should contain the referral code of the referrer.
     const snapshot = await usersRef.where("referredBy", "==", referralCode).get();
 
     if (snapshot.empty) {
@@ -67,7 +68,8 @@ export const getTeamStats = functions.https.onCall(async (data, context) => {
     console.error("Error fetching team stats:", error);
     throw new functions.https.HttpsError(
       "internal",
-      "An error occurred while fetching the team stats."
+      "An error occurred while fetching the team stats.",
+      { originalError: error.message }
     );
   }
 });
