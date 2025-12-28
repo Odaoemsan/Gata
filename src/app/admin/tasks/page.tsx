@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { collection, query, addDoc, updateDoc, deleteDoc, doc, runTransaction, writeBatch, serverTimestamp, where, getDocs, increment } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
@@ -211,7 +211,9 @@ function ReviewSubmissions() {
         }
     }, [firestore, toast]);
     
-    useState(() => { fetchSubmissions() });
+    useEffect(() => { 
+        fetchSubmissions() 
+    }, [fetchSubmissions]);
 
     const handleApproval = async (submission: TaskSubmission, approved: boolean) => {
         if (!firestore) return;
@@ -222,9 +224,9 @@ function ReviewSubmissions() {
         
         try {
             await runTransaction(firestore, async (transaction) => {
-                const taskQuery = query(collection(firestore, 'tasks'), where('__name__', '==', submission.taskId));
-                const taskSnapshot = await getDocs(taskQuery);
-                const task = taskSnapshot.docs[0]?.data() as Task;
+                const taskRef = doc(firestore, 'tasks', submission.taskId);
+                const taskDoc = await transaction.get(taskRef);
+                const task = taskDoc.data() as Task;
                 
                 if (!task && approved) throw new Error("Task not found!");
 
@@ -241,6 +243,7 @@ function ReviewSubmissions() {
                         status: 'completed',
                         userId: submission.userId,
                         userDisplayName: submission.userDisplayName,
+                        userEmail: submission.userEmail,
                     });
                 }
                 
@@ -278,12 +281,12 @@ function ReviewSubmissions() {
                         </CardContent>
                          <CardFooter className="gap-2 justify-end">
                             <Button variant="outline" size="sm" onClick={() => handleApproval(sub, false)} disabled={processingId === sub.id}>
-                                {processingId === sub.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                <X className="mr-1 h-4 w-4"/> Reject
+                                {processingId === sub.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-1 h-4 w-4"/>}
+                                 Reject
                             </Button>
                             <Button size="sm" onClick={() => handleApproval(sub, true)} disabled={processingId === sub.id}>
-                                {processingId === sub.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                <Check className="mr-1 h-4 w-4"/> Approve
+                                {processingId === sub.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4"/>}
+                                Approve
                             </Button>
                         </CardFooter>
                     </Card>
@@ -301,7 +304,12 @@ function ReviewSubmissions() {
 
 
 export default function ManageTasksPage() {
-    const { data: submissions, loading } = useCollection(query(collection(useFirestore()!, 'taskSubmissions'), where('status', '==', 'pending')));
+    const firestore = useFirestore();
+    const submissionsQuery = useMemo(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'taskSubmissions'), where('status', '==', 'pending'));
+    }, [firestore]);
+    const { data: submissions, loading } = useCollection(submissionsQuery);
     const pendingCount = submissions?.length ?? 0;
 
   return (
@@ -329,3 +337,5 @@ export default function ManageTasksPage() {
     </div>
   );
 }
+
+    

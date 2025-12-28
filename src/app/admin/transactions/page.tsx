@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useFirestore } from '@/firebase';
 import {
   collectionGroup,
@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Copy, Check, X, User as UserIcon, Mail, Hash, Wallet, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Loader2, Copy, Check, X, User as UserIcon, Mail, Hash, Wallet, ArrowUpRight, ArrowDownLeft, Inbox } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
@@ -76,10 +76,10 @@ function RequestSkeleton() {
     )
 }
 
-function EmptyState({ message }: { message: string }) {
+function EmptyState({ message, icon }: { message: string, icon: React.ReactNode }) {
     return (
-        <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg">
-            <Check className="h-12 w-12 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg text-center p-4">
+            {icon}
             <p className="mt-4 text-muted-foreground">{message}</p>
         </div>
     )
@@ -130,9 +130,9 @@ export default function TransactionsPage() {
   }, [firestore, toast]);
 
   
-  useState(() => {
+  useEffect(() => {
     fetchPendingTransactions();
-  });
+  }, [fetchPendingTransactions]);
 
 
   const handleCopy = (text: string) => {
@@ -253,18 +253,18 @@ export default function TransactionsPage() {
                                 </CardContent>
                                 <CardFooter className="gap-2 justify-end">
                                     <Button variant="outline" size="sm" onClick={() => handleDeposit(tx, false)} disabled={processingId === tx.id}>
-                                         {processingId === tx.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                         <X className="mr-1 h-4 w-4"/> Reject
+                                         {processingId === tx.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-1 h-4 w-4"/>}
+                                         Reject
                                     </Button>
                                     <Button size="sm" onClick={() => handleDeposit(tx, true)} disabled={processingId === tx.id}>
-                                        {processingId === tx.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        <Check className="mr-1 h-4 w-4"/> Approve
+                                        {processingId === tx.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4"/>}
+                                        Approve
                                     </Button>
                                 </CardFooter>
                             </Card>
                         ))}
                     </div>
-                ) : <EmptyState message="No pending deposit requests." />
+                ) : <EmptyState message="No pending deposit requests." icon={<Inbox className="h-12 w-12 text-muted-foreground" />} />
             )}
         </TabsContent>
         <TabsContent value="withdrawals" className="mt-4">
@@ -294,21 +294,23 @@ export default function TransactionsPage() {
                                 </CardContent>
                                 <CardFooter className="gap-2 justify-end">
                                     <Button variant="outline" size="sm" onClick={() => handleWithdrawal(tx, false)} disabled={processingId === tx.id}>
-                                         {processingId === tx.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        <X className="mr-1 h-4 w-4"/> Reject
+                                         {processingId === tx.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-1 h-4 w-4"/>}
+                                        Reject
                                     </Button>
                                     <Button size="sm" onClick={() => handleWithdrawal(tx, true)} disabled={processingId === tx.id}>
-                                        {processingId === tx.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        <Check className="mr-1 h-4 w-4"/> Complete
+                                        {processingId === tx.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-1 h-4 w-4"/>}
+                                        Complete
                                     </Button>
                                 </CardFooter>
                             </Card>
                         ))}
                     </div>
-                ) : <EmptyState message="No pending withdrawal requests." />
+                ) : <EmptyState message="No pending withdrawal requests." icon={<Inbox className="h-12 w-12 text-muted-foreground" />} />
             )}
         </TabsContent>
       </Tabs>
     </div>
   );
 }
+
+    
