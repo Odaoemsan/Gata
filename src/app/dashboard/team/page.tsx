@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Medal, Users, Share2, ListTodo, Send, Loader2 } from 'lucide-react';
+import { Copy, Medal, Users, Share2, ListTodo, Send, Loader2, DollarSign } from 'lucide-react';
 import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { useMemo, useState, useEffect } from 'react';
-import { addDoc, collection, query, serverTimestamp, where, getFirestore, doc } from 'firebase/firestore';
+import { addDoc, collection, query, serverTimestamp } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useFirebaseApp } from '@/firebase/provider';
+import { formatCurrency } from '@/lib/formatters';
 
 
 function TaskCard({ task }: { task: Task }) {
@@ -76,7 +77,7 @@ export default function TeamPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     
-    const [teamSize, setTeamSize] = useState(0);
+    const [teamStats, setTeamStats] = useState<{ teamSize: number; teamTotalDeposits: number } | null>(null);
     const [teamLoading, setTeamLoading] = useState(true);
 
     const typedUserData = userData as User | null;
@@ -85,17 +86,16 @@ export default function TeamPage() {
     useEffect(() => {
         if (referralCode && firebaseApp) {
             const functions = getFunctions(firebaseApp);
-            const getTeamSize = httpsCallable(functions, 'getTeamSize');
+            const getTeamStats = httpsCallable(functions, 'getTeamStats');
             
             setTeamLoading(true);
-            getTeamSize({ referralCode })
+            getTeamStats({ referralCode })
                 .then((result: any) => {
-                    setTeamSize(result.data.size);
+                    setTeamStats(result.data);
                 })
-                .catch((error) => {
-                    console.error("Error calling getTeamSize function:", error);
-                    let description = "Could not fetch team size. Please try again later.";
-                    // Check for the specific error code from the Cloud Function
+                .catch((error: any) => {
+                    console.error("Error calling getTeamStats function:", error);
+                    let description = "Could not fetch team stats. Please try again later.";
                     if (error.details?.code === 'failed-precondition') {
                          description = "Database setup required. Please check server logs for an index creation link.";
                     }
@@ -110,6 +110,7 @@ export default function TeamPage() {
                 });
         } else if (typedUserData) {
             setTeamLoading(false);
+            setTeamStats({ teamSize: 0, teamTotalDeposits: 0 });
         }
     }, [referralCode, firebaseApp, toast, typedUserData]);
 
@@ -165,6 +166,39 @@ export default function TeamPage() {
                 </CardContent>
             </Card>
 
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        {teamLoading ? (
+                            <div className="flex items-center justify-center h-10">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : (
+                            <div className="text-2xl font-bold">{teamStats?.teamSize ?? 0}</div>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card>
+                     <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Team Total Deposits</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                       {teamLoading ? (
+                            <div className="flex items-center justify-center h-10">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : (
+                             <div className="text-2xl font-bold">{formatCurrency(teamStats?.teamTotalDeposits)}</div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
              <Card>
                 <CardHeader>
                      <div className="flex items-center gap-3">
@@ -186,33 +220,6 @@ export default function TeamPage() {
                        <span className="font-medium">Level 3:</span>
                         <span className="font-bold text-purple-500">1%</span>
                     </div>
-                </CardContent>
-            </Card>
-
-             <Card>
-                <CardHeader>
-                     <div className="flex items-center gap-3">
-                        <Users className="h-6 w-6" />
-                        <CardTitle>Your Team Members</CardTitle>
-                    </div>
-                    <CardDescription>Users who joined using your code.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {teamLoading ? (
-                         <div className="flex items-center justify-center h-24">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center text-center p-4">
-                            <div className="text-5xl font-bold text-primary">{teamSize}</div>
-                            <p className="text-muted-foreground mt-1">
-                                {teamSize === 1 ? 'Member has joined your team.' : 'Members have joined your team.'}
-                            </p>
-                            {teamSize === 0 && (
-                                 <p className="text-sm text-muted-foreground mt-2">Start sharing your code to build your team!</p>
-                            )}
-                        </div>
-                    )}
                 </CardContent>
             </Card>
 

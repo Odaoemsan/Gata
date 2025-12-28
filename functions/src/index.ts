@@ -4,8 +4,15 @@ import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
-// Callable function to get the size of a user's referral team.
-export const getTeamSize = functions.https.onCall(async (data, context) => {
+/**
+ * Calculates the total number of referred users and their total deposits.
+ *
+ * @param {object} data - The data passed to the function.
+ * @param {string} data.referralCode - The referral code of the user.
+ * @param {functions.https.CallableContext} context - The context of the function call.
+ * @returns {Promise<{teamSize: number, teamTotalDeposits: number}>} - The total number of referred users and their total deposits.
+ */
+export const getTeamStats = functions.https.onCall(async (data, context) => {
   // Check if the user is authenticated.
   if (!context.auth) {
     throw new functions.https.HttpsError(
@@ -25,11 +32,25 @@ export const getTeamSize = functions.https.onCall(async (data, context) => {
   try {
     const db = admin.firestore();
     const usersRef = db.collection("users");
-    // The field in the document is `referredBy`, which stores the referral code of the referrer.
-    const snapshot = await usersRef.where("referredBy", "==", referralCode)
-      .get();
+    const snapshot = await usersRef.where("referredBy", "==", referralCode).get();
 
-    return { size: snapshot.size };
+    if (snapshot.empty) {
+      return { teamSize: 0, teamTotalDeposits: 0 };
+    }
+
+    let teamTotalDeposits = 0;
+    snapshot.forEach((doc) => {
+      const userData = doc.data();
+      // Ensure totalDeposits is a number before adding
+      if (userData && typeof userData.totalDeposits === "number") {
+        teamTotalDeposits += userData.totalDeposits;
+      }
+    });
+
+    return {
+      teamSize: snapshot.size,
+      teamTotalDeposits: teamTotalDeposits,
+    };
   } catch (error: any) {
     // Check for the specific "FAILED_PRECONDITION" error which indicates a missing index.
     if (error.code === "FAILED_PRECONDITION" && error.message.includes("index")) {
@@ -42,10 +63,10 @@ export const getTeamSize = functions.https.onCall(async (data, context) => {
         );
     }
 
-    console.error("Error fetching team size:", error);
+    console.error("Error fetching team stats:", error);
     throw new functions.https.HttpsError(
       "internal",
-      "An error occurred while fetching the team size."
+      "An error occurred while fetching the team stats."
     );
   }
 });
