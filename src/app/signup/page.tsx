@@ -23,6 +23,8 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import type { User } from '@/lib/types';
+
 
 const generateReferralCode = (length: number) => {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -101,20 +103,22 @@ export default function SignupPage() {
       const user = userCredential.user;
 
       // 3. Prepare the complete user data for Firestore
-      const newUserDoc: Omit<User, 'id' | 'lastTradeTime' | 'rankName'> & { createdAt: any } = {
+       const newUserDoc: Omit<User, 'id' | 'lastTradeTime' | 'rankName'> & { createdAt: any } = {
         displayName: values.displayName,
         username: values.username,
         email: values.email,
         referralCode: generateReferralCode(7),
         createdAt: serverTimestamp(),
-        // Initial Data (Numbers): Set all monetary fields to 0 as numbers
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
         referralCommissions: 0,
-        // Conditionally add the 'referredBy' field
-        ...(referredByCode && { referredBy: referredByCode }),
       };
+
+      // Conditionally add the 'referredBy' field ONLY if a valid code was provided
+      if (referredByCode) {
+          newUserDoc.referredBy = referredByCode;
+      }
 
       // 4. Document ID & Creation: Use the UID from auth as the document ID
       await setDoc(doc(firestore, 'users', user.uid), newUserDoc);
