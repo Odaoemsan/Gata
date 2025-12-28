@@ -1,7 +1,12 @@
 {
-  "name": "GORA HYIP",
+  "theme_color": "#1e40af",
+  "background_color": "#0a0a0a",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "name": "GORA",
   "short_name": "GORA",
-  "description": "Invest with GORA and watch your capital grow. Secure, profitable, and user-friendly investment platform.",
+  "description": "Invest with GORA and watch your capital grow.",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -9,14 +14,19 @@
       "type": "image/png"
     },
     {
+      "src": "/icons/icon-256x256.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "theme_color": "#1e40af",
-  "background_color": "#0a0a0a",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }
