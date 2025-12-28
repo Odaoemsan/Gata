@@ -119,7 +119,7 @@ function SignUpForm() {
         totalDeposits: 0,
         totalWithdrawals: 0,
         createdAt: serverTimestamp(),
-        referralCommisions: 0
+        referralCommissions: 0
       };
 
       if (values.referralCode) {
@@ -148,6 +148,7 @@ function SignUpForm() {
       router.push('/dashboard');
 
     } catch (error: any) {
+      console.error(error);
       let errorMessage = 'An unknown error occurred.';
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'This email address is already in use.';
