@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection } from '@/firebase';
@@ -10,7 +9,17 @@ import { Copy, Medal, Users, Share2, Award, ListTodo, Send, Loader2 } from 'luci
 import type { User, Task } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { useMemo, useState, useEffect } from 'react';
-import { addDoc, collection, query, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, query, serverTimestamp, where } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+function formatDate(timestamp: any) {
+    if (!timestamp) return 'N/A';
+    const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000 || timestamp);
+    if(isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
 
 function TaskCard({ task }: { task: Task }) {
     const { toast } = useToast();
@@ -80,7 +89,13 @@ export default function TeamPage() {
         return query(collection(firestore, 'tasks'));
     }, [firestore]);
 
+    const referralsQuery = useMemo(() => {
+        if (!firestore || !referralCode) return null;
+        return query(collection(firestore, 'users'), where('referredBy', '==', referralCode));
+    }, [firestore, referralCode]);
+
     const { data: tasks, loading: tasksLoading } = useCollection<Task>(tasksQuery);
+    const { data: teamMembers, loading: teamLoading } = useCollection<User>(referralsQuery);
 
     const handleCopy = () => {
         if (!referralCode) return;
@@ -130,30 +145,24 @@ export default function TeamPage() {
                 <CardHeader>
                      <div className="flex items-center gap-3">
                         <Medal className="h-6 w-6 text-yellow-500" />
-                        <CardTitle>الرتب</CardTitle>
+                        <CardTitle>Commission Ranks</CardTitle>
                     </div>
-                    <CardDescription>شارك الكود مع اصدقائك واحصل على الرتبة واربح معنا</CardDescription>
+                    <CardDescription>Earn commissions from your team's investments across three levels.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                        <span className="font-medium">الرتبة 1:</span>
+                        <span className="font-medium">Level 1:</span>
                         <span className="font-bold text-primary">7%</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                        <span className="font-medium">الرتبة 2:</span>
+                        <span className="font-medium">Level 2:</span>
                         <span className="font-bold text-yellow-500">3%</span>
                     </div>
                      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                       <span className="font-medium">الرتبة 3:</span>
+                       <span className="font-medium">Level 3:</span>
                         <span className="font-bold text-purple-500">1%</span>
                     </div>
                 </CardContent>
-                 <CardFooter>
-                    <Button className="w-full" variant="outline">
-                        <Award className="mr-2 h-4 w-4" />
-                        التحقق من الوصول الى الرتبة
-                    </Button>
-                </CardFooter>
             </Card>
 
              <Card>
@@ -164,12 +173,53 @@ export default function TeamPage() {
                     </div>
                     <CardDescription>Users who joined using your code.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg">
-                        <Users className="h-12 w-12 text-muted-foreground" />
-                        <p className="mt-4 text-muted-foreground">You have no team members yet.</p>
-                        <p className="text-sm text-muted-foreground">Start sharing your code to build your team!</p>
-                    </div>
+                <CardContent className="p-0">
+                    {teamLoading ? (
+                         <div className="p-6 space-y-4">
+                            {[...Array(3)].map((_, i) => (
+                                <div key={i} className="flex items-center gap-4">
+                                    <Skeleton className="h-10 w-10 rounded-full" />
+                                    <div className="space-y-2">
+                                        <Skeleton className="h-4 w-24" />
+                                        <Skeleton className="h-3 w-32" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : teamMembers && teamMembers.length > 0 ? (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Member</TableHead>
+                                    <TableHead className="hidden md:table-cell">Join Date</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {teamMembers.map(member => (
+                                    <TableRow key={member.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar>
+                                                    <AvatarFallback>{member.displayName?.[0] ?? 'U'}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <div className="font-medium">{member.displayName}</div>
+                                                    <div className="text-xs text-muted-foreground font-mono">@{member.username}</div>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="hidden md:table-cell">{formatDate(member.createdAt)}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg m-6">
+                            <Users className="h-12 w-12 text-muted-foreground" />
+                            <p className="mt-4 text-muted-foreground">You have no team members yet.</p>
+                            <p className="text-sm text-muted-foreground">Start sharing your code to build your team!</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -202,5 +252,3 @@ export default function TeamPage() {
         </div>
     );
 }
-
-    
