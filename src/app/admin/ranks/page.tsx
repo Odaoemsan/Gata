@@ -54,7 +54,11 @@ export default function ManageRanksPage() {
 
     const openDialogForEdit = (rank: Rank) => {
         setSelectedRank(rank);
-        form.reset(rank);
+        form.reset({
+            name: rank.name,
+            requiredInvestment: rank.requiredInvestment,
+            commissionRate: rank.commissionRate,
+        });
         setDialogOpen(true);
     };
 
