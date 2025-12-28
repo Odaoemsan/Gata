@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -68,26 +67,12 @@ export default function AdminLayout({
   const { user, userData, loading } = useUser();
   const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const ADMIN_EMAIL = 'odae.oth@gmail.com';
+  const isAuthorized = user?.email === ADMIN_EMAIL;
+
 
   useEffect(() => {
-    if (user) {
-      user.getIdTokenResult()
-        .then((idTokenResult) => {
-          const claims = idTokenResult.claims;
-          setIsAdmin(!!claims.admin);
-        })
-        .catch(() => {
-          setIsAdmin(false);
-        });
-    } else {
-        setIsAdmin(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    // Wait until both auth loading and admin check are complete
-    if (!loading && isAdmin === false) {
+    if (!loading && !isAuthorized) {
       toast({
         variant: 'destructive',
         title: 'Access Denied',
@@ -95,7 +80,7 @@ export default function AdminLayout({
       });
       router.push('/dashboard');
     }
-  }, [isAdmin, loading, router, toast]);
+  }, [isAuthorized, loading, router, toast]);
 
 
   const handleSignOut = async () => {
@@ -118,11 +103,11 @@ export default function AdminLayout({
     }
   };
   
-  if (loading || isAdmin === null) {
+  if (loading || !isAuthorized) {
     return (
         <div className="flex h-screen w-full flex-col items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-muted-foreground">Verifying admin access...</p>
+            <p className="mt-4 text-muted-foreground">Verifying access...</p>
         </div>
     )
   }

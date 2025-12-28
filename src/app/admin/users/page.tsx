@@ -1,13 +1,12 @@
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { collection, query, updateDoc, doc } from 'firebase/firestore';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Loader2, Search, ShieldCheck, ShieldOff } from 'lucide-react';
+import { Edit, Loader2, Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
@@ -27,9 +26,6 @@ import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { cn } from '@/lib/utils';
-import { useFirebaseApp } from '@/firebase/provider';
 
 function formatCurrency(amount: number) {
     if (typeof amount !== 'number') return '$0.00';
@@ -44,14 +40,11 @@ const userSchema = z.object({
 
 export default function ManageUsersPage() {
     const firestore = useFirestore();
-    const firebaseApp = useFirebaseApp();
     const { toast } = useToast();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [isClaimProcessing, setIsClaimProcessing] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [usersWithClaims, setUsersWithClaims] = useState<any[]>([]);
 
     const usersQuery = useMemo(() => {
         if (!firestore) return null;
@@ -59,63 +52,15 @@ export default function ManageUsersPage() {
     }, [firestore]);
     
     const { data: users, loading } = useCollection<User>(usersQuery);
-    
-    const setAdminClaim = httpsCallable(getFunctions(firebaseApp), 'setAdminClaim');
-
-    useEffect(() => {
-        if (users) {
-            const fetchClaims = async () => {
-                const listUsers = httpsCallable(getFunctions(firebaseApp), 'listUsers');
-                try {
-                    const result:any = await listUsers({ uids: users.map(u => u.id) });
-                    const claimsMap = new Map(result.data.users.map((u: any) => [u.uid, u.customClaims]));
-                    const enrichedUsers = users.map(user => ({
-                        ...user,
-                        isAdmin: claimsMap.get(user.id)?.admin === true
-                    }));
-                    setUsersWithClaims(enrichedUsers);
-                } catch (error) {
-                    console.error("Error fetching user claims:", error);
-                    setUsersWithClaims(users.map(u => ({...u, isAdmin: false})));
-                }
-            };
-            fetchClaims();
-        }
-    }, [users, firebaseApp]);
-
-
-    const handleClaimToggle = async (user: User, makeAdmin: boolean) => {
-        if (!confirm(`Are you sure you want to ${makeAdmin ? 'grant' : 'revoke'} admin privileges for ${user.displayName}?`)) {
-            return;
-        }
-        setIsClaimProcessing(user.id);
-        try {
-            await setAdminClaim({ uid: user.id, admin: makeAdmin });
-            toast({
-                title: 'Success',
-                description: `Admin privileges ${makeAdmin ? 'granted to' : 'revoked from'} ${user.displayName}.`,
-            });
-             setUsersWithClaims(prev => prev.map(u => u.id === user.id ? { ...u, isAdmin: makeAdmin } : u));
-        } catch (error) {
-            console.error('Error updating claims:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Failed to update admin privileges.',
-            });
-        } finally {
-            setIsClaimProcessing(null);
-        }
-    };
 
     const filteredUsers = useMemo(() => {
-        if (!usersWithClaims) return [];
-        return usersWithClaims.filter(user => 
+        if (!users) return [];
+        return users.filter(user => 
             user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.username?.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [usersWithClaims, searchTerm]);
+    }, [users, searchTerm]);
 
     const form = useForm<z.infer<typeof userSchema>>({
         resolver: zodResolver(userSchema),
@@ -154,13 +99,13 @@ export default function ManageUsersPage() {
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Manage Users</h2>
                     <p className="text-muted-foreground">
-                        View, search, and edit user profiles and permissions.
+                        View, search, and edit user profiles.
                     </p>
                 </div>
                 <div className="relative w-full md:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input 
-                        placeholder="Search by name, email, or ID..."
+                        placeholder="Search by name, email, or username..."
                         className="pl-10"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -179,7 +124,6 @@ export default function ManageUsersPage() {
                             <TableRow>
                                 <TableHead>User</TableHead>
                                 <TableHead className="hidden md:table-cell">Username</TableHead>
-                                <TableHead className="hidden md:table-cell">Admin Status</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -197,7 +141,6 @@ export default function ManageUsersPage() {
                                             </div>
                                         </TableCell>
                                         <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
-                                        <TableCell className="hidden md:table-cell"><Skeleton className="h-6 w-16" /></TableCell>
                                         <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                                     </TableRow>
                                 ))
@@ -212,30 +155,12 @@ export default function ManageUsersPage() {
                                             <div>
                                                 <div className="font-medium">{user.displayName}</div>
                                                 <div className="text-xs text-muted-foreground">{user.email}</div>
-                                                <Badge variant="outline" className="mt-1 md:hidden">{formatCurrency(user.balance)}</Badge>
+                                                <Badge variant="outline" className="mt-1">{formatCurrency(user.balance)}</Badge>
                                             </div>
                                         </div>
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell font-mono text-xs">{user.username}</TableCell>
-                                    <TableCell className="hidden md:table-cell">
-                                        <Badge variant={user.isAdmin ? 'default' : 'outline'} className={cn(user.isAdmin && 'bg-green-600')}>
-                                            {user.isAdmin ? 'Admin' : 'User'}
-                                        </Badge>
-                                    </TableCell>
                                     <TableCell className="text-right">
-                                         {isClaimProcessing === user.id ? (
-                                            <Loader2 className="h-4 w-4 animate-spin ml-auto" />
-                                        ) : (
-                                            user.isAdmin ? (
-                                                <Button variant="ghost" size="icon" onClick={() => handleClaimToggle(user, false)} title="Revoke Admin">
-                                                    <ShieldOff className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            ) : (
-                                                <Button variant="ghost" size="icon" onClick={() => handleClaimToggle(user, true)} title="Make Admin">
-                                                    <ShieldCheck className="h-4 w-4 text-primary" />
-                                                </Button>
-                                            )
-                                        )}
                                         <Button variant="ghost" size="icon" onClick={() => openDialogForEdit(user)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -244,7 +169,7 @@ export default function ManageUsersPage() {
                             ))}
                              {!loading && filteredUsers.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">
+                                    <TableCell colSpan={3} className="h-24 text-center">
                                         No users found.
                                     </TableCell>
                                 </TableRow>

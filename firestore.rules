@@ -6,7 +6,7 @@ service cloud.firestore {
 
     // Helper function to check for admin role via custom claims
     function isAdmin() {
-      return request.auth.token.admin == true;
+      return request.auth.token.email == 'odae.oth@gmail.com';
     }
 
     // Helper function to check if the user is the owner of the document
@@ -31,8 +31,8 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       
       // Admins can update any field. 
-      // Users can update their own profile.
-      allow update: if isAdmin() || isOwner(userId);
+      // Users can only update their own displayName and username.
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.keys().hasOnly(['displayName', 'username']));
 
       // No one can delete a user profile for now.
       allow delete: if false;
@@ -54,8 +54,7 @@ service cloud.firestore {
                           && request.resource.data.userId == userId
                           && request.resource.data.username is string
                           && request.resource.data.userDisplayName is string
-                          && request.resource.data.userEmail is string
-                          && request.resource.data.keys().hasAll(['type', 'amount', 'status', 'date', 'transactionId', 'userId', 'username', 'userDisplayName', 'userEmail'])) ||
+                          && request.resource.data.userEmail is string) ||
                         // Withdrawal transaction validation
                         (request.resource.data.type == 'withdrawal'
                           && request.resource.data.amount is number
@@ -64,12 +63,21 @@ service cloud.firestore {
                           && request.resource.data.date == request.time
                           && request.resource.data.username is string
                           && request.resource.data.userDisplayName is string
-                          && request.resource.data.userEmail is string)
+                          && request.resource.data.userEmail is string) ||
+                        // Task Reward transaction validation (can only be created by admin)
+                        (request.resource.data.type == 'task_reward'
+                          && request.resource.data.amount is number
+                          && request.resource.data.status == 'completed'
+                          && request.resource.data.date == request.time
+                          && request.resource.data.userId == userId
+                          && request.resource.data.username is string
+                          && request.resource.data.userDisplayName is string
+                          && request.resource.data.userEmail is string
+                          && isAdmin())
                       );
         
         // Admins can update status, but users cannot.
-        // Admins can also create reward transactions directly
-        allow write: if isAdmin();
+        allow update: if isAdmin() && request.resource.data.status != resource.data.status;
       }
 
       // Active Investments subcollection
