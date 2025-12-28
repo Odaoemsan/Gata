@@ -1,3 +1,4 @@
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
@@ -24,6 +25,7 @@ export const getTeamSize = functions.https.onCall(async (data, context) => {
   try {
     const db = admin.firestore();
     const usersRef = db.collection("users");
+    // The field in the document is `referredBy`, but we query with the user's `referralCode`
     const snapshot = await usersRef.where("referredBy", "==", referralCode)
       .get();
 
@@ -36,3 +38,5 @@ export const getTeamSize = functions.https.onCall(async (data, context) => {
     );
   }
 });
+
+    

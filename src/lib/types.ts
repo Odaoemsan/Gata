@@ -1,6 +1,7 @@
 
 
 
+
 export interface User {
     id: string;
     displayName: string;
@@ -11,6 +12,7 @@ export interface User {
     totalWithdrawals: number;
     createdAt: any; // Using `any` for Firebase Timestamp for simplicity
     referredBy?: string;
+    referralCode: string;
     referralCommissions: number;
 }
 
@@ -89,3 +91,5 @@ export interface TaskSubmission {
     status: 'pending' | 'approved' | 'rejected';
     submittedAt: any;
 }
+
+    

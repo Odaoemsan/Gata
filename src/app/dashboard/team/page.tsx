@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, useCollection } from '@/firebase';
@@ -78,7 +79,7 @@ export default function TeamPage() {
     const [teamLoading, setTeamLoading] = useState(true);
     
     const typedUserData = userData as User | null;
-    const referralCode = typedUserData?.username ?? '';
+    const referralCode = typedUserData?.referralCode ?? '';
 
     const tasksQuery = useMemo(() => {
         if (!firestore) return null;
@@ -89,7 +90,7 @@ export default function TeamPage() {
     
     useEffect(() => {
       async function fetchTeamSize() {
-        if (!referralCode) {
+        if (!referralCode || !app) {
           setTeamLoading(false);
           return;
         };
@@ -240,3 +241,5 @@ export default function TeamPage() {
         </div>
     );
 }
+
+    

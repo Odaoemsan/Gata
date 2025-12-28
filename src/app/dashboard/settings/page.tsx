@@ -7,19 +7,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, User, Mail } from 'lucide-react';
+import { Copy, User, Mail, Gift } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { User as UserType } from '@/lib/types';
+
 
 export default function SettingsPage() {
     const { toast } = useToast();
     const { user, userData, loading: userLoading } = useUser();
+    const typedUserData = userData as UserType | null;
 
-    const handleCopy = (text: string) => {
+    const handleCopy = (text: string | undefined) => {
         if (!text) return;
         navigator.clipboard.writeText(text);
         toast({
             title: 'Copied!',
-            description: 'Username copied to clipboard.',
+            description: 'Copied to clipboard.',
         });
     };
 
@@ -45,6 +48,10 @@ export default function SettingsPage() {
                              <Skeleton className="h-5 w-20" />
                             <Skeleton className="h-10 w-full" />
                         </div>
+                         <div className="space-y-2">
+                             <Skeleton className="h-5 w-20" />
+                            <Skeleton className="h-10 w-full" />
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -57,14 +64,14 @@ export default function SettingsPage() {
             <Card className="max-w-lg">
                 <CardHeader>
                     <CardTitle>Profile Information</CardTitle>
-                    <CardDescription>These details are linked to your account and cannot be changed.</CardDescription>
+                    <CardDescription>These details are linked to your account.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <div className="space-y-2">
                         <Label htmlFor="displayName">Full Name</Label>
                         <div className="relative">
                              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <Input id="displayName" readOnly value={userData?.displayName ?? ''} className="pl-10"/>
+                            <Input id="displayName" readOnly value={typedUserData?.displayName ?? ''} className="pl-10"/>
                         </div>
                     </div>
                      <div className="space-y-2">
@@ -75,15 +82,23 @@ export default function SettingsPage() {
                         </div>
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="username">Username (ID)</Label>
+                        <Label htmlFor="username">Username</Label>
                         <div className="relative">
-                            <Input id="username" readOnly value={userData?.username ?? ''} className="pr-10"/>
+                            <Input id="username" readOnly value={typedUserData?.username ?? ''} className="pl-10"/>
+                             <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="referralCode">Your Referral Code</Label>
+                        <div className="relative">
+                            <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input id="referralCode" readOnly value={typedUserData?.referralCode ?? ''} className="pr-10 pl-10 font-mono"/>
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                                onClick={() => handleCopy(userData?.username ?? '')}
+                                onClick={() => handleCopy(typedUserData?.referralCode)}
                             >
                                 <Copy className="h-4 w-4" />
                             </Button>
@@ -94,3 +109,5 @@ export default function SettingsPage() {
         </div>
     );
 }
+
+    

@@ -40,12 +40,16 @@
           "type": "string",
           "description": "The username of the user who referred this user."
         },
+        "referralCode": {
+          "type": "string",
+          "description": "The user's unique 6-character referral code."
+        },
         "referralCommissions": {
             "type": "number",
             "description": "Total commissions earned from referrals."
         }
       },
-      "required": ["displayName", "username", "email", "balance", "totalDeposits", "totalWithdrawals", "referralCommissions"]
+      "required": ["displayName", "username", "email", "balance", "totalDeposits", "totalWithdrawals", "referralCommissions", "referralCode"]
     },
     "InvestmentPlan": {
       "title": "Investment Plan",

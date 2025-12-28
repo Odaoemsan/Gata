@@ -25,6 +25,7 @@ service cloud.firestore {
                     && request.resource.data.totalDeposits == 0
                     && request.resource.data.totalWithdrawals == 0
                     && request.resource.data.referralCommissions == 0
+                    && request.resource.data.referralCode is string && request.resource.data.referralCode.size() == 6
                     && (!('referredBy' in request.resource.data) || request.resource.data.referredBy is string);
       
       // The owner or an admin can get a specific user profile.
@@ -100,7 +101,8 @@ service cloud.firestore {
                       && request.resource.data.date == request.time
                       && request.resource.data.username is string
                       && request.resource.data.userDisplayName is string
-                      && request.resource.data.userEmail is string;
+                      && request.resource.data.userEmail is string
+                      && request.resource.data.keys().hasAll(['type', 'amount', 'walletAddress', 'date', 'userId', 'username', 'userDisplayName', 'userEmail']);
 
         // Admins can read and delete (process) requests
         allow get, list, delete: if isAdmin();
@@ -154,3 +156,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

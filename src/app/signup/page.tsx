@@ -48,8 +48,23 @@ const formSchema = z.object({
   password: z
     .string()
     .min(6, { message: 'Password must be at least 6 characters.' }),
-  referralCode: z.string().optional(),
+  referredBy: z.string().optional(),
 });
+
+function generateReferralCode(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
+async function isReferralCodeUnique(firestore: any, code: string): Promise<boolean> {
+    const q = query(collection(firestore, 'users'), where('referralCode', '==', code));
+    const snapshot = await getDocs(q);
+    return snapshot.empty;
+}
 
 function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -66,13 +81,13 @@ function SignUpForm() {
       username: '',
       email: '',
       password: '',
-      referralCode: refCode || '',
+      referredBy: refCode || '',
     },
   });
   
    useEffect(() => {
     if (refCode) {
-      form.setValue('referralCode', refCode);
+      form.setValue('referredBy', refCode);
     }
   }, [refCode, form]);
 
@@ -96,6 +111,15 @@ function SignUpForm() {
         return;
       }
       
+      // Generate a unique referral code
+      let referralCode = '';
+      let isUnique = false;
+      while(!isUnique) {
+          referralCode = generateReferralCode();
+          isUnique = await isReferralCodeUnique(firestore, referralCode);
+      }
+
+
       // Step 1: Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -119,11 +143,12 @@ function SignUpForm() {
         totalDeposits: 0,
         totalWithdrawals: 0,
         createdAt: serverTimestamp(),
-        referralCommissions: 0
+        referralCommissions: 0,
+        referralCode: referralCode
       };
 
-      if (values.referralCode) {
-        newUserDoc.referredBy = values.referralCode;
+      if (values.referredBy) {
+        newUserDoc.referredBy = values.referredBy;
       }
       
       await setDoc(userDocRef, newUserDoc)
@@ -254,7 +279,7 @@ function SignUpForm() {
             />
              <FormField
                 control={form.control}
-                name="referralCode"
+                name="referredBy"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Referral Code (Optional)</FormLabel>
