@@ -25,7 +25,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 
 const generateReferralCode = (length: number) => {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
   for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * characters.length));
@@ -74,6 +74,7 @@ export default function SignupPage() {
     const auth = getAuth(firebaseApp);
 
     try {
+      // 1. Pre-emptive checks before creating auth user
       // Check if username is unique
       const usernameQuery = query(collection(firestore, 'users'), where('username', '==', values.username));
       const usernameSnapshot = await getDocs(usernameQuery);
@@ -84,8 +85,9 @@ export default function SignupPage() {
       }
       
       // Check if referral code exists, if provided
-      if (values.referralCode) {
-        const referralQuery = query(collection(firestore, 'users'), where('referralCode', '==', values.referralCode));
+      const referredByCode = values.referralCode?.trim();
+      if (referredByCode) {
+        const referralQuery = query(collection(firestore, 'users'), where('referralCode', '==', referredByCode));
         const referralSnapshot = await getDocs(referralQuery);
         if (referralSnapshot.empty) {
           form.setError('referralCode', { type: 'manual', message: 'This referral code does not exist.' });
@@ -94,41 +96,42 @@ export default function SignupPage() {
         }
       }
 
-      // 1. Auth First: Create the user in Firebase Auth
+      // 2. Auth First: Create the user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
-      // 2. Prepare the user data for Firestore
-      const newUser = {
+      // 3. Prepare the complete user data for Firestore
+      const newUserDoc: Omit<User, 'id' | 'lastTradeTime' | 'rankName'> & { createdAt: any } = {
         displayName: values.displayName,
         username: values.username,
         email: values.email,
         referralCode: generateReferralCode(7),
         createdAt: serverTimestamp(),
-        // 3. Initial Data (Numbers): Set all monetary fields to 0 as numbers
+        // Initial Data (Numbers): Set all monetary fields to 0 as numbers
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
         referralCommissions: 0,
-        // 4. Referral Code (Optional): Conditionally add the 'referredBy' field
-        ...(values.referralCode && { referredBy: values.referralCode }),
+        // Conditionally add the 'referredBy' field
+        ...(referredByCode && { referredBy: referredByCode }),
       };
 
-      // 5. Document ID & Creation: Use the UID from auth as the document ID
-      await setDoc(doc(firestore, 'users', user.uid), newUser);
+      // 4. Document ID & Creation: Use the UID from auth as the document ID
+      await setDoc(doc(firestore, 'users', user.uid), newUserDoc);
       
       toast({
         title: 'Account Created',
         description: 'Welcome! Your account has been created successfully.',
       });
       router.push('/dashboard');
+
     } catch (error: any) {
-       // 6. Error Handling
+       // 5. Error Handling
        let description = "An unexpected error occurred. Please try again.";
         if (error.code === 'auth/email-already-in-use') {
             description = 'This email address is already in use. Please try logging in.';
         } else if (error.name === 'FirebaseError' && (error.message.includes('permission-denied') || error.message.includes('insufficient permissions'))) {
-            description = 'Failed to create user profile due to security rules. Please check the data and try again.';
+            description = 'Failed to create user profile. Please check the data and try again.';
         }
       toast({
         variant: 'destructive',
