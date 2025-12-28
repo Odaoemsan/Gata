@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -147,6 +146,18 @@ export default function TransactionsPage() {
 
         // 2. Reference to the user's permanent transaction log
         const permanentTxRef = doc(collection(firestore, `users/${tx.userId}/transactions`));
+        
+        const permanentTxData = {
+          type: tx.type,
+          amount: tx.amount,
+          date: serverTimestamp(),
+          status: approved ? 'completed' : 'failed',
+          transactionId: tx.transactionId,
+          userId: tx.userId,
+          username: tx.username,
+          userDisplayName: tx.userDisplayName,
+          userEmail: tx.userEmail,
+        };
 
         if (approved) {
             // 3. If approved, reference the user document to update balance
@@ -155,11 +166,9 @@ export default function TransactionsPage() {
                 balance: increment(tx.amount),
                 totalDeposits: increment(tx.amount)
             });
-            // 4. Create a permanent 'completed' transaction record
-            batch.set(permanentTxRef, { ...tx, status: 'completed', date: serverTimestamp() });
+             batch.set(permanentTxRef, permanentTxData);
         } else {
-             // 4. If rejected, create a permanent 'failed' transaction record
-             batch.set(permanentTxRef, { ...tx, status: 'failed', date: serverTimestamp() });
+             batch.set(permanentTxRef, permanentTxData);
         }
 
         // 5. Delete the pending request
@@ -185,37 +194,40 @@ export default function TransactionsPage() {
       try {
         const batch = writeBatch(firestore);
         
-        // 1. Reference to the pending request to be deleted
         const pendingRef = doc(firestore, 'pendingWithdrawals', tx.id);
-        
-        // 2. Reference to the user's permanent transaction log
         const permanentTxRef = doc(collection(firestore, `users/${tx.userId}/transactions`));
-        
-        // 3. Reference to the user document
         const userRef = doc(firestore, 'users', tx.userId);
 
+         const permanentTxData = {
+          type: tx.type,
+          amount: tx.amount,
+          date: serverTimestamp(),
+          status: approved ? 'completed' : 'failed',
+          walletAddress: tx.walletAddress,
+          userId: tx.userId,
+          username: tx.username,
+          userDisplayName: tx.userDisplayName,
+          userEmail: tx.userEmail,
+        };
+
+
         if (approved) {
-            // On approval, update totalWithdrawals and create permanent record.
-            // Balance was already debited when user made the request.
             batch.update(userRef, {
                 totalWithdrawals: increment(tx.amount)
             });
-            batch.set(permanentTxRef, { ...tx, status: 'completed', date: serverTimestamp() });
-             toast({ title: 'Success', description: `Withdrawal request has been completed.` });
+            batch.set(permanentTxRef, permanentTxData);
+            toast({ title: 'Success', description: `Withdrawal request has been completed.` });
 
         } else {
-            // If rejected, return the funds to the user's balance and create failed record.
             batch.update(userRef, {
                 balance: increment(tx.amount)
             });
-            batch.set(permanentTxRef, { ...tx, status: 'failed', date: serverTimestamp() });
+            batch.set(permanentTxRef, permanentTxData);
             toast({ title: 'Success', description: `Withdrawal request has been rejected.` });
         }
 
-        // 4. Delete the pending request
         batch.delete(pendingRef);
         
-        // 5. Commit all operations
         await batch.commit();
 
         fetchPendingTransactions();

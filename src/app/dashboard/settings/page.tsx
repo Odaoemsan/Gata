@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser } from '@/firebase/auth/use-user';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, User, Mail, Gift } from 'lucide-react';
+import { Copy, User, Mail, Gift, AtSign } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { User as UserType } from '@/lib/types';
 
@@ -26,7 +25,7 @@ export default function SettingsPage() {
         });
     };
 
-    if (userLoading) {
+    if (userLoading || !typedUserData) {
         return (
              <div className="flex-1 space-y-8 p-4">
                 <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
@@ -85,7 +84,7 @@ export default function SettingsPage() {
                         <Label htmlFor="username">Username</Label>
                         <div className="relative">
                             <Input id="username" readOnly value={typedUserData?.username ?? ''} className="pl-10"/>
-                             <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                             <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         </div>
                     </div>
                      <div className="space-y-2">
@@ -109,5 +108,3 @@ export default function SettingsPage() {
         </div>
     );
 }
-
-    
