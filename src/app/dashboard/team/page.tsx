@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Medal, Users, Share2, Award, ListTodo } from 'lucide-react';
+import { Copy, Medal, Users, Share2, Award, ListTodo, Send } from 'lucide-react';
 import type { User } from '@/lib/types';
+import { Label } from '@/components/ui/label';
 
 export default function TeamPage() {
     const { userData } = useUser();
@@ -113,10 +114,24 @@ export default function TeamPage() {
                     </div>
                     <CardDescription>أكمل المهام التالية للحصول على مكافآت.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                     <div className="p-4 border rounded-lg space-y-3">
+                        <h4 className="font-semibold">مهمة #1: مشاركة على فيسبوك</h4>
+                        <p className="text-sm text-muted-foreground">
+                            قم بعمل منشور عن تجربتك مع GORA على حسابك في فيسبوك. يجب أن يكون المنشور عامًا.
+                        </p>
+                        <div className="space-y-2">
+                            <Label htmlFor="task-link">رابط المنشور</Label>
+                            <Input id="task-link" placeholder="https://facebook.com/user/post/123..." />
+                        </div>
+                        <Button size="sm" className="w-full">
+                            <Send className="mr-2 h-4 w-4" />
+                            إرسال للتحقق
+                        </Button>
+                    </div>
                     <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg">
                         <ListTodo className="h-12 w-12 text-muted-foreground" />
-                        <p className="mt-4 text-muted-foreground">لا توجد مهام متاحة حاليًا.</p>
+                        <p className="mt-4 text-muted-foreground">لا توجد مهام أخرى متاحة حاليًا.</p>
                         <p className="text-sm text-muted-foreground">يرجى التحقق مرة أخرى لاحقًا.</p>
                     </div>
                 </CardContent>
