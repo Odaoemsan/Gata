@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -120,6 +119,7 @@ export default function WithdrawPage() {
                     <p>• Minimum withdrawal amount is <strong>${MIN_WITHDRAWAL}</strong>.</p>
                     <p>• Withdrawals are processed manually within 3 business days.</p>
                     <p>• A 5% fee applies to all withdrawals.</p>
+                    <p>• Withdrawals are available every 5 daily trading days.</p>
                 </CardContent>
             </Card>
 
