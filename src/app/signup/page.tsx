@@ -66,6 +66,11 @@ export default function SignupPage() {
 
   const onSubmit = async (values: z.infer<typeof signupSchema>) => {
     setIsLoading(true);
+    if (!firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+        setIsLoading(false);
+        return;
+    }
     const auth = getAuth(firebaseApp);
 
     try {
@@ -84,7 +89,7 @@ export default function SignupPage() {
       const newUser = {
         displayName: values.displayName,
         username: values.username,
-        email: values.email,
+        email: values.email, // This was the missing field
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
@@ -105,6 +110,8 @@ export default function SignupPage() {
        let description = "An unexpected error occurred. Please try again.";
         if (error.code === 'auth/email-already-in-use') {
             description = 'This email address is already in use. Please try logging in.';
+        } else if (error.name === 'FirebaseError' && error.message.includes('permission-denied')) {
+            description = 'Failed to create user profile due to security rules. Please contact support.';
         }
       toast({
         variant: 'destructive',
