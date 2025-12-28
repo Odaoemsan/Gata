@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useFirebaseApp } from '@/firebase';
-import { doc, setDoc, getDocs, collection, query, where, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, query, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
@@ -78,7 +78,6 @@ export default function SignupPage() {
 
     try {
       // 1. Pre-emptive checks before creating auth user
-      // Check if username is unique
       const usernameQuery = query(collection(firestore, 'users'), where('username', '==', values.username));
       const usernameSnapshot = await getDocs(usernameQuery);
       if (!usernameSnapshot.empty) {
@@ -87,7 +86,6 @@ export default function SignupPage() {
         return;
       }
       
-      // Check if referral code exists, if provided
       const referredByCode = values.referralCode?.trim();
       if (referredByCode) {
         const referralQuery = query(collection(firestore, 'users'), where('referralCode', '==', referredByCode));
@@ -104,21 +102,19 @@ export default function SignupPage() {
       const user = userCredential.user;
 
       // 3. Prepare the complete user data for Firestore
-       const newUserDoc: Omit<User, 'id' | 'lastTradeTime' | 'rankName'> = {
+      const newUserDoc: Omit<User, 'id' | 'lastTradeTime' | 'rankName' | 'createdAt'> = {
         displayName: values.displayName,
         username: values.username,
         email: values.email,
         referralCode: generateReferralCode(7),
-        createdAt: serverTimestamp(),
         balance: 0,
         totalDeposits: 0,
         totalWithdrawals: 0,
         referralCommissions: 0,
       };
 
-      // Conditionally add the 'referredBy' field ONLY if a valid code was provided
       if (referredByCode) {
-          (newUserDoc as User).referredBy = referredByCode;
+          (newUserDoc as Partial<User>).referredBy = referredByCode;
       }
 
       // 4. Document ID & Creation: Use the UID from auth as the document ID
@@ -242,5 +238,3 @@ export default function SignupPage() {
     </div>
   );
 }
-
-    
