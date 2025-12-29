@@ -35,9 +35,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-   experimental: {
-    serverComponentsExternalPackages: ['@firebase/auth'],
-  },
+  serverExternalPackages: ['@firebase/auth'],
 };
 
 export default withPWA(nextConfig);
