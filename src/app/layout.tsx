@@ -32,6 +32,20 @@ function RootLayoutContent({
     <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
       <head>
         <title>GORA HYIP - High-Yield Investment Program</title>
+        <meta name="application-name" content="GORA" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="GORA" />
+        <meta name="description" content="GORA HYIP - High-Yield Investment Program" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="msapplication-config" content="/icons/browserconfig.xml" />
+        <meta name="msapplication-TileColor" content="#2B5797" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="theme-color" content="#000000" />
+
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="shortcut icon" href="/favicon.ico" />
       </head>
       <body className={`${inter.variable} ${lexend.variable} font-body antialiased`}>
         <FirebaseProvider>

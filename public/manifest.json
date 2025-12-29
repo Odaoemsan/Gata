@@ -1,11 +1,11 @@
 {
-  "name": "GORA HYIP",
+  "name": "GORA",
   "short_name": "GORA",
-  "description": "Invest with GORA and watch your capital grow.",
+  "description": "GORA HYIP - High-Yield Investment Program",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "background_color": "#000000",
+  "theme_color": "#217.2 91.2% 59.8%",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
