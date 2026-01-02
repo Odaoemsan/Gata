@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -33,7 +34,7 @@ const createWithdrawSchema = (balance: number) => z.object({
 });
 
 
-export default function WithdrawPage() {
+export function WithdrawComponent() {
     const { toast } = useToast();
     const { user, userData, loading } = useUser();
     const firestore = useFirestore();
@@ -197,4 +198,8 @@ export default function WithdrawPage() {
             </Card>
         </div>
     );
+}
+
+export default function WithdrawPage() {
+    return <WithdrawComponent />;
 }

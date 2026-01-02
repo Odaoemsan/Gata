@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -28,7 +29,7 @@ function WalletInfoSkeleton() {
     )
 }
 
-export default function DepositPage() {
+export function DepositComponent() {
     const { toast } = useToast();
     const { user, userData } = useUser();
     const firestore = useFirestore();
@@ -193,4 +194,8 @@ export default function DepositPage() {
             </Card>
         </div>
     );
+}
+
+export default function DepositPage() {
+    return <DepositComponent />;
 }

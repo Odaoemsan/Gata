@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, Suspense, useState } from "react";
@@ -6,8 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import DepositPage from "../deposit/page";
-import WithdrawPage from "../withdraw/page";
+import { DepositComponent } from "../deposit/page";
+import { WithdrawComponent } from "../withdraw/page";
 import { useUser } from "@/firebase/auth/use-user";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -287,14 +288,14 @@ function WalletPageContent() {
                     <TabsTrigger value="history">History</TabsTrigger>
                 </TabsList>
                 <TabsContent value="deposit">
-                   <DepositPage />
+                   <DepositComponent />
                 </TabsContent>
                 <TabsContent value="withdraw">
-                   <WithdrawPage />
+                   <WithdrawComponent />
                 </TabsContent>
                  <TabsContent value="history">
                    <AllTransactions />
-                </TabsContent>
+                 </TabsContent>
             </Tabs>
          </div>
     )
