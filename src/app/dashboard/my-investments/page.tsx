@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
 import { useUser, useFirestore, useCollection } from '@/firebase';
-import { collection, query, orderBy, doc, writeBatch, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, doc, writeBatch, increment, serverTimestamp, updateDoc } from 'firebase/firestore';
 import type { ActiveInvestment, User } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,21 +26,23 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 
-function StatusBadge({ status }: { status: ActiveInvestment['status'] }) {
-    const variant = {
-        active: 'default',
-        completed: 'secondary',
-    }[status] as "default" | "secondary";
+function StatusBadge({ status, endDate }: { status: ActiveInvestment['status'], endDate: any }) {
     
-    const icon = {
-        active: <Hourglass className="mr-1 h-3 w-3" />,
-        completed: <CheckCircle className="mr-1 h-3 w-3" />,
-    }[status]
+    const isCompletedByDate = endDate && endDate.toDate() < new Date();
 
+    if (status === 'completed' || isCompletedByDate) {
+         return (
+            <Badge variant="secondary" className="capitalize flex items-center w-fit">
+                <CheckCircle className="mr-1 h-3 w-3" />
+                Completed
+            </Badge>
+        );
+    }
+    
     return (
-        <Badge variant={variant} className="capitalize flex items-center w-fit">
-            {icon}
-            {status}
+        <Badge variant='default' className="capitalize flex items-center w-fit">
+            <Hourglass className="mr-1 h-3 w-3" />
+            Active
         </Badge>
     );
 }
@@ -87,8 +88,8 @@ export default function MyInvestmentsPage() {
     
     const { data: investments, loading } = useCollection<ActiveInvestment>(investmentsQuery);
 
-    const activeInvestments = useMemo(() => investments?.filter(inv => inv.status === 'active') ?? [], [investments]);
-    const completedInvestments = useMemo(() => investments?.filter(inv => inv.status === 'completed') ?? [], [investments]);
+    const activeInvestments = useMemo(() => investments?.filter(inv => inv.status === 'active' && inv.endDate.toDate() > new Date()) ?? [], [investments]);
+    const completedInvestments = useMemo(() => investments?.filter(inv => inv.status === 'completed' || inv.endDate.toDate() <= new Date()) ?? [], [investments]);
 
     const handleCancelInvestment = async () => {
         if (!user || !investmentToCancel || !firestore || !typedUserData) return;
@@ -118,8 +119,11 @@ export default function MyInvestmentsPage() {
             userEmail: typedUserData.email,
         });
 
-        // 3. Delete the active investment
-        batch.delete(investmentRef);
+        // 3. Mark the investment as completed instead of deleting it
+        batch.update(investmentRef, {
+            status: 'completed',
+            endDate: serverTimestamp() // Mark it as completed now
+        });
 
         try {
             await batch.commit();
@@ -130,7 +134,8 @@ export default function MyInvestmentsPage() {
         } catch (error) {
             const permissionError = new FirestorePermissionError({
                 path: investmentRef.path,
-                operation: 'delete',
+                operation: 'update',
+                requestResourceData: { status: 'completed' }
             });
             errorEmitter.emit('permission-error', permissionError);
             toast({
@@ -188,7 +193,7 @@ export default function MyInvestmentsPage() {
                                         <CardTitle className="text-lg">{inv.planName}</CardTitle>
                                         <CardDescription>{formatCurrency(inv.amount)}</CardDescription>
                                     </div>
-                                    <StatusBadge status={inv.status} />
+                                    <StatusBadge status={inv.status} endDate={inv.endDate} />
                                 </div>
                             </CardHeader>
                             <CardContent className="grid gap-2 text-sm">
@@ -233,7 +238,7 @@ export default function MyInvestmentsPage() {
                                         <CardTitle className="text-lg">{inv.planName}</CardTitle>
                                         <CardDescription>{formatCurrency(inv.amount)}</CardDescription>
                                     </div>
-                                    <StatusBadge status={inv.status} />
+                                    <StatusBadge status={inv.status} endDate={inv.endDate} />
                                 </div>
                             </CardHeader>
                            <CardContent className="grid gap-2 text-sm">
@@ -242,7 +247,7 @@ export default function MyInvestmentsPage() {
                                     <span className="font-medium">{formatDate(inv.startDate)}</span>
                                </div>
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">End Date</span>
+                                    <span className="text-muted-foreground">Completed On</span>
                                     <span className="font-medium">{formatDate(inv.endDate)}</span>
                                </div>
                             </CardContent>
@@ -255,7 +260,7 @@ export default function MyInvestmentsPage() {
                     <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure you want to cancel this investment?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This action cannot be undone. The investment amount of{' '}
+                        This action cannot be undone. The plan will be marked as complete, and the investment amount of{' '}
                         <strong>{formatCurrency(investmentToCancel?.amount)}</strong> will be refunded to your main balance. You will forfeit any future daily profits from this plan.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
