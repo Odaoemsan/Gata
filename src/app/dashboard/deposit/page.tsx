@@ -161,7 +161,7 @@ export default function DepositPage() {
                             <Input 
                                 id="amount" 
                                 type="number" 
-                                placeholder="100.00" 
+                                placeholder="10" 
                                 className="pl-10 text-base" 
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
