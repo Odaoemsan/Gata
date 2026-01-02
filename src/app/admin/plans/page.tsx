@@ -17,7 +17,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -41,7 +51,9 @@ export default function ManagePlansPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<InvestmentPlan | null>(null);
+    const [planToDelete, setPlanToDelete] = useState<InvestmentPlan | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const plansQuery = useMemo(() => {
@@ -73,11 +85,16 @@ export default function ManagePlansPage() {
         setDialogOpen(true);
     };
 
-    const handleDelete = async (planId: string) => {
-        if (!firestore || !confirm('Are you sure you want to delete this plan? This action cannot be undone.')) return;
+    const openDeleteDialog = (plan: InvestmentPlan) => {
+        setPlanToDelete(plan);
+        setDeleteDialogOpen(true);
+    }
+
+    const handleDelete = async () => {
+        if (!firestore || !planToDelete) return;
         
         setIsLoading(true);
-        const planRef = doc(firestore, 'investmentPlans', planId);
+        const planRef = doc(firestore, 'investmentPlans', planToDelete.id);
 
         deleteDoc(planRef)
             .then(() => {
@@ -86,10 +103,11 @@ export default function ManagePlansPage() {
             .catch(async (error) => {
                 const permissionError = new FirestorePermissionError({ path: planRef.path, operation: 'delete' });
                 errorEmitter.emit('permission-error', permissionError);
-                toast({ variant: "destructive", title: "Error", description: "Failed to delete plan." });
             })
             .finally(() => {
                 setIsLoading(false);
+                setDeleteDialogOpen(false);
+                setPlanToDelete(null);
             });
     };
     
@@ -97,165 +115,172 @@ export default function ManagePlansPage() {
         if (!firestore) return;
         setIsLoading(true);
 
-        if (selectedPlan) {
-            // Update existing plan
-            const planRef = doc(firestore, 'investmentPlans', selectedPlan.id);
-            updateDoc(planRef, values)
-                .then(() => {
+        const processRequest = async (operation: 'create' | 'update') => {
+            try {
+                if (operation === 'update' && selectedPlan) {
+                    const planRef = doc(firestore, 'investmentPlans', selectedPlan.id);
+                    await updateDoc(planRef, values);
                     toast({ title: "Success", description: "Investment plan updated successfully." });
-                    setDialogOpen(false);
-                })
-                .catch(async (error) => {
-                     const permissionError = new FirestorePermissionError({
-                        path: planRef.path,
-                        operation: 'update',
-                        requestResourceData: values,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                    toast({ variant: "destructive", title: "Error", description: "Failed to save plan." });
-                })
-                .finally(() => {
-                    setIsLoading(false);
-                });
-        } else {
-            // Create new plan
-            const plansCollectionRef = collection(firestore, 'investmentPlans');
-            addDoc(plansCollectionRef, values)
-                .then(() => {
+                } else {
+                    const plansCollectionRef = collection(firestore, 'investmentPlans');
+                    await addDoc(plansCollectionRef, values);
                     toast({ title: "Success", description: "New investment plan created." });
-                    setDialogOpen(false);
-                })
-                .catch(async (error) => {
-                     const permissionError = new FirestorePermissionError({
-                        path: plansCollectionRef.path,
-                        operation: 'create',
-                        requestResourceData: values,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                    toast({ variant: "destructive", title: "Error", description: "Failed to save plan." });
-                })
-                .finally(() => {
-                    setIsLoading(false);
+                }
+                setDialogOpen(false);
+            } catch (error: any) {
+                const path = operation === 'update' && selectedPlan
+                    ? `investmentPlans/${selectedPlan.id}`
+                    : 'investmentPlans';
+                const permissionError = new FirestorePermissionError({
+                    path: path,
+                    operation: operation,
+                    requestResourceData: values,
                 });
-        }
+                errorEmitter.emit('permission-error', permissionError);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        await processRequest(selectedPlan ? 'update' : 'create');
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Manage Investment Plans</h2>
-                    <p className="text-muted-foreground">Create, view, edit, and delete investment plans.</p>
+        <>
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold tracking-tight">Manage Investment Plans</h2>
+                        <p className="text-muted-foreground">Create, view, edit, and delete investment plans.</p>
+                    </div>
+                    <Button onClick={openDialogForNew}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        New Plan
+                    </Button>
                 </div>
-                <Button onClick={openDialogForNew}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    New Plan
-                </Button>
+                
+                <Card>
+                    <CardContent className="p-0">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Plan Name</TableHead>
+                                    <TableHead>Daily Profit</TableHead>
+                                    <TableHead>Duration</TableHead>
+                                    <TableHead>Min/Max</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loading && (
+                                    [...Array(3)].map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                                {!loading && plans?.map(plan => (
+                                    <TableRow key={plan.id}>
+                                        <TableCell className="font-medium">{plan.name}</TableCell>
+                                        <TableCell>{plan.dailyProfit}%</TableCell>
+                                        <TableCell>{plan.duration} Days</TableCell>
+                                        <TableCell>{plan.minMax}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => openDialogForEdit(plan)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => openDeleteDialog(plan)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {!loading && plans?.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="h-24 text-center">
+                                            No investment plans found. Create one to get started.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{selectedPlan ? 'Edit Plan' : 'Create New Plan'}</DialogTitle>
+                            <DialogDescription>
+                                Fill in the details for the investment plan.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                                <FormField control={form.control} name="name" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Plan Name</FormLabel>
+                                        <FormControl><Input placeholder="e.g., Starter Plan" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="dailyProfit" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Daily Profit (%)</FormLabel>
+                                        <FormControl><Input type="number" placeholder="e.g., 5" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="duration" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Duration (Days)</FormLabel>
+                                        <FormControl><Input type="number" placeholder="e.g., 30" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="minMax" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Min/Max Investment</FormLabel>
+                                        <FormControl><Input placeholder="e.g., $100 - $1000" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button type="button" variant="outline">Cancel</Button>
+                                    </DialogClose>
+                                    <Button type="submit" disabled={isLoading}>
+                                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {selectedPlan ? 'Save Changes' : 'Create Plan'}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </Form>
+                    </DialogContent>
+                </Dialog>
             </div>
             
-            <Card>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Plan Name</TableHead>
-                                <TableHead>Daily Profit</TableHead>
-                                <TableHead>Duration</TableHead>
-                                <TableHead>Min/Max</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading && (
-                                [...Array(3)].map((_, i) => (
-                                    <TableRow key={i}>
-                                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                        <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                                        <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                                        <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                            {!loading && plans?.map(plan => (
-                                <TableRow key={plan.id}>
-                                    <TableCell className="font-medium">{plan.name}</TableCell>
-                                    <TableCell>{plan.dailyProfit}%</TableCell>
-                                    <TableCell>{plan.duration} Days</TableCell>
-                                    <TableCell>{plan.minMax}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => openDialogForEdit(plan)}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(plan.id)} disabled={isLoading}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                             {!loading && plans?.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center">
-                                        No investment plans found. Create one to get started.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{selectedPlan ? 'Edit Plan' : 'Create New Plan'}</DialogTitle>
-                        <DialogDescription>
-                            Fill in the details for the investment plan.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                            <FormField control={form.control} name="name" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Plan Name</FormLabel>
-                                    <FormControl><Input placeholder="e.g., Starter Plan" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="dailyProfit" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Daily Profit (%)</FormLabel>
-                                    <FormControl><Input type="number" placeholder="e.g., 5" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                             <FormField control={form.control} name="duration" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Duration (Days)</FormLabel>
-                                    <FormControl><Input type="number" placeholder="e.g., 30" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                             <FormField control={form.control} name="minMax" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Min/Max Investment</FormLabel>
-                                    <FormControl><Input placeholder="e.g., $100 - $1000" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <DialogFooter>
-                                <DialogClose asChild>
-                                    <Button type="button" variant="outline">Cancel</Button>
-                                </DialogClose>
-                                <Button type="submit" disabled={isLoading}>
-                                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {selectedPlan ? 'Save Changes' : 'Create Plan'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
-        </div>
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the investment plan &quot;{planToDelete?.name}&quot;.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} disabled={isLoading} className="bg-destructive hover:bg-destructive/90">
+                           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                           Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }

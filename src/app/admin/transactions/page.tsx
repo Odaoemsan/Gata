@@ -104,12 +104,12 @@ export default function TransactionsPage() {
         setDeposits(pendingDeposits);
         setWithdrawals(pendingWithdrawals);
     } catch (error: any) {
+        // Errors are now handled by the emitter, no need for a user-facing toast here in dev.
         console.error("Failed to fetch pending transactions:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch pending transactions. Check console and security rules.' });
     } finally {
         setLoading(false);
     }
-  }, [firestore, toast]);
+  }, [firestore]);
 
   
   useEffect(() => {
@@ -167,7 +167,6 @@ export default function TransactionsPage() {
                 requestResourceData: { tx, approved }
             });
             errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to process deposit.' });
         })
         .finally(() => {
             setProcessingId(null);
@@ -221,7 +220,6 @@ export default function TransactionsPage() {
                 requestResourceData: { tx, approved }
             });
             errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to process withdrawal.' });
         })
         .finally(() => {
             setProcessingId(null);

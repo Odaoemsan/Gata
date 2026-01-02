@@ -17,8 +17,17 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Rank } from '@/lib/types';
 import { useForm } from 'react-hook-form';
@@ -39,7 +48,9 @@ export default function ManageRanksPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedRank, setSelectedRank] = useState<Rank | null>(null);
+    const [rankToDelete, setRankToDelete] = useState<Rank | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const ranksQuery = useMemo(() => {
@@ -70,11 +81,16 @@ export default function ManageRanksPage() {
         setDialogOpen(true);
     };
 
-    const handleDelete = async (rankId: string) => {
-        if (!firestore || !confirm('Are you sure you want to delete this rank? This action cannot be undone.')) return;
+     const openDeleteDialog = (rank: Rank) => {
+        setRankToDelete(rank);
+        setDeleteDialogOpen(true);
+    }
+
+    const handleDelete = async () => {
+        if (!firestore || !rankToDelete) return;
         
         setIsLoading(true);
-        const rankRef = doc(firestore, 'ranks', rankId);
+        const rankRef = doc(firestore, 'ranks', rankToDelete.id);
 
         deleteDoc(rankRef)
             .then(() => {
@@ -86,10 +102,11 @@ export default function ManageRanksPage() {
                     operation: 'delete',
                 });
                 errorEmitter.emit('permission-error', permissionError);
-                toast({ variant: "destructive", title: "Error", description: "Failed to delete rank." });
             })
             .finally(() => {
                 setIsLoading(false);
+                setDeleteDialogOpen(false);
+                setRankToDelete(null);
             });
     };
     
@@ -97,155 +114,167 @@ export default function ManageRanksPage() {
         if (!firestore) return;
         setIsLoading(true);
 
-        if (selectedRank) {
-            const rankRef = doc(firestore, 'ranks', selectedRank.id);
-            updateDoc(rankRef, values)
-                .then(() => {
+         const processRequest = async (operation: 'create' | 'update') => {
+            try {
+                if (operation === 'update' && selectedRank) {
+                    const rankRef = doc(firestore, 'ranks', selectedRank.id);
+                    await updateDoc(rankRef, values);
                     toast({ title: "Success", description: "Rank updated successfully." });
-                    setDialogOpen(false);
-                })
-                .catch(async (error) => {
-                    const permissionError = new FirestorePermissionError({
-                        path: rankRef.path,
-                        operation: 'update',
-                        requestResourceData: values,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                    toast({ variant: "destructive", title: "Error", description: "Failed to save rank." });
-                })
-                .finally(() => setIsLoading(false));
-        } else {
-            const ranksCollectionRef = collection(firestore, 'ranks');
-            addDoc(ranksCollectionRef, values)
-                .then(() => {
+                } else {
+                    const ranksCollectionRef = collection(firestore, 'ranks');
+                    await addDoc(ranksCollectionRef, values);
                     toast({ title: "Success", description: "New rank created." });
-                    setDialogOpen(false);
-                })
-                .catch(async (error) => {
-                    const permissionError = new FirestorePermissionError({
-                        path: ranksCollectionRef.path,
-                        operation: 'create',
-                        requestResourceData: values,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                    toast({ variant: "destructive", title: "Error", description: "Failed to save rank." });
-                })
-                .finally(() => setIsLoading(false));
-        }
+                }
+                setDialogOpen(false);
+            } catch (error: any) {
+                 const path = operation === 'update' && selectedRank
+                    ? `ranks/${selectedRank.id}`
+                    : 'ranks';
+                const permissionError = new FirestorePermissionError({
+                    path: path,
+                    operation: operation,
+                    requestResourceData: values,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        
+        await processRequest(selectedRank ? 'update' : 'create');
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Manage Ranks</h2>
-                    <p className="text-muted-foreground">
-                        Define rank requirements and referral commissions.
-                    </p>
+        <>
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold tracking-tight">Manage Ranks</h2>
+                        <p className="text-muted-foreground">
+                            Define rank requirements and referral commissions.
+                        </p>
+                    </div>
+                    <Button onClick={openDialogForNew}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        New Rank
+                    </Button>
                 </div>
-                 <Button onClick={openDialogForNew}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    New Rank
-                </Button>
-            </div>
-            
-            <Card>
-                 <CardHeader>
-                    <CardTitle>Referral Ranks</CardTitle>
-                    <CardDescription>Configure the conditions and rewards for each rank.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Rank Name</TableHead>
-                                <TableHead>Required Team Investment</TableHead>
-                                <TableHead>Commission Rate</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading && (
-                                [...Array(3)].map((_, i) => (
-                                    <TableRow key={i}>
-                                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                                        <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                            {!loading && ranks?.map(rank => (
-                                <TableRow key={rank.id}>
-                                    <TableCell className="font-medium flex items-center gap-2"><Award className="h-4 w-4 text-yellow-500" /> {rank.name}</TableCell>
-                                    <TableCell>${rank.requiredInvestment.toLocaleString()}</TableCell>
-                                    <TableCell>{rank.commissionRate}%</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => openDialogForEdit(rank)}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(rank.id)} disabled={isLoading}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                             {!loading && ranks?.length === 0 && (
+                
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Referral Ranks</CardTitle>
+                        <CardDescription>Configure the conditions and rewards for each rank.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">
-                                        No ranks found. Create one to get started.
-                                    </TableCell>
+                                    <TableHead>Rank Name</TableHead>
+                                    <TableHead>Required Team Investment</TableHead>
+                                    <TableHead>Commission Rate</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                            </TableHeader>
+                            <TableBody>
+                                {loading && (
+                                    [...Array(3)].map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                                {!loading && ranks?.map(rank => (
+                                    <TableRow key={rank.id}>
+                                        <TableCell className="font-medium flex items-center gap-2"><Award className="h-4 w-4 text-yellow-500" /> {rank.name}</TableCell>
+                                        <TableCell>${rank.requiredInvestment.toLocaleString()}</TableCell>
+                                        <TableCell>{rank.commissionRate}%</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => openDialogForEdit(rank)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => openDeleteDialog(rank)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {!loading && ranks?.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center">
+                                            No ranks found. Create one to get started.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
 
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{selectedRank ? 'Edit Rank' : 'Create New Rank'}</DialogTitle>
-                        <DialogDescription>
-                            Fill in the details for the referral rank.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                            <FormField control={form.control} name="name" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Rank Name</FormLabel>
-                                    <FormControl><Input placeholder="e.g., Bronze" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="requiredInvestment" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Required Team Investment ($)</FormLabel>
-                                    <FormControl><Input type="number" placeholder="e.g., 5000" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                             <FormField control={form.control} name="commissionRate" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Commission Rate (%)</FormLabel>
-                                    <FormControl><Input type="number" placeholder="e.g., 7" {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <DialogFooter>
-                                <DialogClose asChild>
-                                    <Button type="button" variant="outline">Cancel</Button>
-                                </DialogClose>
-                                <Button type="submit" disabled={isLoading}>
-                                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {selectedRank ? 'Save Changes' : 'Create Rank'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
-        </div>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{selectedRank ? 'Edit Rank' : 'Create New Rank'}</DialogTitle>
+                            <DialogDescription>
+                                Fill in the details for the referral rank.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                                <FormField control={form.control} name="name" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Rank Name</FormLabel>
+                                        <FormControl><Input placeholder="e.g., Bronze" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="requiredInvestment" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Required Team Investment ($)</FormLabel>
+                                        <FormControl><Input type="number" placeholder="e.g., 5000" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="commissionRate" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Commission Rate (%)</FormLabel>
+                                        <FormControl><Input type="number" placeholder="e.g., 7" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button type="button" variant="outline">Cancel</Button>
+                                    </DialogClose>
+                                    <Button type="submit" disabled={isLoading}>
+                                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {selectedRank ? 'Save Changes' : 'Create Rank'}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </Form>
+                    </DialogContent>
+                </Dialog>
+            </div>
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the rank &quot;{rankToDelete?.name}&quot;.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                         <AlertDialogAction onClick={handleDelete} disabled={isLoading} className="bg-destructive hover:bg-destructive/90">
+                           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                           Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }

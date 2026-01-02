@@ -24,21 +24,22 @@ import { Button } from '@/components/ui/button';
 import { CommonSidebarFooter } from '@/components/layout/common-sidebar-footer';
 
 
-function AdminBottomNavBar() {
-  const pathname = usePathname();
-  const navItems = [
+const ADMIN_NAV_ITEMS = [
     { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/admin/plans', icon: Package, label: 'Plans' },
     { href: '/admin/transactions', icon: Wallet, label: 'Transactions' },
     { href: '/admin/users', icon: Users, label: 'Users' },
-    { href: '/admin/settings', icon: Settings, label: 'Settings' },
+    { href: '/admin/ranks', icon: Award, label: 'Ranks' },
     { href: '/admin/tasks', icon: ListTodo, label: 'Tasks' },
-  ];
+];
+
+function AdminBottomNavBar() {
+  const pathname = usePathname();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-sm md:hidden">
       <div className="grid h-16 grid-cols-6 items-center justify-around">
-        {navItems.map((item) => {
+        {ADMIN_NAV_ITEMS.map((item) => {
           const isActive = pathname.startsWith(item.href) && (item.href !== '/admin' || pathname === '/admin');
           const Icon = item.icon;
           return (
@@ -91,14 +92,11 @@ export default function AdminLayout({
     )
   }
 
-  const menuItems = [
-    { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/admin/plans', icon: Package, label: 'Manage Plans' },
-    { href: '/admin/transactions', icon: Wallet, label: 'Transactions' },
-    { href: '/admin/users', icon: Users, label: 'Manage Users' },
-    { href: '/admin/ranks', icon: Award, label: 'Manage Ranks' },
-    { href: '/admin/tasks', icon: ListTodo, label: 'Manage Tasks' },
+  const sidebarMenuItems = [
+    ...ADMIN_NAV_ITEMS.map(item => ({...item, label: `Manage ${item.label}`})),
   ];
+   sidebarMenuItems[0].label = 'Dashboard'; // Keep dashboard label simple
+
 
   return (
     <SidebarProvider>
@@ -116,7 +114,7 @@ export default function AdminLayout({
         </SidebarHeader>
         <SidebarContent>
            <SidebarMenu>
-            {menuItems.map(item => (
+            {sidebarMenuItems.map(item => (
                 <SidebarMenuItem key={item.href}>
                     <Link href={item.href} legacyBehavior passHref>
                         <SidebarMenuButton tooltip={item.label} isActive={pathname.startsWith(item.href) && (item.href !== '/admin' || pathname === '/admin')}>

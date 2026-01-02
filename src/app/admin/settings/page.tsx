@@ -67,7 +67,6 @@ export default function ManageSettingsPage() {
                     requestResourceData: values,
                 });
                 errorEmitter.emit('permission-error', permissionError);
-                toast({ variant: "destructive", title: "Error", description: "Failed to update settings." });
             })
             .finally(() => {
                 setIsLoading(false);

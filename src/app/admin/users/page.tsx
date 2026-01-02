@@ -99,7 +99,6 @@ export default function ManageUsersPage() {
                     requestResourceData: values,
                 });
                 errorEmitter.emit('permission-error', permissionError);
-                toast({ variant: "destructive", title: "Error", description: "Failed to update user profile." });
             })
             .finally(() => {
                 setIsLoading(false);

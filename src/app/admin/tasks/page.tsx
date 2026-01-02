@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { collection, query, addDoc, updateDoc, deleteDoc, doc, runTransaction, writeBatch, serverTimestamp, where, getDocs, increment } from 'firebase/firestore';
+import { collection, query, addDoc, updateDoc, deleteDoc, doc, runTransaction, serverTimestamp, where, getDocs, increment } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,16 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { Task, TaskSubmission, User } from '@/lib/types';
@@ -45,7 +55,9 @@ function ManageTasks() {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const tasksQuery = useMemo(() => {
@@ -72,11 +84,16 @@ function ManageTasks() {
         setDialogOpen(true);
     };
 
-    const handleDelete = async (taskId: string) => {
-        if (!firestore || !confirm('Are you sure you want to delete this task?')) return;
+    const openDeleteDialog = (task: Task) => {
+        setTaskToDelete(task);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDelete = async () => {
+        if (!firestore || !taskToDelete) return;
         
         setIsLoading(true);
-        const taskRef = doc(firestore, 'tasks', taskId);
+        const taskRef = doc(firestore, 'tasks', taskToDelete.id);
         deleteDoc(taskRef)
             .then(() => {
                 toast({ title: "Success", description: "Task deleted successfully." });
@@ -84,120 +101,141 @@ function ManageTasks() {
             .catch((error) => {
                 const permissionError = new FirestorePermissionError({ path: taskRef.path, operation: 'delete' });
                 errorEmitter.emit('permission-error', permissionError);
-                toast({ variant: "destructive", title: "Error", description: "Failed to delete task." });
             })
             .finally(() => {
                 setIsLoading(false);
+                setDeleteDialogOpen(false);
+                setTaskToDelete(null);
             });
     };
     
     async function onSubmit(values: z.infer<typeof taskSchema>) {
         if (!firestore) return;
         setIsLoading(true);
+        const dataToSave = { ...values, createdAt: selectedTask?.createdAt ?? serverTimestamp() };
 
-        if (selectedTask) {
-            const taskRef = doc(firestore, 'tasks', selectedTask.id);
-            updateDoc(taskRef, values)
-                .then(() => {
+        const processRequest = async (operation: 'create' | 'update') => {
+             try {
+                if (operation === 'update' && selectedTask) {
+                    const taskRef = doc(firestore, 'tasks', selectedTask.id);
+                    await updateDoc(taskRef, values);
                     toast({ title: "Success", description: "Task updated successfully." });
-                    setDialogOpen(false);
-                })
-                .catch((error) => {
-                    const permissionError = new FirestorePermissionError({ path: taskRef.path, operation: 'update', requestResourceData: values });
-                    errorEmitter.emit('permission-error', permissionError);
-                    toast({ variant: "destructive", title: "Error", description: "Failed to save task." });
-                })
-                .finally(() => setIsLoading(false));
-        } else {
-            const tasksCollectionRef = collection(firestore, 'tasks');
-            const dataToSave = { ...values, createdAt: serverTimestamp() };
-            addDoc(tasksCollectionRef, dataToSave)
-                .then(() => {
+                } else {
+                    const tasksCollectionRef = collection(firestore, 'tasks');
+                    await addDoc(tasksCollectionRef, dataToSave);
                     toast({ title: "Success", description: "New task created." });
-                    setDialogOpen(false);
-                })
-                .catch((error) => {
-                    const permissionError = new FirestorePermissionError({ path: tasksCollectionRef.path, operation: 'create', requestResourceData: dataToSave });
-                    errorEmitter.emit('permission-error', permissionError);
-                    toast({ variant: "destructive", title: "Error", description: "Failed to save task." });
-                })
-                .finally(() => setIsLoading(false));
+                }
+                setDialogOpen(false);
+            } catch (error: any) {
+                const path = operation === 'update' && selectedTask
+                    ? `tasks/${selectedTask.id}`
+                    : 'tasks';
+                const permissionError = new FirestorePermissionError({
+                    path: path,
+                    operation: operation,
+                    requestResourceData: dataToSave,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            } finally {
+                setIsLoading(false);
+            }
         }
+       
+       await processRequest(selectedTask ? 'update' : 'create');
     }
     
      return (
-        <div className="space-y-4">
-             <div className="flex items-center justify-between">
-                <p className="text-muted-foreground">Create and manage tasks for users to complete.</p>
-                <Button onClick={openDialogForNew}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    New Task
-                </Button>
-            </div>
-            <Card>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Title</TableHead>
-                                <TableHead>Reward</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading && [...Array(3)].map((_, i) => (
-                                <TableRow key={i}>
-                                    <TableCell><Skeleton className="h-5 w-48" /></TableCell>
-                                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
-                                    <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+        <>
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <p className="text-muted-foreground">Create and manage tasks for users to complete.</p>
+                    <Button onClick={openDialogForNew}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        New Task
+                    </Button>
+                </div>
+                <Card>
+                    <CardContent className="p-0">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Title</TableHead>
+                                    <TableHead>Reward</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
-                            ))}
-                            {!loading && tasks?.map(task => (
-                                <TableRow key={task.id}>
-                                    <TableCell className="font-medium">{task.title}</TableCell>
-                                    <TableCell>${task.reward.toFixed(2)}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => openDialogForEdit(task)}><Edit className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(task.id)} disabled={isLoading}><Trash2 className="h-4 w-4" /></Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {!loading && tasks?.length === 0 && (
-                                <TableRow><TableCell colSpan={3} className="h-24 text-center">No tasks found. Create one!</TableCell></TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                            </TableHeader>
+                            <TableBody>
+                                {loading && [...Array(3)].map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                                        <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                                        <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                                    </TableRow>
+                                ))}
+                                {!loading && tasks?.map(task => (
+                                    <TableRow key={task.id}>
+                                        <TableCell className="font-medium">{task.title}</TableCell>
+                                        <TableCell>${task.reward.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => openDialogForEdit(task)}><Edit className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => openDeleteDialog(task)}><Trash2 className="h-4 w-4" /></Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {!loading && tasks?.length === 0 && (
+                                    <TableRow><TableCell colSpan={3} className="h-24 text-center">No tasks found. Create one!</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
 
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{selectedTask ? 'Edit Task' : 'Create New Task'}</DialogTitle>
-                    </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                            <FormField control={form.control} name="title" render={({ field }) => (
-                                <FormItem><FormLabel>Task Title</FormLabel><FormControl><Input placeholder="e.g., Share on Facebook" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="description" render={({ field }) => (
-                                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Detailed instructions for the user..." {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="reward" render={({ field }) => (
-                                <FormItem><FormLabel>Reward ($)</FormLabel><FormControl><Input type="number" placeholder="e.g., 5" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <DialogFooter>
-                                <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                                <Button type="submit" disabled={isLoading}>
-                                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {selectedTask ? 'Save Changes' : 'Create Task'}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
-        </div>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{selectedTask ? 'Edit Task' : 'Create New Task'}</DialogTitle>
+                        </DialogHeader>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                                <FormField control={form.control} name="title" render={({ field }) => (
+                                    <FormItem><FormLabel>Task Title</FormLabel><FormControl><Input placeholder="e.g., Share on Facebook" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="description" render={({ field }) => (
+                                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Detailed instructions for the user..." {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="reward" render={({ field }) => (
+                                    <FormItem><FormLabel>Reward ($)</FormLabel><FormControl><Input type="number" placeholder="e.g., 5" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <DialogFooter>
+                                    <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                                    <Button type="submit" disabled={isLoading}>
+                                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {selectedTask ? 'Save Changes' : 'Create Task'}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </Form>
+                    </DialogContent>
+                </Dialog>
+            </div>
+             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the task &quot;{taskToDelete?.title}&quot;.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} disabled={isLoading} className="bg-destructive hover:bg-destructive/90">
+                           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                           Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }
 
@@ -219,7 +257,6 @@ function ReviewSubmissions() {
         } catch (error) {
             const permissionError = new FirestorePermissionError({ path: 'taskSubmissions', operation: 'list' });
             errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: "destructive", title: "Error", description: "Failed to fetch submissions." });
         } finally {
             setLoading(false);
         }
@@ -277,9 +314,12 @@ function ReviewSubmissions() {
             toast({ title: 'Success', description: `Submission has been ${approved ? 'approved' : 'rejected'}.` });
             fetchSubmissions(); // Refresh the list
         } catch (error) {
-            const permissionError = new FirestorePermissionError({ path: submissionRef.path, operation: approved ? 'update' : 'delete' });
+            const permissionError = new FirestorePermissionError({ 
+                path: submissionRef.path, 
+                operation: 'update', 
+                requestResourceData: { status: approved ? 'approved' : 'rejected' }
+            });
             errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to process submission.' });
         } finally {
             setProcessingId(null);
         }
@@ -364,5 +404,3 @@ export default function ManageTasksPage() {
     </div>
   );
 }
-
-    
