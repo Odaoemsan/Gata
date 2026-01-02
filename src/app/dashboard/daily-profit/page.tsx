@@ -70,6 +70,7 @@ export default function DailyProfitPage() {
     const [isTrading, setIsTrading] = useState(false);
     const [simulationStep, setSimulationStep] = useState(0);
     const [simulationDialogOpen, setSimulationDialogOpen] = useState(false);
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
     const typedUserData = userData as User | null;
 
@@ -93,9 +94,28 @@ export default function DailyProfitPage() {
         }
     }, [typedUserData, userLoading, investmentsLoading]);
     
+    const startSimulation = () => {
+        setSimulationDialogOpen(true);
+        setIsTrading(true);
+        setSimulationStep(0);
+        
+        const interval = setInterval(() => {
+            setSimulationStep(prev => {
+                if (prev >= SIMULATION_STEPS.length - 1) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        setSimulationDialogOpen(false);
+                        setIsTrading(false);
+                    }, 1000); 
+                    return prev;
+                }
+                return prev + 1;
+            });
+        }, 2000); // 2 seconds per step
+    }
 
     const handleTrade = async () => {
-        if (!user || !firestore || !activeInvestments || activeInvestments.length === 0) {
+        if (!user || !firestore || !activeInvestments || activeInvestments.length === 0 || !typedUserData) {
             toast({
                 variant: 'destructive',
                 title: 'No Active Investments',
@@ -103,77 +123,63 @@ export default function DailyProfitPage() {
             });
             return;
         }
+
+        setConfirmDialogOpen(false); // Close confirmation dialog
+        setIsTrading(true); // Disable buttons while processing
+
+        const totalDailyProfit = activeInvestments.reduce((sum, inv) => sum + (inv.dailyProfit / 100) * inv.amount, 0);
+
+        const userRef = doc(firestore, 'users', user.uid);
+        const transactionRef = doc(collection(firestore, `users/${user.uid}/transactions`));
         
-        setSimulationDialogOpen(true);
-    };
+        const newTransactionData = {
+            type: 'daily_profit',
+            amount: totalDailyProfit,
+            date: serverTimestamp(),
+            status: 'completed',
+            userId: user.uid,
+            username: typedUserData.username,
+            userDisplayName: typedUserData.displayName,
+            userEmail: typedUserData.email,
+        };
 
-    const runSimulationAndProfit = async () => {
-        if (!user || !firestore || !activeInvestments || !typedUserData) return;
+        const batch = writeBatch(firestore);
+        batch.update(userRef, { 
+            balance: increment(totalDailyProfit),
+            lastTradeTime: serverTimestamp(),
+            dailyTradeCounter: increment(1) 
+        });
+        batch.set(transactionRef, newTransactionData);
 
-        setIsTrading(true);
-        setSimulationStep(0);
-
-        const interval = setInterval(() => {
-            setSimulationStep(prev => prev + 1);
-        }, (30 * 1000) / SIMULATION_STEPS.length);
-        
-        setTimeout(async () => {
-            clearInterval(interval);
+        try {
+            await batch.commit();
             
-            const totalDailyProfit = activeInvestments.reduce((sum, inv) => sum + (inv.dailyProfit / 100) * inv.amount, 0);
-
-            const userRef = doc(firestore, 'users', user.uid);
-            const transactionRef = doc(collection(firestore, `users/${user.uid}/transactions`));
-            
-            const newTransactionData = {
-                type: 'daily_profit',
-                amount: totalDailyProfit,
-                date: serverTimestamp(),
-                status: 'completed',
-                userId: user.uid,
-                username: typedUserData.username,
-                userDisplayName: typedUserData.displayName,
-                userEmail: typedUserData.email,
-            };
-
-            const batch = writeBatch(firestore);
-            batch.update(userRef, { 
-                balance: increment(totalDailyProfit),
-                lastTradeTime: serverTimestamp(),
-                dailyTradeCounter: increment(1) 
+            toast({
+                title: "Profit Claimed!",
+                description: `${formatCurrency(totalDailyProfit)} has been added to your balance.`,
             });
-            batch.set(transactionRef, newTransactionData);
+            
+            const nextTime = new Date(Date.now() + COOLDOWN_HOURS * 60 * 60 * 1000);
+            setNextTradeTime(nextTime);
+            setIsReady(false);
 
-            batch.commit()
-                .then(() => {
-                    toast({
-                        title: "Profit Claimed!",
-                        description: `${formatCurrency(totalDailyProfit)} has been added to your balance.`,
-                    });
-                     const nextTime = new Date(Date.now() + COOLDOWN_HOURS * 60 * 60 * 1000);
-                    setNextTradeTime(nextTime);
-                    setIsReady(false);
-                })
-                .catch((error) => {
-                     const permissionError = new FirestorePermissionError({
-                        path: userRef.path,
-                        operation: 'update',
-                        requestResourceData: { balance: increment(totalDailyProfit), lastTradeTime: serverTimestamp(), dailyTradeCounter: increment(1) }
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                    toast({
-                        variant: 'destructive',
-                        title: 'Error Claiming Profit',
-                        description: 'There was an issue processing your profit. Please try again.',
-                    });
-                })
-                .finally(() => {
-                    setIsTrading(false);
-                    setSimulationDialogOpen(false);
-                });
-
-        }, 30 * 1000);
-    }
+            // Start visual simulation AFTER successful DB write
+            startSimulation();
+        } catch (error) {
+             const permissionError = new FirestorePermissionError({
+                path: userRef.path,
+                operation: 'update',
+                requestResourceData: { balance: increment(totalDailyProfit), lastTradeTime: serverTimestamp(), dailyTradeCounter: increment(1) }
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: 'destructive',
+                title: 'Error Claiming Profit',
+                description: 'There was an issue processing your profit. Please try again.',
+            });
+            setIsTrading(false); // Re-enable on error
+        }
+    };
     
     const isLoading = userLoading || investmentsLoading;
     const canTrade = isReady && !isLoading && activeInvestments && activeInvestments.length > 0;
@@ -200,7 +206,8 @@ export default function DailyProfitPage() {
                         <>
                             <CardTitle className="text-2xl">Ready to Collect</CardTitle>
                             <p className="text-muted-foreground">Your daily profit is available. Start the process to add it to your balance.</p>
-                            <Button size="lg" className="w-full" onClick={handleTrade}>
+                            <Button size="lg" className="w-full" onClick={() => setConfirmDialogOpen(true)} disabled={isTrading}>
+                               {isTrading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 Claim Now
                             </Button>
                         </>
@@ -224,7 +231,7 @@ export default function DailyProfitPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={simulationDialogOpen} onOpenChange={setSimulationDialogOpen}>
+            <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
                 <DialogContent className="sm:max-w-md text-center" hideCloseButton={isTrading}>
                      <DialogHeader>
                         <DialogTitle className="text-2xl">Initiate Daily Trade</DialogTitle>
@@ -232,29 +239,33 @@ export default function DailyProfitPage() {
                             Confirm to start the automated trading process and claim your daily profit.
                         </DialogDescription>
                      </DialogHeader>
-                     {!isTrading ? (
-                        <div className="flex flex-col gap-4 py-4">
-                             <Button size="lg" onClick={runSimulationAndProfit}>Trade</Button>
-                             <Button size="lg" variant="outline" onClick={() => setSimulationDialogOpen(false)}>Cancel</Button>
+                     <div className="flex flex-col gap-4 py-4">
+                         <Button size="lg" onClick={handleTrade} disabled={isTrading}>
+                            {isTrading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                             Confirm & Trade
+                         </Button>
+                         <Button size="lg" variant="outline" onClick={() => setConfirmDialogOpen(false)} disabled={isTrading}>Cancel</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={simulationDialogOpen} onOpenChange={setSimulationDialogOpen}>
+                 <DialogContent className="sm:max-w-md text-center" hideCloseButton>
+                     <DialogHeader>
+                        <DialogTitle className="text-2xl">Processing...</DialogTitle>
+                     </DialogHeader>
+                    <div className="py-8 space-y-4">
+                        <div className="relative flex justify-center items-center">
+                            <Loader2 className="h-16 w-16 text-primary animate-spin" />
+                            <CircleDollarSign className="h-8 w-8 absolute text-primary"/>
                         </div>
-                     ) : (
-                        <div className="py-8 space-y-4">
-                            <div className="relative flex justify-center items-center">
-                                <Loader2 className="h-16 w-16 text-primary animate-spin" />
-                                <CircleDollarSign className="h-8 w-8 absolute text-primary"/>
-                            </div>
-                            <p className={`text-lg font-semibold transition-colors duration-500 ${SIMULATION_STEPS[simulationStep]?.color || 'text-muted-foreground'}`}>
-                                {SIMULATION_STEPS[simulationStep]?.message || 'Please wait...'}
-                            </p>
-                        </div>
-                     )}
+                        <p className={`text-lg font-semibold transition-colors duration-500 ${SIMULATION_STEPS[simulationStep]?.color || 'text-muted-foreground'}`}>
+                            {SIMULATION_STEPS[simulationStep]?.message || 'Please wait...'}
+                        </p>
+                    </div>
                 </DialogContent>
             </Dialog>
 
         </div>
     )
-
-    
-
-
 }
