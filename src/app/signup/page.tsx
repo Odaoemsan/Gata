@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { SignupForm } from './_components/signup-form';
 import { Skeleton } from '@/components/ui/skeleton';
 
-
+"use client";
 function SignupFormSkeleton() {
     return (
         <div className="space-y-4">
