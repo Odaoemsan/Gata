@@ -1,3 +1,4 @@
+"use client";
 
 import { Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,7 +6,6 @@ import Link from 'next/link';
 import { SignupForm } from './_components/signup-form';
 import { Skeleton } from '@/components/ui/skeleton';
 
-"use client";
 function SignupFormSkeleton() {
     return (
         <div className="space-y-4">
@@ -25,7 +25,7 @@ function SignupFormSkeleton() {
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-10 w-full" />
             </div>
-             <div className="space-y-2">
+            <div className="space-y-2">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-10 w-full" />
             </div>
@@ -33,7 +33,6 @@ function SignupFormSkeleton() {
         </div>
     )
 }
-
 
 export default function SignupPage() {
   return (
