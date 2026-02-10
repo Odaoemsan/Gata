@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import type { User, Transaction, ActiveInvestment } from '@/lib/types';
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, Briefcase, Landmark, Rocket, TrendingDown, TrendingUp, Users, Wallet, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -62,6 +62,31 @@ function DashboardSkeleton() {
 export default function DashboardPage() {
   const { user, userData, loading: userLoading } = useUser();
   const firestore = useFirestore();
+  const [balanceChanged, setBalanceChanged] = useState('');
+  const prevBalanceRef = useRef<number>();
+
+  const typedUserData = userData as User | null;
+
+  useEffect(() => {
+    const currentBalance = typedUserData?.balance;
+    const prevBalance = prevBalanceRef.current;
+
+    if (prevBalance !== undefined && currentBalance !== undefined) {
+        if (currentBalance > prevBalance) {
+            setBalanceChanged('increased');
+        } else if (currentBalance < prevBalance) {
+            setBalanceChanged('decreased');
+        }
+    }
+
+    prevBalanceRef.current = currentBalance;
+
+    if (balanceChanged) {
+        const timer = setTimeout(() => setBalanceChanged(''), 1000); // Animation duration 1s
+        return () => clearTimeout(timer);
+    }
+  }, [typedUserData?.balance, balanceChanged]);
+
 
   const transactionsQuery = useMemo(() => {
     if (!user || !firestore) return null;
@@ -86,8 +111,6 @@ export default function DashboardPage() {
   const totalInvested = useMemo(() => {
     return activeInvestments?.reduce((acc, investment) => acc + investment.amount, 0);
   }, [activeInvestments]);
-
-  const typedUserData = userData as User | null;
 
     const getTxIcon = (type: Transaction['type']) => {
         switch (type) {
@@ -165,7 +188,11 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium text-primary">Total Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold tracking-tight">
+            <p className={cn(
+                "text-4xl font-bold tracking-tight",
+                 balanceChanged === 'increased' && 'animate-pulse-green',
+                 balanceChanged === 'decreased' && 'animate-pulse-red'
+            )}>
                 {formatCurrency(typedUserData?.balance)}
             </p>
           </CardContent>
