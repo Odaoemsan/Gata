@@ -1,12 +1,12 @@
 {
-  "name": "GORA HYIP - High-Yield Investment",
+  "name": "GORA HYIP - Smart Investing",
   "short_name": "GORA",
-  "description": "Securely grow your wealth with our high-yield investment programs.",
+  "description": "High-Yield Investment Program for smart traders.",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#111827",
+  "background_color": "#0a0c10",
   "theme_color": "#10b981",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "https://placehold.co/192x192/10b981/ffffff?text=GORA",
