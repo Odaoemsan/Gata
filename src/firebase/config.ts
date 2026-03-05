@@ -1,7 +1,6 @@
 'use client';
 
-// Your web app's Firebase configuration
-// This is now read from environment variables for security and flexibility.
+// Firebase configuration using environment variables for security and Vercel compatibility.
 export const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
